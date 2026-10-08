@@ -1,0 +1,70 @@
+<?php
+
+return [
+    'accepted' => 'El campo :attribute debe ser aceptado.',
+    'accepted_if' => 'El campo :attribute debe ser aceptado cuando :other es :value.',
+    'active_url' => 'El campo :attribute no es una URL válida.',
+    'after' => 'El campo :attribute debe ser una fecha posterior a :date.',
+    'after_or_equal' => 'El campo :attribute debe ser una fecha posterior o igual a :date.',
+    'alpha' => 'El campo :attribute solo debe contener letras.',
+    'alpha_dash' => 'El campo :attribute solo debe contener letras, números, guiones y guiones bajos.',
+    'alpha_num' => 'El campo :attribute solo debe contener letras y números.',
+    'array' => 'El campo :attribute debe ser un arreglo.',
+    'before' => 'El campo :attribute debe ser una fecha anterior a :date.',
+    'before_or_equal' => 'El campo :attribute debe ser una fecha anterior o igual a :date.',
+    'between' => [
+        'array' => 'El campo :attribute debe tener entre :min y :max elementos.',
+        'file' => 'El campo :attribute debe estar entre :min y :max kilobytes.',
+        'numeric' => 'El campo :attribute debe estar entre :min y :max.',
+        'string' => 'El campo :attribute debe tener entre :min y :max caracteres.',
+    ],
+    'boolean' => 'El campo :attribute debe ser verdadero o falso.',
+    'confirmed' => 'La confirmación del campo :attribute no coincide.',
+    'date' => 'El campo :attribute no es una fecha válida.',
+    'date_equals' => 'El campo :attribute debe ser una fecha igual a :date.',
+    'date_format' => 'El campo :attribute no coincide con el formato :format.',
+    'different' => 'Los campos :attribute y :other deben ser diferentes.',
+    'digits' => 'El campo :attribute debe tener :digits dígitos.',
+    'digits_between' => 'El campo :attribute debe tener entre :min y :max dígitos.',
+    'email' => 'El campo :attribute debe ser una dirección de correo válida.',
+    'exists' => 'El campo :attribute seleccionado no es válido.',
+    'image' => 'El campo :attribute debe ser una imagen.',
+    'in' => 'El campo :attribute seleccionado no es válido.',
+    'integer' => 'El campo :attribute debe ser un número entero.',
+    'max' => [
+        'array' => 'El campo :attribute no debe tener más de :max elementos.',
+        'file' => 'El campo :attribute no debe ser mayor que :max kilobytes.',
+        'numeric' => 'El campo :attribute no debe ser mayor que :max.',
+        'string' => 'El campo :attribute no debe ser mayor que :max caracteres.',
+    ],
+    'min' => [
+        'array' => 'El campo :attribute debe tener al menos :min elementos.',
+        'file' => 'El campo :attribute debe ser al menos :min kilobytes.',
+        'numeric' => 'El campo :attribute debe ser al menos :min.',
+        'string' => 'El campo :attribute debe ser al menos :min caracteres.',
+    ],
+    'numeric' => 'El campo :attribute debe ser un número.',
+    'required' => 'El campo :attribute es obligatorio.',
+    'required_if' => 'El campo :attribute es obligatorio cuando :other es :value.',
+    'same' => 'Los campos :attribute y :other deben coincidir.',
+    'size' => [
+        'array' => 'El campo :attribute debe contener :size elementos.',
+        'file' => 'El campo :attribute debe ser de :size kilobytes.',
+        'numeric' => 'El campo :attribute debe ser :size.',
+        'string' => 'El campo :attribute debe ser de :size caracteres.',
+    ],
+    'string' => 'El campo :attribute debe ser una cadena de texto.',
+    'unique' => 'El campo :attribute ya ha sido registrado.',
+    'url' => 'El formato del campo :attribute no es válido.',
+
+    'custom' => [
+        //
+    ],
+
+    'attributes' => [
+        'name' => 'nombre',
+        'email' => 'correo electrónico',
+        'password' => 'contraseña',
+        'password_confirmation' => 'confirmación de contraseña',
+    ],
+];
