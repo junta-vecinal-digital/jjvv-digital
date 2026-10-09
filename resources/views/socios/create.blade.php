@@ -28,8 +28,9 @@
                                 Recibimos tu solicitud el {{ $socio->created_at->format('d-m-Y') }}. Un dirigente está revisando tu carnet y tu boleta de servicio básico.
                                 @break
                             @case('por_firmar')
-                                Tus documentos fueron aprobados. Falta un último paso: por ley debes firmar el libro de registro de socios de forma presencial. Contacta a la directiva para coordinar tu visita.
-                                @break
+                            Tus documentos fueron aprobados. Falta un último paso: por ley debes firmar el libro de registro de socios de forma presencial.
+                            <a href="{{ route('citas.index') }}" class="block mt-2 font-medium underline text-indigo-600 dark:text-indigo-400">Reservar hora para la firma</a>
+                            @break
                             @case('activo')
                                 Eres socio de la junta de vecinos desde el {{ $socio->fecha_ingreso?->format('d-m-Y') }}.
                                 @break

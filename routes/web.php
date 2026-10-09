@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SocioController;
+use App\Http\Controllers\CitaController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -43,6 +44,23 @@ Route::middleware(['auth', 'role:admin,presidente,secretario'])
         Route::get('/{socio}', [SocioController::class, 'show'])->name('show');
         Route::patch('/{socio}', [SocioController::class, 'update'])->name('update');
         Route::get('/{socio}/documento/{tipo}', [SocioController::class, 'documento'])->name('documento');
+});
+Route::middleware(['auth', 'role:admin,presidente,secretario'])
+    ->prefix('agenda')->name('agenda.')->group(function () {
+        Route::get('/', [CitaController::class, 'agenda'])->name('index');
+        Route::post('/', [CitaController::class, 'store'])->name('store');
+        Route::patch('/{cita}/liberar', [CitaController::class, 'liberar'])->name('liberar');
+        Route::delete('/{cita}', [CitaController::class, 'destroy'])->name('destroy');
+    });
+
+Route::middleware(['auth', 'role:vecino'])->group(function () {
+    Route::get('/socios/solicitud', [SocioController::class, 'create'])->name('socios.create');
+    Route::post('/socios/solicitud', [SocioController::class, 'store'])->name('socios.store');
+
+    // Reserva de hora para firmar el libro
+    Route::get('/mi-cita', [CitaController::class, 'index'])->name('citas.index');
+    Route::post('/mi-cita/{cita}', [CitaController::class, 'reservar'])->name('citas.reservar');
+    Route::delete('/mi-cita', [CitaController::class, 'cancelar'])->name('citas.cancelar');
 });
 
 require __DIR__.'/auth.php';

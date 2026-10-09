@@ -25,6 +25,10 @@
                         <x-nav-link :href="route('socios.index')" :active="request()->routeIs('socios.*')">
                             Socios
                         </x-nav-link>
+                        <x-nav-link :href="route('agenda.index')" :active="request()->routeIs('agenda.*')">
+                            Agenda de firmas
+                        </x-nav-link>
+                        
                     @endif
                 </div>
             </div>
@@ -90,6 +94,9 @@
             @if (Auth::user()->hasRole('admin', 'presidente', 'secretario'))
                 <x-responsive-nav-link :href="route('socios.index')" :active="request()->routeIs('socios.*')">
                     Socios
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('agenda.index')" :active="request()->routeIs('agenda.*')">
+                    Agenda de firmas
                 </x-responsive-nav-link>
             @endif
         </div>

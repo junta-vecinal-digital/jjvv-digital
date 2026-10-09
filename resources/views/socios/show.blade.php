@@ -49,6 +49,22 @@
                     <li><a href="{{ route('socios.documento', [$socio, 'boleta']) }}" target="_blank" class="underline text-indigo-600 dark:text-indigo-400">Ver boleta de servicio básico</a></li>
                 </ul>
             </div>
+            
+            @if ($socio->estado === 'por_firmar')
+                <div class="p-6 bg-white dark:bg-gray-800 shadow sm:rounded-lg">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Firma del libro de socios</h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        @if ($socio->cita)
+                            Hora reservada:
+                            <span class="font-medium text-gray-900 dark:text-gray-100">
+                                {{ ucfirst($socio->cita->inicio->translatedFormat('l d \d\e F, H:i')) }} hrs
+                            </span>
+                        @else
+                            Esta persona aún no ha reservado una hora.
+                        @endif
+                    </p>
+                </div>
+            @endif
 
             @if (in_array($socio->estado, ['pendiente', 'por_firmar']))
                 <div class="p-6 bg-white dark:bg-gray-800 shadow sm:rounded-lg">

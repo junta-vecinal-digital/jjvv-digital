@@ -79,5 +79,9 @@ return [
         'boleta' => 'boleta de servicio básico',
         'estado' => 'estado',
         'observaciones' => 'observaciones',
+        'fecha' => 'fecha',
+        'hora_inicio' => 'hora de inicio',
+        'hora_fin' => 'hora de término',
+        'duracion' => 'duración',
     ],
 ];

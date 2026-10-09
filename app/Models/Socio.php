@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Socio extends Model
 {
@@ -26,5 +27,10 @@ class Socio extends Model
     public function revisor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'revisado_por');
+    }
+
+    public function cita(): HasOne
+    {
+        return $this->hasOne(Cita::class);
     }
 }
