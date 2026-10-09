@@ -56,6 +56,9 @@ return [
     'string' => 'El campo :attribute debe ser una cadena de texto.',
     'unique' => 'El campo :attribute ya ha sido registrado.',
     'url' => 'El formato del campo :attribute no es válido.',
+    'file' => 'El campo :attribute debe ser un archivo.',
+    'mimes' => 'El campo :attribute debe ser un archivo de tipo: :values.',
+    'uploaded' => 'No se pudo subir el archivo :attribute.',
 
     'custom' => [
         //
@@ -67,5 +70,14 @@ return [
         'password' => 'contraseña',
         'password_confirmation' => 'confirmación de contraseña',
         'current_password' => 'contraseña actual',
+        'nombre_completo' => 'nombre completo',
+        'rut' => 'RUT',
+        'direccion' => 'dirección',
+        'telefono' => 'teléfono',
+        'residente_desde' => 'fecha de inicio de residencia',
+        'carnet' => 'carnet de identidad',
+        'boleta' => 'boleta de servicio básico',
+        'estado' => 'estado',
+        'observaciones' => 'observaciones',
     ],
 ];

@@ -15,6 +15,17 @@
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
                     </x-nav-link>
+                    @if (Auth::user()->hasRole('vecino'))
+                        <x-nav-link :href="route('socios.create')" :active="request()->routeIs('socios.create')">
+                            Mi solicitud de socio
+                        </x-nav-link>
+                    @endif
+
+                    @if (Auth::user()->hasRole('admin', 'presidente', 'secretario'))
+                        <x-nav-link :href="route('socios.index')" :active="request()->routeIs('socios.*')">
+                            Socios
+                        </x-nav-link>
+                    @endif
                 </div>
             </div>
 
@@ -70,6 +81,17 @@
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
+            @if (Auth::user()->hasRole('vecino'))
+                <x-responsive-nav-link :href="route('socios.create')" :active="request()->routeIs('socios.create')">
+                    Mi solicitud de socio
+                </x-responsive-nav-link>
+            @endif
+
+            @if (Auth::user()->hasRole('admin', 'presidente', 'secretario'))
+                <x-responsive-nav-link :href="route('socios.index')" :active="request()->routeIs('socios.*')">
+                    Socios
+                </x-responsive-nav-link>
+            @endif
         </div>
 
         <!-- Responsive Settings Options -->

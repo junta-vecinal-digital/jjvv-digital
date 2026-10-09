@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
@@ -29,4 +30,13 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+    public function hasRole(string ...$roles): bool
+    {
+        return in_array($this->role, $roles, true);
+    }
+    public function socio(): HasOne
+    {
+        return $this->hasOne(Socio::class);
+    }
+
 }
