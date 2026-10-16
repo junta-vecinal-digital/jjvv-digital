@@ -17,7 +17,7 @@ Entregables:
 - Auditoría de socios, certificados y usuarios.
 - Gestión de usuarios y roles por el administrador, y eliminación de la propia cuenta.
 
-### [En desarrollo] Sprint 2: SHOULD HAVE
+### [COMPLETADO] Sprint 2: SHOULD HAVE
 
 Entregables:
 

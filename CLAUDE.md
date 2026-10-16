@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This a Software engineering student's project. It won't be a complete product, only an MVP. Read SPRINTS.md to see the current state.
+This is a Software engineering student's project. It won't be a complete product, only an MVP. Read SPRINTS.md to see the current state.
 
 ## First Rules
 - Do not install anything that is not necessary for the task.
