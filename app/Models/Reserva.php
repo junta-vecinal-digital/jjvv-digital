@@ -3,30 +3,76 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
-/** Reserva de la sede (RFS-44). Las reglas de conflicto se agregan en el Paso 2. */
+/** Reserva de la sede y validación de horarios y superposiciones (RFS-44 a RFS-48). */
 class Reserva extends Model
 {
     protected $fillable = [
         'tipo', 'estado', 'inicio', 'fin', 'motivo',
         'grupo_id', 'socio_id', 'horario_fijo_id', 'creado_por',
+        'valor_arriendo', 'valor_garantia', 'vence_en', 'validado_en',
+        'validado_por', 'cancelada_en', 'cancelada_por',
+        'comprobante_arriendo_path',
     ];
 
     protected $casts = [
         'inicio' => 'datetime',
         'fin' => 'datetime',
+        'vence_en' => 'datetime',
+        'validado_en' => 'datetime',
+        'cancelada_en' => 'datetime',
     ];
 
     public const TIPOS = [
-        'grupo' => 'Uso de grupo',
+        'grupo' => 'Actividad de grupo',
+        'particular' => 'Actividad particular',
         'arriendo' => 'Arriendo',
         'actividad' => 'Actividad de la junta',
     ];
 
     /** Estados que ocupan el horario. 'cancelada' (3b) lo libera. */
     public const ESTADOS_OCUPAN = ['confirmada', 'pendiente'];
+
+    public const ESTADOS = [
+        'pendiente' => 'Pendiente de validación',
+        'confirmada' => 'Confirmada',
+        'cancelada' => 'Cancelada',
+        'vencida' => 'Plazo de validación vencido',
+    ];
+
+    public function scopeOcupan(Builder $query): Builder
+    {
+        return $query->whereIn('estado', self::ESTADOS_OCUPAN)
+            ->where(fn (Builder $q) => $q->whereNull('vence_en')
+                ->orWhere('estado', '!=', 'pendiente')->orWhere('vence_en', '>', now()));
+    }
+
+    /** El plazo libera el horario también cuando el scheduler no está ejecutándose. */
+    public static function liberarVencidos(): int
+    {
+        return DB::transaction(function () {
+            DB::table('parametros')->where('clave', 'sede_hora_inicio')->update(['valor' => DB::raw('valor')]);
+
+            return static::where('tipo', 'arriendo')->where('estado', 'pendiente')
+                ->where('vence_en', '<=', now())->update(['estado' => 'vencida']);
+        });
+    }
+
+    public function garantia(): HasOne
+    {
+        return $this->hasOne(Garantia::class);
+    }
+
+    public function ingresos(): HasMany
+    {
+        return $this->hasMany(Ingreso::class);
+    }
 
     /**
      * RFS-45: valida horario de la sede y bloques. Recibe horas "H:i".
@@ -73,7 +119,7 @@ class Reserva extends Model
             return $error;
         }
 
-        $ocupada = static::whereIn('estado', self::ESTADOS_OCUPAN)
+        $ocupada = static::ocupan()
             ->where('inicio', '<', $fin)
             ->where('fin', '>', $inicio)
             ->exists();
@@ -84,6 +130,8 @@ class Reserva extends Model
 
         $choqueFijo = HorarioFijo::where('dia_semana', $inicio->isoWeekday())
             ->when($ignorarHorarioFijoId, fn ($q, $id) => $q->where('id', '!=', $id))
+            ->whereDoesntHave('reservas', fn ($q) => $q->where('estado', 'cancelada')
+                ->whereDate('inicio', $inicio->toDateString()))
             ->where('hora_inicio', '<', $fin->format('H:i'))
             ->where('hora_fin', '>', $inicio->format('H:i'))
             ->exists();

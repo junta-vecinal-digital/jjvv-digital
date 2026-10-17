@@ -6,6 +6,7 @@ use App\Models\Concerns\Auditable;
 use App\Models\Parametro;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -66,6 +67,20 @@ class Certificado extends Model
         } while (static::where('codigo_verificacion', $codigo)->exists());
 
         return $codigo;
+    }
+
+    /** Incluye certificados antiguos de ventanilla sin cuenta guardada, ligados a la ficha del usuario. */
+    public function scopeDelUsuario(Builder $query, User $usuario): Builder
+    {
+        $socioId = $usuario->socio?->id;
+
+        return $query->where(function (Builder $consulta) use ($usuario, $socioId) {
+            $consulta->where('user_id', $usuario->id);
+
+            if ($socioId !== null) {
+                $consulta->orWhere(fn (Builder $q) => $q->whereNull('user_id')->where('socio_id', $socioId));
+            }
+        });
     }
 
     public function solicitante(): BelongsTo

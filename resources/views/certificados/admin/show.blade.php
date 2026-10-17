@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center justify-between">
-            <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="text-2xl font-semibold text-gray-900 dark:text-white leading-tight">
                 {{ $certificado->etiquetaTipo() }} {{ $certificado->folio ? '· Folio '.$certificado->folio : '' }}
             </h2>
             <a href="{{ route('admin.certificados.index') }}" class="text-sm underline text-gray-600 dark:text-gray-400">← Volver al listado</a>
@@ -9,7 +9,7 @@
     </x-slot>
 
     @php
-        $cls = 'mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm';
+        $cls = 'mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-brand-500 dark:focus:border-brand-400 focus:ring-brand-500 dark:focus:ring-brand-400 rounded-md shadow-sm';
         $c = $certificado;
         $mensajes = [
             'certificado-emitido' => 'El certificado fue emitido.',
@@ -19,15 +19,15 @@
         ];
     @endphp
 
-    <div class="py-12">
-        <div class="max-w-3xl mx-auto sm:px-6 lg:px-8 space-y-6">
+    <div class="py-6">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
             @if (isset($mensajes[session('status')]))
                 <div class="p-4 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 rounded-lg text-sm">{{ $mensajes[session('status')] }}</div>
             @endif
 
             {{-- ===== Resumen ===== --}}
-            <div class="p-6 bg-white dark:bg-gray-800 shadow sm:rounded-lg">
+            <div class="p-6 ui-panel">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Datos del certificado</h3>
                     <x-estado-certificado :estado="$c->estado" />
@@ -40,7 +40,7 @@
                     <div><dt class="text-gray-500 dark:text-gray-400">Dirigido a</dt><dd class="text-gray-900 dark:text-gray-100">{{ $c->dirigido_a }}</dd></div>
                     <div><dt class="text-gray-500 dark:text-gray-400">Solicitud registrada</dt><dd class="text-gray-900 dark:text-gray-100">{{ $c->created_at->format('d-m-Y H:i') }}</dd></div>
                     @if ($c->socio)
-                        <div><dt class="text-gray-500 dark:text-gray-400">Ficha de socio</dt><dd><a class="underline text-indigo-600 dark:text-indigo-400" href="{{ route('socios.show', $c->socio) }}">{{ $c->socio->nombre_completo }}</a></dd></div>
+                        <div><dt class="text-gray-500 dark:text-gray-400">Ficha de socio</dt><dd><a class="underline text-brand-600 dark:text-brand-400" href="{{ route('socios.show', $c->socio) }}">{{ $c->socio->nombre_completo }}</a></dd></div>
                     @endif
                     @if ($c->medio_pago || $c->numero_transaccion)
                         <div>
@@ -64,18 +64,18 @@
                 </dl>
 
                 <div class="mt-4 flex flex-wrap gap-4 text-sm">
-                    <a href="{{ route('admin.certificados.pdf', $c) }}" target="_blank" class="underline text-indigo-600 dark:text-indigo-400">
+                    <a href="{{ route('admin.certificados.pdf', $c) }}" target="_blank" class="underline text-brand-600 dark:text-brand-400">
                         {{ $c->estado === 'solicitado' ? 'Ver PDF de revisión (borrador)' : 'Ver PDF' }}
                     </a>
                     @if ($c->comprobante_path)
-                        <a href="{{ route('admin.certificados.comprobante', $c) }}" target="_blank" class="underline text-indigo-600 dark:text-indigo-400">Ver comprobante</a>
+                        <a href="{{ route('admin.certificados.comprobante', $c) }}" target="_blank" class="underline text-brand-600 dark:text-brand-400">Ver comprobante</a>
                     @endif
                 </div>
             </div>
 
             {{-- ===== Revisión y emisión de solicitudes en línea ===== --}}
             @if ($c->estado === 'solicitado')
-                <div class="p-6 bg-white dark:bg-gray-800 shadow sm:rounded-lg">
+                <div class="p-6 ui-panel">
                     <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">Revisión</h3>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
                         Corrige los datos si no coinciden con el carnet. El folio se asigna automáticamente al emitir.
@@ -110,7 +110,7 @@
                             <div>
                                 <label class="inline-flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
                                     <input type="checkbox" name="pago_verificado" value="1" @checked(old('pago_verificado'))
-                                           class="mt-0.5 rounded border-gray-300 dark:border-gray-700 dark:bg-gray-900 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                                           class="mt-0.5 rounded border-gray-300 dark:border-gray-700 dark:bg-gray-900 text-brand-600 shadow-sm focus:ring-brand-500">
                                     <span>Verifiqué en el comprobante que la transferencia de $1.000 figura en la cuenta.</span>
                                 </label>
                                 <x-input-error class="mt-2" :messages="$errors->get('pago_verificado')" />
@@ -119,7 +119,7 @@
                             <div>
                                 <label class="inline-flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
                                     <input type="checkbox" name="documentos_verificados" value="1" @checked(old('documentos_verificados'))
-                                           class="mt-0.5 rounded border-gray-300 dark:border-gray-700 dark:bg-gray-900 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                                           class="mt-0.5 rounded border-gray-300 dark:border-gray-700 dark:bg-gray-900 text-brand-600 shadow-sm focus:ring-brand-500">
                                     <span>Verifiqué en persona el carnet de identidad y la boleta de luz o agua.</span>
                                 </label>
                                 <x-input-error class="mt-2" :messages="$errors->get('documentos_verificados')" />
@@ -141,7 +141,7 @@
 
             {{-- ===== Retiro presencial (RFS-26, RFS-32) ===== --}}
             @if ($c->tipo === 'residencia' && $c->estado === 'emitido')
-                <div class="p-6 bg-white dark:bg-gray-800 shadow sm:rounded-lg">
+                <div class="p-6 ui-panel">
                     <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">Retiro en la sede</h3>
 
                     @if ($c->fecha_retiro)
@@ -170,7 +170,7 @@
 
             {{-- ===== Descargas registradas (RFS-25, RFS-27) ===== --}}
             @if ($c->tipo === 'residencia' && $c->estado === 'emitido')
-                <div class="p-6 bg-white dark:bg-gray-800 shadow sm:rounded-lg">
+                <div class="p-6 ui-panel">
                     <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3">Descargas</h3>
                     @forelse ($c->descargas as $descarga)
                         <p class="text-sm text-gray-700 dark:text-gray-300">
@@ -186,7 +186,7 @@
 
             {{-- ===== Anulación ===== --}}
             @if ($c->estado === 'emitido')
-                <div class="p-6 bg-white dark:bg-gray-800 shadow sm:rounded-lg">
+                <div class="p-6 ui-panel">
                     <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">Anular certificado</h3>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Úsalo si se emitió con errores. En la verificación en línea aparecerá como anulado.</p>
                     <form method="POST" action="{{ route('admin.certificados.anular', $c) }}" class="space-y-3"

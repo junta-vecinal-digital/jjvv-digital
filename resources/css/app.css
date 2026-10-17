@@ -1,3 +1,89 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@config '../../tailwind.config.js';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* TailAdmin: colores y navegación adaptados. Véase THIRD_PARTY_NOTICES.md. */
+@theme {
+    --color-brand-50: #ecf3ff;
+    --color-brand-400: #7592ff;
+    --color-brand-500: #465fff;
+    --color-brand-600: #3641f5;
+}
+
+@layer base {
+    *, ::before, ::after, ::backdrop, ::file-selector-button {
+        border-color: var(--color-gray-200, currentColor);
+    }
+
+    button:not(:disabled), [role='button']:not(:disabled) {
+        cursor: pointer;
+    }
+}
+
+[x-cloak] {
+    display: none !important;
+}
+
+@utility menu-item {
+    @apply relative flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors;
+}
+
+@utility menu-item-active {
+    @apply bg-brand-50 text-brand-500 dark:bg-brand-500/15 dark:text-brand-400;
+}
+
+@utility menu-item-inactive {
+    @apply text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5;
+}
+
+@utility ui-panel {
+    @apply rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900;
+}
+
+@utility ui-button {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+@utility ui-button-primary {
+    @apply border-transparent bg-brand-500 text-white hover:bg-brand-600;
+}
+
+@utility ui-button-secondary {
+    @apply border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800;
+}
+
+@utility ui-button-danger {
+    @apply border-transparent bg-red-600 text-white hover:bg-red-700;
+}
+
+@utility ui-input {
+    @apply rounded-lg border border-gray-300 bg-transparent px-3 py-2.5 text-sm text-gray-800 shadow-xs placeholder:text-gray-400 focus:border-brand-500 focus:ring-brand-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:focus:border-brand-400 dark:focus:ring-brand-400;
+}
+
+@utility ui-table {
+    @apply min-w-full text-left text-sm;
+
+    & th {
+        @apply border-b border-gray-200 bg-gray-50 px-4 py-3 text-xs font-medium text-gray-500 dark:border-gray-800 dark:bg-gray-800/50 dark:text-gray-400;
+    }
+
+    & td {
+        @apply border-b border-gray-200 px-4 py-4 dark:border-gray-800;
+    }
+}
+
+@layer components {
+    .app-content :is(select, textarea, input:not([type='checkbox'], [type='radio'], [type='hidden'], [type='file'], [type='submit'], [type='button'])) {
+        @apply ui-input;
+    }
+
+    /* Los desplegables necesitan espacio adicional para la flecha de forms. */
+    .app-content select:not([multiple]):not([size]),
+    .app-content select:not([multiple])[size='1'] {
+        @apply max-w-full pr-10;
+    }
+}

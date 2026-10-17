@@ -1,12 +1,12 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
+        <h2 class="text-2xl font-semibold text-gray-900 dark:text-white leading-tight">
             Reserva de hora para la firma
         </h2>
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-3xl mx-auto sm:px-6 lg:px-8 space-y-6">
+    <div class="py-6">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
             @if (session('status') === 'cita-reservada')
                 <div class="p-4 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 rounded-lg text-sm">
@@ -27,13 +27,13 @@
             @enderror
 
             @if (! $socio)
-                <div class="p-6 bg-white dark:bg-gray-800 shadow sm:rounded-lg text-sm text-gray-600 dark:text-gray-400">
+                <div class="p-6 ui-panel text-sm text-gray-600 dark:text-gray-400">
                     Primero debes enviar tu solicitud de inscripción.
-                    <a href="{{ route('socios.create') }}" class="underline text-indigo-600 dark:text-indigo-400">Ir a la solicitud</a>
+                    <a href="{{ route('socios.create') }}" class="underline text-brand-600 dark:text-brand-400">Ir a la solicitud</a>
                 </div>
 
             @elseif ($socio->estado !== 'por_firmar')
-                <div class="p-6 bg-white dark:bg-gray-800 shadow sm:rounded-lg text-sm text-gray-600 dark:text-gray-400">
+                <div class="p-6 ui-panel text-sm text-gray-600 dark:text-gray-400">
                     @if ($socio->estado === 'pendiente')
                         Tus documentos aún están en revisión. Cuando sean aprobados podrás reservar tu hora de firma aquí.
                     @elseif ($socio->estado === 'activo')
@@ -41,11 +41,11 @@
                     @else
                         Tu solicitud fue rechazada, por lo que no corresponde reservar una hora.
                     @endif
-                    <a href="{{ route('socios.create') }}" class="block mt-2 underline text-indigo-600 dark:text-indigo-400">Ver estado de mi solicitud</a>
+                    <a href="{{ route('socios.create') }}" class="block mt-2 underline text-brand-600 dark:text-brand-400">Ver estado de mi solicitud</a>
                 </div>
 
             @elseif ($cita)
-                <div class="p-6 bg-white dark:bg-gray-800 shadow sm:rounded-lg space-y-4">
+                <div class="p-6 ui-panel space-y-4">
                     <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Tu hora reservada</h3>
 
                     <p class="text-2xl font-semibold text-gray-900 dark:text-gray-100">
@@ -67,7 +67,7 @@
                 </div>
 
             @else
-                <div class="p-6 bg-white dark:bg-gray-800 shadow sm:rounded-lg space-y-6">
+                <div class="p-6 ui-panel space-y-6">
                     <div>
                         <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Elige una hora</h3>
                         <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">

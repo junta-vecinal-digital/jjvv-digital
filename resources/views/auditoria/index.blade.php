@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">Registro de auditoría</h2>
+        <h2 class="text-2xl font-semibold text-gray-900 dark:text-white leading-tight">Registro de auditoría</h2>
     </x-slot>
 
     @php
@@ -21,8 +21,8 @@
         $claseInput = 'rounded-md border-gray-300 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600';
     @endphp
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+    <div class="py-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
             {{-- Filtros por tipo de registro --}}
             <div class="flex flex-wrap gap-2 px-4 sm:px-0">
@@ -30,7 +30,7 @@
                     <a href="{{ route('auditoria.index', $valor ? ['modelo' => $valor] : []) }}"
                        class="px-3 py-1.5 rounded-md text-sm border
                               {{ $actual === $valor
-                                  ? 'bg-gray-800 text-white border-gray-800 dark:bg-gray-200 dark:text-gray-900 dark:border-gray-200'
+                                  ? 'bg-brand-50 text-brand-600 border-brand-400 dark:bg-brand-500/15 dark:text-brand-400 dark:border-brand-500'
                                   : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700' }}">
                         {{ $etiqueta }}
                     </a>
@@ -77,8 +77,8 @@
             @endif
 
             {{-- Registros --}}
-            <div class="bg-white dark:bg-gray-800 shadow sm:rounded-lg overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+            <div class="ui-panel overflow-x-auto">
+                <table class="ui-table divide-y divide-gray-200 dark:divide-gray-700">
                     <thead class="bg-gray-50 dark:bg-gray-700/50 text-left text-gray-600 dark:text-gray-300">
                         <tr>
                             <th class="px-4 py-3 font-medium">Fecha</th>
@@ -122,9 +122,9 @@
             <div class="px-4 sm:px-0">{{ $auditorias->links() }}</div>
 
             {{-- Bajas de socios: solo vista --}}
-            <div class="bg-white dark:bg-gray-800 shadow sm:rounded-lg overflow-x-auto">
+            <div class="ui-panel overflow-x-auto">
                 <h3 class="px-4 py-3 font-medium text-gray-800 dark:text-gray-200">Socios dados de baja</h3>
-                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+                <table class="ui-table divide-y divide-gray-200 dark:divide-gray-700">
                     <thead class="bg-gray-50 dark:bg-gray-700/50 text-left text-gray-600 dark:text-gray-300">
                         <tr>
                             <th class="px-4 py-3 font-medium">Socio</th>

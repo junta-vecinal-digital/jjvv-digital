@@ -1,21 +1,21 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center justify-between">
-            <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="text-2xl font-semibold text-gray-900 dark:text-white leading-tight">
                 {{ $socio->nombre_completo }}
             </h2>
             <div class="flex items-center gap-4 text-sm">
-                <a href="{{ route('socios.editar', $socio) }}" class="underline text-indigo-600 dark:text-indigo-400">Editar datos</a>
+                <a href="{{ route('socios.editar', $socio) }}" class="underline text-brand-600 dark:text-brand-400">Editar datos</a>
                 @if ($socio->estado === 'activo')
-                    <a href="{{ route('admin.certificados.create', ['socio' => $socio->id]) }}" class="underline text-indigo-600 dark:text-indigo-400">Emitir certificado</a>
+                    <a href="{{ route('admin.certificados.create', ['socio' => $socio->id]) }}" class="underline text-brand-600 dark:text-brand-400">Emitir certificado</a>
                 @endif
                 <a href="{{ route('socios.index') }}" class="underline text-gray-600 dark:text-gray-400">← Volver al listado</a>
             </div>
         </div>
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-3xl mx-auto sm:px-6 lg:px-8 space-y-6">
+    <div class="py-6">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
             @php
                 $mensajes = [
@@ -39,7 +39,7 @@
                 <div class="p-4 bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200 rounded-lg text-sm">{{ $errors->first('estado') }}</div>
             @endif
 
-            <div class="p-6 bg-white dark:bg-gray-800 shadow sm:rounded-lg">
+            <div class="p-6 ui-panel">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Datos del solicitante</h3>
                     <x-estado-socio :estado="$socio->estado" />
@@ -68,14 +68,14 @@
                 </dl>
             </div>
 
-            <div class="p-6 bg-white dark:bg-gray-800 shadow sm:rounded-lg">
+            <div class="p-6 ui-panel">
                 <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3">Documentos adjuntos</h3>
                 <ul class="space-y-2 text-sm">
                     @if ($socio->carnet_path)
-                        <li><a href="{{ route('socios.documento', [$socio, 'carnet']) }}" target="_blank" class="underline text-indigo-600 dark:text-indigo-400">Ver carnet de identidad</a></li>
+                        <li><a href="{{ route('socios.documento', [$socio, 'carnet']) }}" target="_blank" class="underline text-brand-600 dark:text-brand-400">Ver carnet de identidad</a></li>
                     @endif
                     @if ($socio->boleta_path)
-                        <li><a href="{{ route('socios.documento', [$socio, 'boleta']) }}" target="_blank" class="underline text-indigo-600 dark:text-indigo-400">Ver boleta de servicio básico</a></li>
+                        <li><a href="{{ route('socios.documento', [$socio, 'boleta']) }}" target="_blank" class="underline text-brand-600 dark:text-brand-400">Ver boleta de servicio básico</a></li>
                     @endif
                     @unless ($socio->carnet_path || $socio->boleta_path)
                         <li class="text-gray-500 dark:text-gray-400">No hay documentos digitales adjuntos.</li>
@@ -84,7 +84,7 @@
             </div>
             
             @if ($socio->estado === 'por_firmar')
-                <div class="p-6 bg-white dark:bg-gray-800 shadow sm:rounded-lg">
+                <div class="p-6 ui-panel">
                     <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Firma del libro de socios</h3>
                     <p class="text-sm text-gray-600 dark:text-gray-400">
                         @if ($socio->cita)
@@ -100,7 +100,7 @@
             @endif
 
             @if (in_array($socio->estado, ['pendiente', 'por_firmar']))
-                <div class="p-6 bg-white dark:bg-gray-800 shadow sm:rounded-lg">
+                <div class="p-6 ui-panel">
                     <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">Resolución</h3>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
                         @if ($socio->estado === 'pendiente')
@@ -117,7 +117,7 @@
                         <div>
                             <x-input-label for="observaciones" value="Observaciones (obligatorias si rechazas)" />
                             <textarea id="observaciones" name="observaciones" rows="3"
-                                class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">{{ old('observaciones') }}</textarea>
+                                class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-brand-500 dark:focus:border-brand-400 focus:ring-brand-500 dark:focus:ring-brand-400 rounded-md shadow-sm">{{ old('observaciones') }}</textarea>
                             <x-input-error class="mt-2" :messages="$errors->get('observaciones')" />
                         </div>
 
@@ -133,7 +133,7 @@
             @endif
 
             @if ($socio->estado === 'rechazado')
-                <div class="p-6 bg-white dark:bg-gray-800 shadow sm:rounded-lg">
+                <div class="p-6 ui-panel">
                     <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">Reabrir solicitud</h3>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
                         Si la persona puede corregir el problema, reabre la solicitud. Volverá a "pendiente" y ella podrá editar sus datos y documentos. El motivo del rechazo se conserva.
@@ -147,7 +147,7 @@
             @endif
 
             @if ($socio->estado === 'activo')
-                <div class="p-6 bg-white dark:bg-gray-800 shadow sm:rounded-lg">
+                <div class="p-6 ui-panel">
                     <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">Dar de baja</h3>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
                         La persona pierde de inmediato los accesos de socio (certificados en línea y, más adelante, actas y arriendos). Podrás reactivarla después.
@@ -160,7 +160,7 @@
                         <div>
                             <x-input-label for="motivo_baja" value="Motivo de la baja" />
                             <textarea id="motivo_baja" name="motivo_baja" rows="2" required
-                                class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">{{ old('motivo_baja') }}</textarea>
+                                class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-brand-500 dark:focus:border-brand-400 focus:ring-brand-500 dark:focus:ring-brand-400 rounded-md shadow-sm">{{ old('motivo_baja') }}</textarea>
                             <x-input-error class="mt-2" :messages="$errors->get('motivo_baja')" />
                         </div>
 
@@ -168,7 +168,7 @@
                             <x-input-label for="fecha_baja" value="Fecha de la baja" />
                             <input id="fecha_baja" name="fecha_baja" type="date" required
                                 max="{{ now()->toDateString() }}" value="{{ old('fecha_baja', now()->toDateString()) }}"
-                                class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">
+                                class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-brand-500 dark:focus:border-brand-400 focus:ring-brand-500 dark:focus:ring-brand-400 rounded-md shadow-sm">
                             <x-input-error class="mt-2" :messages="$errors->get('fecha_baja')" />
                         </div>
 
@@ -178,7 +178,7 @@
             @endif
 
             @if ($socio->estado === 'inactivo')
-                <div class="p-6 bg-white dark:bg-gray-800 shadow sm:rounded-lg">
+                <div class="p-6 ui-panel">
                     <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">Reactivar socio</h3>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
                         Recupera sus accesos de socio y conserva su fecha de ingreso original ({{ $socio->fecha_ingreso?->format('d-m-Y') ?? 'sin fecha' }}). La baja queda registrada en la auditoría.

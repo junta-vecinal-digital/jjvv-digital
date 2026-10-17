@@ -5,12 +5,12 @@
 @endif
 
 @if ($socio->user)
-    <div class="p-6 bg-white dark:bg-gray-800 shadow sm:rounded-lg">
+    <div class="p-6 ui-panel">
         <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">Cuenta de usuario</h3>
         <p class="text-sm text-gray-700 dark:text-gray-300">Correo de acceso: {{ $socio->user->email }}</p>
     </div>
 @elseif ($socio->estado !== 'rechazado')
-    <div class="p-6 bg-white dark:bg-gray-800 shadow sm:rounded-lg">
+    <div class="p-6 ui-panel">
         <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">Crear cuenta de usuario</h3>
         <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
             Para socios registrados en ventanilla. Define el correo y una contraseña inicial de al menos 10 caracteres.

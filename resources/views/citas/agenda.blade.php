@@ -1,12 +1,12 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
+        <h2 class="text-2xl font-semibold text-gray-900 dark:text-white leading-tight">
             Agenda de firmas del libro de socios
         </h2>
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-4xl mx-auto sm:px-6 lg:px-8 space-y-6">
+    <div class="py-6">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
             @if (session('mensaje'))
                 <div class="p-4 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 rounded-lg text-sm">
@@ -21,7 +21,7 @@
             @enderror
 
             {{-- Crear horarios --}}
-            <div class="p-4 sm:p-8 bg-white dark:bg-gray-800 shadow sm:rounded-lg">
+            <div class="p-4 sm:p-8 ui-panel">
                 <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Crear horarios de atención</h3>
                 <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
                     Elige un día y un rango de horas. El sistema genera una hora por cada bloque.
@@ -33,7 +33,7 @@
                     <div>
                         <x-input-label for="fecha" value="Fecha" />
                         <x-text-input id="fecha" name="fecha" type="date" class="mt-1 block w-full"
-                            :value="old('fecha')" min="{{ now()->toDateString() }}" required />
+                            :value="old('fecha', now()->toDateString())" min="{{ now()->toDateString() }}" max="{{ now()->addMonths(6)->toDateString() }}" required />
                         <x-input-error class="mt-2" :messages="$errors->get('fecha')" />
                     </div>
 
@@ -54,7 +54,7 @@
                     <div>
                         <x-input-label for="duracion" value="Duración de cada hora" />
                         <select id="duracion" name="duracion"
-                            class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">
+                            class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-brand-500 dark:focus:border-brand-400 focus:ring-brand-500 dark:focus:ring-brand-400 rounded-md shadow-sm">
                             @foreach ([15, 20, 30, 45, 60] as $minutos)
                                 <option value="{{ $minutos }}" @selected(old('duracion', 20) == $minutos)>{{ $minutos }} minutos</option>
                             @endforeach
@@ -70,7 +70,7 @@
 
             {{-- Agenda --}}
             @forelse ($citas as $lista)
-                <div class="bg-white dark:bg-gray-800 shadow sm:rounded-lg overflow-hidden">
+                <div class="ui-panel overflow-hidden">
                     <h3 class="px-6 py-3 bg-gray-50 dark:bg-gray-700/50 font-medium text-gray-900 dark:text-gray-100">
                         {{ ucfirst($lista->first()->inicio->translatedFormat('l d \d\e F')) }}
                     </h3>
@@ -82,7 +82,7 @@
                                     <span class="font-medium text-gray-900 dark:text-gray-100">{{ $cita->inicio->format('H:i') }}</span>
 
                                     @if ($cita->socio)
-                                        <a href="{{ route('socios.show', $cita->socio) }}" class="underline text-indigo-600 dark:text-indigo-400">
+                                        <a href="{{ route('socios.show', $cita->socio) }}" class="underline text-brand-600 dark:text-brand-400">
                                             {{ $cita->socio->nombre_completo }}
                                         </a>
                                     @else

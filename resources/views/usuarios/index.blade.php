@@ -1,16 +1,16 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center justify-between">
-            <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">Usuarios del sistema</h2>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="text-2xl font-semibold text-gray-900 dark:text-white leading-tight">Usuarios del sistema</h2>
             <a href="{{ route('usuarios.create') }}"
-               class="inline-flex items-center px-4 py-2 bg-gray-800 dark:bg-gray-200 border border-transparent rounded-md font-semibold text-xs text-white dark:text-gray-800 uppercase tracking-widest hover:bg-gray-700 dark:hover:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
+               class="ui-button ui-button-primary">
                 Crear usuario
             </a>
         </div>
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-4">
+    <div class="py-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
 
             @if (session('status') === 'usuario-creado')
                 <div class="p-4 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 rounded-lg text-sm">
@@ -34,7 +34,7 @@
                 <div>
                     <x-input-label for="rol" value="Rol" />
                     <select id="rol" name="rol"
-                        class="mt-1 block border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">
+                        class="mt-1 block border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-brand-500 dark:focus:border-brand-400 focus:ring-brand-500 dark:focus:ring-brand-400 rounded-md shadow-sm">
                         <option value="">Todos</option>
                         @foreach (\App\Models\User::ROLES as $valor => $etiqueta)
                             <option value="{{ $valor }}" @selected(request('rol') === $valor)>{{ $etiqueta }}</option>
@@ -49,8 +49,8 @@
                 @endif
             </form>
 
-            <div class="bg-white dark:bg-gray-800 shadow sm:rounded-lg overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+            <div class="ui-panel overflow-x-auto">
+                <table class="ui-table divide-y divide-gray-200 dark:divide-gray-700">
                     <thead class="bg-gray-50 dark:bg-gray-700/50 text-left text-gray-600 dark:text-gray-300">
                         <tr>
                             <th class="px-4 py-3 font-medium">Nombre</th>
@@ -73,7 +73,7 @@
                                 <td class="px-4 py-3"><x-rol-usuario :rol="$usuario->role" /></td>
                                 <td class="px-4 py-3">{{ $usuario->created_at->format('d-m-Y') }}</td>
                                 <td class="px-4 py-3 text-right">
-                                    <a href="{{ route('usuarios.edit', $usuario) }}" class="underline text-indigo-600 dark:text-indigo-400">Editar</a>
+                                    <a href="{{ route('usuarios.edit', $usuario) }}" class="underline text-brand-600 dark:text-brand-400">Editar</a>
                                 </td>
                             </tr>
                         @empty

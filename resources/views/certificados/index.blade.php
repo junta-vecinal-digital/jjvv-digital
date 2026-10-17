@@ -1,14 +1,14 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">Mis certificados</h2>
+        <h2 class="text-2xl font-semibold text-gray-900 dark:text-white leading-tight">Mis certificados</h2>
     </x-slot>
 
     @php
-        $cls = 'mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm';
+        $cls = 'mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-brand-500 dark:focus:border-brand-400 focus:ring-brand-500 dark:focus:ring-brand-400 rounded-md shadow-sm';
     @endphp
 
-    <div class="py-12">
-        <div class="max-w-3xl mx-auto sm:px-6 lg:px-8 space-y-6">
+    <div class="py-6">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
             @if (session('status') === 'certificado-solicitado')
                 <div class="p-4 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 rounded-lg text-sm">
@@ -16,65 +16,75 @@
                 </div>
             @endif
 
-            <div class="p-4 sm:p-8 bg-white dark:bg-gray-800 shadow sm:rounded-lg">
+            <div class="p-4 sm:p-8 ui-panel">
                 <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Solicitar un certificado</h3>
                 <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
                     Para el certificado de residencia debes presentar en la sede tu carnet de identidad y una boleta de luz o agua.
                     El aporte voluntario es de ${{ number_format(\App\Models\Parametro::entero('certificado_residencia_valor'), 0, ',', '.') }}.
                 </p>
 
-                <form method="POST" action="{{ route('certificados.store') }}" enctype="multipart/form-data" class="mt-6 space-y-6">
-                    @csrf
-                    <input type="hidden" name="tipo" value="residencia">
+                <x-form-wizard :steps="['Datos', 'Destino', 'Comprobante']" :fields="[['tipo','nombre_solicitante','rut_solicitante','direccion'],['dirigido_a'],['numero_transaccion','comprobante']]">
+                    <form novalidate method="POST" action="{{ route('certificados.store') }}" enctype="multipart/form-data" class="mt-6 space-y-6">
+                        @csrf
+                        <input type="hidden" name="tipo" value="residencia">
 
-                    <div class="space-y-6">
-                        <div>
-                            <x-input-label for="nombre_solicitante" value="Nombre completo" />
-                            <input id="nombre_solicitante" name="nombre_solicitante" type="text" class="{{ $cls }}"
-                                   value="{{ old('nombre_solicitante', $socio?->nombre_completo ?? auth()->user()->name) }}">
-                            <x-input-error class="mt-2" :messages="$errors->get('nombre_solicitante')" />
-                        </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                            <div>
-                                <x-input-label for="rut_solicitante" value="RUT" />
-                                <input id="rut_solicitante" name="rut_solicitante" type="text" class="{{ $cls }}" placeholder="12345678-5"
-                                       value="{{ old('rut_solicitante', $socio?->rut) }}">
-                                <x-input-error class="mt-2" :messages="$errors->get('rut_solicitante')" />
+                        <x-form-step number="0">
+                            <div class="space-y-6">
+                                <div>
+                                    <x-input-label for="nombre_solicitante" value="Nombre completo" />
+                                    <input id="nombre_solicitante" name="nombre_solicitante" autocomplete="name" type="text" required class="{{ $cls }}"
+                                           value="{{ old('nombre_solicitante', $socio?->nombre_completo ?? auth()->user()->name) }}">
+                                    <x-input-error class="mt-2" :messages="$errors->get('nombre_solicitante')" />
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                    <div>
+                                        <x-input-label for="rut_solicitante" value="RUT" />
+                                        <input id="rut_solicitante" name="rut_solicitante" type="text" required class="{{ $cls }}" placeholder="12345678-5"
+                                               value="{{ old('rut_solicitante', $socio?->rut) }}">
+                                        <x-input-error class="mt-2" :messages="$errors->get('rut_solicitante')" />
+                                    </div>
+                                    <div>
+                                        <x-input-label for="direccion" value="Dirección" />
+                                        <input id="direccion" name="direccion" autocomplete="street-address" type="text" required class="{{ $cls }}"
+                                               value="{{ old('direccion', $socio?->direccion) }}">
+                                        <x-input-error class="mt-2" :messages="$errors->get('direccion')" />
+                                    </div>
+                                </div>
                             </div>
+
+                        </x-form-step>
+                        <x-form-step number="1">
                             <div>
-                                <x-input-label for="direccion" value="Dirección" />
-                                <input id="direccion" name="direccion" type="text" class="{{ $cls }}"
-                                       value="{{ old('direccion', $socio?->direccion) }}">
-                                <x-input-error class="mt-2" :messages="$errors->get('direccion')" />
+                                <x-input-label for="dirigido_a" value="¿Dónde o ante quién lo presentarás?" />
+                                <input id="dirigido_a" name="dirigido_a" list="destinatarios-certificado" autocomplete="off" maxlength="255" type="text" class="{{ $cls }}" required
+                                       placeholder="Ej.: Registro Social de Hogares, Municipalidad" value="{{ old('dirigido_a') }}">
+                                <x-input-error class="mt-2" :messages="$errors->get('dirigido_a')" />
+                                <x-destinatarios :options="$destinatarios" />
                             </div>
-                        </div>
-                    </div>
 
-                    <div>
-                        <x-input-label for="dirigido_a" value="¿Dónde o ante quién lo presentarás?" />
-                        <input id="dirigido_a" name="dirigido_a" type="text" class="{{ $cls }}" required
-                               placeholder="Ej.: Registro Social de Hogares, Municipalidad" value="{{ old('dirigido_a') }}">
-                        <x-input-error class="mt-2" :messages="$errors->get('dirigido_a')" />
-                    </div>
+                        </x-form-step>
+                        <x-form-step number="2">
+                            <div>
+                                <x-input-label for="numero_transaccion" :value="'Número de transacción (transferencia de $'.number_format(\App\Models\Parametro::entero('certificado_residencia_valor'), 0, ',', '.').')'" />
+                                <x-text-input id="numero_transaccion" name="numero_transaccion" type="text" required maxlength="50" class="mt-1 block w-full" :value="old('numero_transaccion')" />
+                                <x-input-error :messages="$errors->get('numero_transaccion')" class="mt-2" />
+                            </div>
 
-                    <div>    
-                        <x-input-label for="numero_transaccion" value="Número de transacción (transferencia de $1.000)" />    
-                        <x-text-input id="numero_transaccion" name="numero_transaccion" type="text" class="mt-1 block w-full" :value="old('numero_transaccion')" />    
-                        <x-input-error :messages="$errors->get('numero_transaccion')" class="mt-2" />
-                    </div>
+                            <div class="mt-4">
+                                <x-input-label for="comprobante" value="Comprobante de transferencia (PDF, JPG o PNG, máx. 5 MB)" />
+                                <input id="comprobante" name="comprobante" type="file" required accept=".pdf,.jpg,.jpeg,.png" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
+                                <x-input-error :messages="$errors->get('comprobante')" class="mt-2" />
+                            </div>
 
-                    <div class="mt-4">    
-                        <x-input-label for="comprobante" value="Comprobante de transferencia (PDF, JPG o PNG, máx. 5 MB)" />    
-                        <input id="comprobante" name="comprobante" type="file" accept=".pdf,.jpg,.jpeg,.png" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />    
-                        <x-input-error :messages="$errors->get('comprobante')" class="mt-2" />
-                    </div>
+                        </x-form-step>
 
-                    <x-primary-button>Enviar solicitud</x-primary-button>
-                </form>
+                        <x-wizard-actions />
+                    </form>
+                </x-form-wizard>
             </div>
 
-            <div class="bg-white dark:bg-gray-800 shadow sm:rounded-lg overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+            <div class="ui-panel overflow-x-auto">
+                <table class="ui-table divide-y divide-gray-200 dark:divide-gray-700">
                     <thead class="bg-gray-50 dark:bg-gray-700/50 text-left text-gray-600 dark:text-gray-300">
                         <tr>
                             <th class="px-4 py-3 font-medium">Certificado</th>
@@ -100,7 +110,7 @@
                                 </td>
                                 <td class="px-4 py-3 text-right">
                                     @if ($c->puedeDescargarse())
-                                        <a href="{{ route('certificados.descargar', $c) }}" target="_blank" class="underline text-indigo-600 dark:text-indigo-400">
+                                        <a href="{{ route('certificados.descargar', $c) }}" target="_blank" class="underline text-brand-600 dark:text-brand-400">
                                             Descargar PDF
                                         </a>
                                         @if ($c->tipo === 'residencia')

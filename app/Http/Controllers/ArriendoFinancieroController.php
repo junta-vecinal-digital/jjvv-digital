@@ -1,0 +1,166 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Garantia;
+use App\Models\Ingreso;
+use App\Models\Reserva;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+
+/** Presidente y tesorero: registro financiero posterior a la validación del arriendo. */
+class ArriendoFinancieroController extends Controller
+{
+    public function index()
+    {
+        return view('finanzas.arriendos.index', [
+            'arriendos' => Reserva::with(['socio', 'grupo', 'garantia', 'ingresos'])
+                ->where('tipo', 'arriendo')->whereNotNull('validado_en')->latest('id')->paginate(20),
+        ]);
+    }
+
+    public function registrar(Request $request, Reserva $reserva)
+    {
+        $datos = $request->validate([
+            'fecha_pago' => ['required', 'date', 'before_or_equal:today'],
+            'medio_pago' => ['required', Rule::in(array_keys(Ingreso::MEDIOS))],
+            'talonario' => ['nullable', 'required_if:medio_pago,efectivo', 'string', 'max:30'],
+        ]);
+
+        return DB::transaction(function () use ($request, $reserva, $datos) {
+            DB::table('parametros')->where('clave', 'sede_hora_inicio')->update(['valor' => DB::raw('valor')]);
+            $reserva->refresh();
+            abort_unless($reserva->tipo === 'arriendo' && $reserva->validado_en, 422, 'El arriendo debe estar validado.');
+            if ($reserva->ingresos()->vigentes()->exists()) {
+                return back()->withErrors(['finanzas' => 'Este arriendo ya tiene un ingreso vigente.']);
+            }
+
+            Ingreso::create([
+                'reserva_id' => $reserva->id,
+                'concepto' => 'arriendo',
+                'fecha_pago' => $datos['fecha_pago'],
+                'monto' => $reserva->valor_arriendo,
+                'medio_pago' => $datos['medio_pago'],
+                'talonario' => $datos['medio_pago'] === 'efectivo' ? $datos['talonario'] : null,
+                'observaciones' => 'Pago de arriendo #'.$reserva->id.'. Comprobante compartido con la garantía.',
+                'registrado_por' => $request->user()->id,
+            ]);
+            $garantia = $reserva->garantia;
+            if (! $garantia->registrada_en) {
+                $garantia->update([
+                    'registrada_en' => now(),
+                    'registrada_por' => $request->user()->id,
+                    'fecha_pago' => $datos['fecha_pago'],
+                    'medio_pago' => $datos['medio_pago'],
+                    'talonario' => $datos['medio_pago'] === 'efectivo' ? $datos['talonario'] : null,
+                ]);
+            }
+
+            return back()->with('status', 'arriendo-registrado');
+        });
+    }
+
+    public function porDevolver(Garantia $garantia)
+    {
+        return DB::transaction(function () use ($garantia) {
+            DB::table('parametros')->where('clave', 'sede_hora_inicio')->update(['valor' => DB::raw('valor')]);
+            $garantia->refresh();
+            if ($garantia->estado !== 'recibida') {
+                return back()->withErrors(['finanzas' => 'Solo una garantía recibida puede quedar por devolver.']);
+            }
+            $garantia->update(['estado' => 'por_devolver']);
+
+            return back()->with('status', 'garantia-por-devolver');
+        });
+    }
+
+    public function devolver(Request $request, Garantia $garantia)
+    {
+        $datos = $request->validate(['fecha_resolucion' => ['required', 'date', 'before_or_equal:today']]);
+
+        return DB::transaction(function () use ($request, $garantia, $datos) {
+            DB::table('parametros')->where('clave', 'sede_hora_inicio')->update(['valor' => DB::raw('valor')]);
+            $garantia->refresh();
+            if (! $garantia->registrada_en || ! in_array($garantia->estado, ['recibida', 'por_devolver'], true)) {
+                return back()->withErrors(['finanzas' => 'La garantía debe estar registrada y pendiente de resolución.']);
+            }
+            if ($datos['fecha_resolucion'] < $garantia->fecha_pago->toDateString()) {
+                return back()->withErrors(['fecha_resolucion' => 'La devolución no puede ser anterior al pago.']);
+            }
+            $garantia->update([
+                'estado' => 'devuelta',
+                'fecha_resolucion' => $datos['fecha_resolucion'],
+                'resuelta_en' => now(),
+                'resuelta_por' => $request->user()->id,
+                'monto_devuelto' => $garantia->monto,
+                'monto_retenido' => 0,
+            ]);
+
+            return back()->with('status', 'garantia-resuelta');
+        });
+    }
+
+    public function retener(Request $request, Garantia $garantia)
+    {
+        $datos = $request->validate([
+            'fecha_resolucion' => ['required', 'date', 'before_or_equal:today'],
+            'monto_retenido' => ['required', 'integer', 'min:1'],
+            'motivo_retencion' => ['required', 'string', 'max:500'],
+        ]);
+
+        return DB::transaction(function () use ($request, $garantia, $datos) {
+            DB::table('parametros')->where('clave', 'sede_hora_inicio')->update(['valor' => DB::raw('valor')]);
+            $garantia->refresh();
+            if (! $garantia->registrada_en || ! in_array($garantia->estado, ['recibida', 'por_devolver'], true)) {
+                return back()->withErrors(['finanzas' => 'La garantía debe estar registrada y pendiente de resolución.']);
+            }
+            if ($datos['fecha_resolucion'] < $garantia->fecha_pago->toDateString()) {
+                return back()->withInput()->withErrors(['fecha_resolucion' => 'La resolución no puede ser anterior al pago.']);
+            }
+            if ($datos['monto_retenido'] > $garantia->monto) {
+                return back()->withInput()->withErrors(['monto_retenido' => 'El monto retenido no puede superar la garantía.']);
+            }
+            $garantia->update([
+                'estado' => 'retenida',
+                'fecha_resolucion' => $datos['fecha_resolucion'],
+                'resuelta_en' => now(),
+                'resuelta_por' => $request->user()->id,
+                'monto_retenido' => $datos['monto_retenido'],
+                'monto_devuelto' => $garantia->monto - $datos['monto_retenido'],
+                'motivo_retencion' => $datos['motivo_retencion'],
+            ]);
+            $this->crearIngresoRetencion($garantia, $request->user()->id);
+
+            return back()->with('status', 'garantia-resuelta');
+        });
+    }
+
+    public function registrarRetencion(Request $request, Garantia $garantia)
+    {
+        return DB::transaction(function () use ($request, $garantia) {
+            DB::table('parametros')->where('clave', 'sede_hora_inicio')->update(['valor' => DB::raw('valor')]);
+            $garantia->refresh();
+            if ($garantia->estado !== 'retenida' || $garantia->ingresos()->vigentes()->exists()) {
+                return back()->withErrors(['finanzas' => 'La retención ya tiene un ingreso vigente o la garantía no está retenida.']);
+            }
+            $this->crearIngresoRetencion($garantia, $request->user()->id);
+
+            return back()->with('status', 'retencion-registrada');
+        });
+    }
+
+    private function crearIngresoRetencion(Garantia $garantia, int $autor): void
+    {
+        Ingreso::create([
+            'garantia_id' => $garantia->id,
+            'concepto' => 'otros',
+            'fecha_pago' => $garantia->fecha_resolucion,
+            'monto' => $garantia->monto_retenido,
+            'medio_pago' => $garantia->medio_pago,
+            'talonario' => $garantia->talonario,
+            'observaciones' => 'Retención por daños del arriendo #'.$garantia->reserva_id.': '.$garantia->motivo_retencion,
+            'registrado_por' => $autor,
+        ]);
+    }
+}

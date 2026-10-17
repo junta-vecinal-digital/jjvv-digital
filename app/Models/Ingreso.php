@@ -12,8 +12,9 @@ class Ingreso extends Model
 {
     use Auditable;
 
-    /** Conceptos de ingreso (RFS-58). "Arriendo" se agrega en el bloque 3b. */
+    /** Conceptos de ingreso (RFS-58). */
     public const CONCEPTOS = [
+        'arriendo' => 'Arriendo de sede',
         'cuota_socios' => 'Cuota de socios',
         'aporte_grupos' => 'Aporte de grupos',
         'certificados' => 'Certificados',
@@ -33,7 +34,7 @@ class Ingreso extends Model
     protected $fillable = [
         'concepto', 'fecha_pago', 'monto', 'medio_pago',
         'talonario', 'numero_transaccion', 'observaciones',
-        'tipo_cuota', 'certificado_id', 'registrado_por',
+        'tipo_cuota', 'certificado_id', 'registrado_por', 'reserva_id', 'garantia_id',
     ];
 
     protected function casts(): array
@@ -99,5 +100,15 @@ class Ingreso extends Model
     public function certificado(): BelongsTo
     {
         return $this->belongsTo(Certificado::class);
+    }
+
+    public function reserva(): BelongsTo
+    {
+        return $this->belongsTo(Reserva::class);
+    }
+
+    public function garantia(): BelongsTo
+    {
+        return $this->belongsTo(Garantia::class);
     }
 }

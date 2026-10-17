@@ -1,28 +1,28 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Egresos</h2>
+        <h2 class="text-2xl font-semibold text-gray-900 dark:text-white leading-tight">Egresos</h2>
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-5xl mx-auto sm:px-6 lg:px-8 space-y-4">
+    <div class="py-6">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
 
             @if (session('status') === 'egreso-registrado')
-                <p class="text-green-700">Egreso registrado.</p>
+                <p class="text-green-700 dark:text-green-400">Egreso registrado.</p>
             @endif
             @if (session('status') === 'egreso-anulado')
-                <p class="text-green-700">Egreso anulado.</p>
+                <p class="text-green-700 dark:text-green-400">Egreso anulado.</p>
             @endif
             @error('egreso')
-                <p class="text-red-600">{{ $message }}</p>
+                <p class="text-red-600 dark:text-red-400">{{ $message }}</p>
             @enderror
 
-            <div class="flex justify-between items-center">
-                <p class="text-gray-700">Saldo de caja: <strong>${{ number_format($saldo, 0, ',', '.') }}</strong></p>
-                <a href="{{ route('egresos.create') }}" class="underline">Registrar egreso</a>
+            <div class="flex flex-wrap justify-between items-center gap-3">
+                <p class="text-gray-700 dark:text-gray-300">Saldo de caja: <strong>${{ number_format($saldo, 0, ',', '.') }}</strong></p>
+                <a href="{{ route('egresos.create') }}" class="ui-button ui-button-primary">Registrar egreso</a>
             </div>
 
-            <div class="bg-white p-6 shadow sm:rounded-lg overflow-x-auto">
-                <table class="min-w-full text-sm">
+            <div class="ui-panel p-6 overflow-x-auto">
+                <table class="ui-table">
                     <thead>
                         <tr class="text-left border-b">
                             <th class="py-2">Fecha</th>
@@ -42,7 +42,7 @@
                                 <td>
                                     {{ \App\Models\Egreso::CONCEPTOS[$egreso->concepto] ?? $egreso->concepto }}
                                     @if ($egreso->estaAnulado())
-                                        <div class="text-xs text-red-600">
+                                        <div class="text-xs text-red-600 dark:text-red-400">
                                             Anulado el {{ $egreso->anulado_en->format('d-m-Y') }}: {{ $egreso->motivo_anulacion }}
                                         </div>
                                     @endif
@@ -57,7 +57,7 @@
                                 <td>
                                     @unless ($egreso->estaAnulado())
                                         <details>
-                                            <summary class="cursor-pointer underline text-red-600">Anular</summary>
+                                            <summary class="cursor-pointer underline text-red-600 dark:text-red-400">Anular</summary>
                                             <form method="POST" action="{{ route('egresos.anular', $egreso) }}" class="mt-2 space-y-2">
                                                 @csrf
                                                 <textarea name="motivo_anulacion" rows="2" required placeholder="Motivo obligatorio"

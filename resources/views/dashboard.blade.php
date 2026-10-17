@@ -1,17 +1,28 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-            {{ __('Panel') }}
-        </h2>
+        <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Panel de inicio</h1>
     </x-slot>
-
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900 dark:text-gray-100">
-                    {{ __("Has iniciado sesión") }}
-                </div>
-            </div>
+    <div class="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+        <section class="rounded-2xl border border-gray-200 bg-white p-6 sm:p-8 dark:border-gray-800 dark:bg-gray-900">
+            <span class="inline-flex rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-600 dark:bg-brand-500/15 dark:text-brand-400">{{ Auth::user()->nombreRol() }}</span>
+            <h2 class="mt-4 text-2xl font-semibold text-gray-900 dark:text-white">Bienvenido, {{ Auth::user()->name }}</h2>
+            <p class="mt-2 text-sm leading-6 text-gray-500 dark:text-gray-400">Accede a las gestiones de tu junta de vecinos desde el menú lateral.</p>
+        </section>
+        <div class="grid gap-6 md:grid-cols-2">
+            @if (Auth::user()->hasRole('presidente', 'secretario') || Auth::user()->esSocioActivo())
+                <a href="{{ route('calendario.index') }}" class="rounded-2xl border border-gray-200 bg-white p-6 transition-colors hover:border-brand-400 dark:border-gray-800 dark:bg-gray-900">
+                    <span class="text-xs font-medium uppercase tracking-wider text-brand-500">Sede vecinal</span>
+                    <h2 class="mt-3 text-lg font-semibold text-gray-900 dark:text-white">Calendario de espacios</h2>
+                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Consulta los horarios de uso de la sede.</p>
+                    <span class="mt-5 inline-block text-sm font-medium text-brand-500">Ver calendario &rarr;</span>
+                </a>
+            @endif
+            <a href="{{ route('profile.edit') }}" class="rounded-2xl border border-gray-200 bg-white p-6 transition-colors hover:border-brand-400 dark:border-gray-800 dark:bg-gray-900">
+                <span class="text-xs font-medium uppercase tracking-wider text-brand-500">Tu cuenta</span>
+                <h2 class="mt-3 text-lg font-semibold text-gray-900 dark:text-white">Mi perfil</h2>
+                <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Revisa tus datos de cuenta y actualiza tu contraseña.</p>
+                <span class="mt-5 inline-block text-sm font-medium text-brand-500">Ir a mi perfil &rarr;</span>
+            </a>
         </div>
     </div>
 </x-app-layout>

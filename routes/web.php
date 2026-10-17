@@ -16,6 +16,8 @@ use App\Http\Controllers\GrupoController;
 use App\Http\Controllers\DevolucionController;
 use App\Http\Controllers\ReservaController;
 use App\Http\Controllers\HorarioFijoController;
+use App\Http\Controllers\ArriendoController;
+use App\Http\Controllers\ArriendoFinancieroController;
 
 // ---------- Público ----------
 Route::get('/', function () {
@@ -63,6 +65,12 @@ Route::middleware(['auth', 'role:vecino'])->group(function () {
 
 // ---------- Finanzas: presidente y tesorero ----------
 Route::middleware(['auth', 'role:presidente,tesorero'])->group(function () {
+    Route::get('/finanzas/arriendos', [ArriendoFinancieroController::class, 'index'])->name('finanzas.arriendos.index');
+    Route::post('/finanzas/arriendos/{reserva}/registrar', [ArriendoFinancieroController::class, 'registrar'])->whereNumber('reserva')->name('finanzas.arriendos.registrar');
+    Route::post('/finanzas/garantias/{garantia}/por-devolver', [ArriendoFinancieroController::class, 'porDevolver'])->whereNumber('garantia')->name('finanzas.garantias.por-devolver');
+    Route::post('/finanzas/garantias/{garantia}/devolver', [ArriendoFinancieroController::class, 'devolver'])->whereNumber('garantia')->name('finanzas.garantias.devolver');
+    Route::post('/finanzas/garantias/{garantia}/retener', [ArriendoFinancieroController::class, 'retener'])->whereNumber('garantia')->name('finanzas.garantias.retener');
+    Route::post('/finanzas/garantias/{garantia}/registrar-retencion', [ArriendoFinancieroController::class, 'registrarRetencion'])->whereNumber('garantia')->name('finanzas.garantias.registrar-retencion');
     Route::get('/ingresos', [IngresoController::class, 'index'])->name('ingresos.index');
     Route::get('/ingresos/crear', [IngresoController::class, 'create'])->name('ingresos.create');
     Route::post('/ingresos', [IngresoController::class, 'store'])->name('ingresos.store');
@@ -81,6 +89,12 @@ Route::middleware(['auth', 'role:presidente,tesorero'])->group(function () {
 
 // ---------- Calendario: dirigentes y socios activos (el controlador decide qué ve cada uno) ----------
 Route::middleware('auth')->get('/calendario', [ReservaController::class, 'index'])->name('calendario.index');
+Route::middleware('auth')->prefix('arriendos')->name('arriendos.')->group(function () {
+    Route::get('/', [ArriendoController::class, 'index'])->name('index');
+    Route::post('/', [ArriendoController::class, 'store'])->name('store');
+    Route::get('/{reserva}', [ArriendoController::class, 'show'])->whereNumber('reserva')->name('show');
+    Route::get('/{reserva}/comprobante', [ArriendoController::class, 'comprobante'])->whereNumber('reserva')->name('comprobante');
+});
 
 // ---------- Presidente y secretario ----------
 Route::middleware(['auth', 'role:presidente,secretario'])->group(function () {
@@ -148,7 +162,10 @@ Route::middleware(['auth', 'role:presidente,secretario'])->group(function () {
     Route::put('/parametros', [ParametroController::class, 'update'])->name('parametros.update');
 
     // Calendario: ingreso de reservas
+    Route::get('/calendario/imprimir', [ReservaController::class, 'imprimir'])->name('calendario.imprimir');
     Route::post('/calendario/reservas', [ReservaController::class, 'store'])->name('reservas.store');
+    Route::post('/calendario/reservas/{reserva}/cancelar', [ReservaController::class, 'cancelar'])->whereNumber('reserva')->name('reservas.cancelar');
+    Route::post('/arriendos/{reserva}/confirmar', [ArriendoController::class, 'confirmar'])->whereNumber('reserva')->name('arriendos.confirmar');
 });
 
 // ---------- Auditoría: solo presidente ----------

@@ -37,6 +37,7 @@ class CertificadoAdminController extends Controller
         return view('certificados.admin.create', [
             'sociosActivos' => Socio::where('estado', 'activo')->orderBy('nombre_completo')->get(),
             'socioSel' => $request->socio ? Socio::where('estado', 'activo')->find($request->socio) : null,
+            'destinatarios' => Certificado::query()->distinct()->orderBy('dirigido_a')->limit(50)->pluck('dirigido_a'),
         ]);
     }
 
@@ -52,8 +53,9 @@ class CertificadoAdminController extends Controller
             ...$this->reglasPagoVentanilla($request->tipo),
         ]);
 
+        $socio = isset($datos['socio_id']) ? Socio::find($datos['socio_id']) : null;
+
         if ($datos['tipo'] === 'socio') {
-            $socio = isset($datos['socio_id']) ? Socio::find($datos['socio_id']) : null;
             if (! $socio || $socio->estado !== 'activo') {
                 return back()->withInput()->withErrors([
                     'socio_id' => 'Para un certificado de socio debes elegir un socio activo.',
@@ -66,6 +68,7 @@ class CertificadoAdminController extends Controller
 
         $certificado = Certificado::create([
             ...$datos,
+            'user_id' => $socio?->user_id,
             'documentos_verificados' => $request->boolean('documentos_verificados'),
         ]);
         $certificado->emitir($request->user());
@@ -192,8 +195,8 @@ class CertificadoAdminController extends Controller
             'residencia_6_meses' => ['accepted'],
             'pago_verificado' => ['accepted'],
             'medio_pago' => ['required', Rule::in(array_keys(Ingreso::MEDIOS))],
-            'talonario' => ['required_if:medio_pago,efectivo', 'string', 'max:30'],
-            'numero_transaccion' => ['required_if:medio_pago,transferencia', 'string', 'max:50'],
+            'talonario' => ['nullable', 'required_if:medio_pago,efectivo', 'string', 'max:30'],
+            'numero_transaccion' => ['nullable', 'required_if:medio_pago,transferencia', 'string', 'max:50'],
         ];
     }
 }

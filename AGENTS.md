@@ -8,6 +8,7 @@ This is a Software engineering student's project. It won't be a complete product
 - Generate only plain text for coding. Do not generate code files unless the user confirms it.
 - Present a plan first, followed by a step-by-step guide with code.
 - Treat REQUIREMENTS.md as the source of truth for RFU, RFS, and permissions.
+- Any change to REQUIREMENTS.md requires the user's explicit confirmation for that change. Prior authorizations do not authorize future requirement changes.
 
 ## 1. Think Before Coding
 

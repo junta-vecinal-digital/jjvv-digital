@@ -15,17 +15,13 @@ class GrupoController extends Controller
     {
         return view('grupos.index', [
             'grupos' => Grupo::with('representante')->orderBy('nombre')->get(),
+            'socios' => $this->sociosDisponibles(),
         ]);
     }
 
     public function store(Request $request)
     {
-        $datos = $request->validate([
-            'nombre' => ['required', 'string', 'max:255', 'unique:grupos,nombre'],
-            'horarios_uso' => ['nullable', 'string', 'max:1000'],
-        ]);
-
-        $grupo = Grupo::create($datos);
+        $grupo = Grupo::create($this->validarGrupo($request));
 
         return redirect()->route('grupos.show', $grupo)->with('status', 'grupo-creado');
     }
@@ -39,10 +35,7 @@ class GrupoController extends Controller
                 'representante',
                 'horariosFijos' => fn ($q) => $q->orderBy('dia_semana')->orderBy('hora_inicio'),
             ]),
-            'socios' => Socio::where('estado', 'activo')
-                ->whereNotNull('user_id')
-                ->orderBy('nombre_completo')
-                ->get(),
+            'socios' => $this->sociosDisponibles(),
             'horas' => $bloques['inicios'],
             'horasFin' => $bloques['fines'],
         ]);
@@ -50,12 +43,7 @@ class GrupoController extends Controller
 
     public function update(Request $request, Grupo $grupo)
     {
-        $datos = $request->validate([
-            'nombre' => ['required', 'string', 'max:255', Rule::unique('grupos', 'nombre')->ignore($grupo->id)],
-            'horarios_uso' => ['nullable', 'string', 'max:1000'],
-        ]);
-
-        $grupo->update($datos);
+        $grupo->update($this->validarGrupo($request, $grupo));
 
         return redirect()->route('grupos.show', $grupo)->with('status', 'grupo-actualizado');
     }
@@ -99,5 +87,45 @@ class GrupoController extends Controller
         $grupo->update($datos);
 
         return redirect()->route('grupos.show', $grupo)->with('status', 'contacto-actualizado');
+    }
+
+    private function sociosDisponibles()
+    {
+        return Socio::where('estado', 'activo')->whereNotNull('user_id')
+            ->orderBy('nombre_completo')
+            ->get(['id', 'nombre_completo', 'rut', 'email', 'telefono', 'direccion']);
+    }
+
+    private function validarGrupo(Request $request, ?Grupo $grupo = null): array
+    {
+        $datos = $request->validate([
+            'nombre' => ['required', 'string', 'max:255', Rule::unique('grupos', 'nombre')->ignore($grupo?->id)],
+            'socio_id' => ['nullable', Rule::exists('socios', 'id')->where(
+                fn ($query) => $query->where('estado', 'activo')->whereNotNull('user_id')
+            )],
+            'usar_contacto_representante' => ['sometimes', 'boolean'],
+            'contacto_nombre' => ['nullable', 'string', 'max:255'],
+            'contacto_correo' => ['nullable', 'email', 'max:255'],
+            'contacto_telefono' => ['nullable', 'string', 'max:20'],
+            'contacto_direccion' => ['nullable', 'string', 'max:255'],
+        ], [
+            'nombre.unique' => 'Ya existe un grupo con este nombre.',
+            'socio_id.exists' => 'El representante debe ser un socio activo con cuenta de usuario.',
+        ]);
+
+        $socioId = array_key_exists('socio_id', $datos) ? $datos['socio_id'] : $grupo?->representante_id;
+        $datos['representante_id'] = $socioId;
+
+        if ($request->boolean('usar_contacto_representante', $grupo === null || $request->has('socio_id'))) {
+            $socio = $socioId ? Socio::findOrFail($socioId) : null;
+            $datos['contacto_nombre'] = $socio?->nombre_completo;
+            $datos['contacto_correo'] = $socio?->email;
+            $datos['contacto_telefono'] = $socio?->telefono;
+            $datos['contacto_direccion'] = $socio?->direccion;
+        }
+
+        unset($datos['socio_id'], $datos['usar_contacto_representante']);
+
+        return $datos;
     }
 }

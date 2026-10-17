@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Egreso;
 use App\Models\Ingreso;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -23,6 +24,8 @@ class EgresoController extends Controller
     {
         return view('finanzas.egresos.create', [
             'conceptos' => Egreso::CONCEPTOS,
+            'pagadores' => User::whereIn('role', ['presidente', 'tesorero'])->pluck('name')
+                ->merge(Egreso::query()->distinct()->pluck('pagado_por'))->unique()->sort()->values(),
         ]);
     }
 

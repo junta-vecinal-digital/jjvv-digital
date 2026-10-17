@@ -79,7 +79,7 @@ Los 64 RFU describen qué puede hacer cada actor, agrupados en 11 módulos.
 
 ### 5. Ingresos y egresos
 
-- **RFU-40** El presidente o el tesorero puede registrar ingresos con su concepto, monto, medio de pago y comprobante, incluidos el pago y la garantía de un arriendo ya validado.
+- **RFU-40** El presidente o el tesorero puede registrar ingresos con su concepto, monto, medio de pago y comprobante, incluido el pago de un arriendo ya validado. La garantía del arriendo se registra por separado y solo el monto retenido por daños se convierte en ingreso.
 - **RFU-41** El presidente o el tesorero puede clasificar cada cuota o aporte como ordinaria o extraordinaria.
 - **RFU-42** El presidente o el tesorero puede registrar la garantía de un arriendo y cambiar su estado (recibida, devuelta, por devolver, retenida por daños).
 - **RFU-43** El presidente o el tesorero puede ingresar manualmente el monto retenido por daños.
@@ -181,13 +181,13 @@ Los 89 RFS traducen los RFU en comportamiento verificable del sistema y fijan la
 ### 4. Calendario de espacios
 
 - **RFS-43** El sistema deberá mostrar un calendario digital con las reservas de la sede.
-- **RFS-44** El sistema deberá registrar en cada reserva: día, hora, motivo, tipo (uso de grupo, arriendo, actividad de la junta), quién reserva y quién la ingresa.
+- **RFS-44** El sistema deberá registrar en cada reserva: día, hora, motivo, tipo, quién reserva y quién la ingresa. El ingreso manual ofrecerá una única lista fija: actividad de grupo, actividad particular gratuita y actividad de la junta; el motivo se completará automáticamente desde esa selección. La actividad particular se asociará a un socio activo responsable. Los arriendos mantienen su flujo separado de pago y garantía (RFS-50 a RFS-54).
 - **RFS-45** El sistema deberá limitar las reservas al horario de la sede (por defecto de 09:00 a 22:00) en bloques de 1 hora, ambos configurables.
 - **RFS-46** El sistema deberá rechazar cualquier reserva que se superponga con un horario ocupado.
 - **RFS-47** El sistema deberá modelar el horario fijo de un grupo como reserva recurrente, cuyas reservas genera cada mes el presidente o el secretario y que se confirman automáticamente.
 - **RFS-48** El sistema no deberá permitir que un arriendo se superponga con un horario fijo de grupo.
 - **RFS-49** El sistema deberá permitir al presidente o al secretario editar los horarios fijos de los grupos.
-- **RFS-50** El sistema deberá permitir a socios activos solicitar un arriendo y rechazar la solicitud de vecinos sin inscripción activa.
+- **RFS-50** El sistema deberá permitir a socios activos solicitar un arriendo y rechazar la solicitud de vecinos sin inscripción activa. Se adjuntará un único comprobante por el total del arriendo y la garantía.
 - **RFS-51** El sistema deberá dejar el arriendo en estado "pendiente" y bloquear su horario hasta que el presidente o el secretario valide el pago y la garantía.
 - **RFS-52** El sistema deberá liberar automáticamente el horario de un arriendo pendiente si nadie valida el pago dentro del plazo configurable (por defecto 48 horas desde la solicitud), sin perjuicio de la cancelación manual.
 - **RFS-53** El sistema deberá confirmar el arriendo cuando el presidente o el secretario valide el pago y la garantía. El registro posterior en finanzas no condiciona la reserva.
@@ -203,8 +203,8 @@ Los 89 RFS traducen los RFU en comportamiento verificable del sistema y fijan la
 - **RFS-60** El sistema deberá exigir clasificar toda cuota o aporte como ordinaria o extraordinaria, sin asociarla a proyectos.
 - **RFS-61** El sistema deberá registrar el arriendo con un valor de $40.000 más $40.000 de garantía (valores configurables).
 - **RFS-62** El sistema deberá gestionar la garantía de forma separada de los ingresos, con estados: recibida, devuelta, por devolver y retenida por daños.
-- **RFS-63** El sistema deberá convertir la garantía en ingreso solo cuando su estado sea "retenida por daños", usando el monto ingresado manualmente.
-- **RFS-64** El sistema deberá permitir al presidente o al tesorero registrar como ingreso el pago y la garantía de un arriendo ya validado.
+- **RFS-63** El sistema deberá convertir la garantía en ingreso solo cuando su estado sea "retenida por daños", usando el monto ingresado manualmente, sin superar la garantía recibida. Se permitirá retención parcial y devolución del resto en una misma operación, guardando ambos montos, fecha, motivo y autor.
+- **RFS-64** El sistema deberá permitir al presidente o al tesorero registrar el pago de un arriendo ya validado como ingreso y su garantía como registro separado, conforme a RFS-62 y RFS-63.
 - **RFS-65** El sistema deberá registrar egresos (servicios básicos y mantención) con fecha, número de transacción, copia del comprobante y quién pagó.
 - **RFS-66** El sistema deberá permitir devolver una cuota con motivo obligatorio y descontar el monto de la caja.
 - **RFS-67** El sistema no deberá permitir borrar movimientos; solo anularlos con motivo obligatorio.

@@ -17,7 +17,9 @@ class CertificadoController extends Controller
 
         return view('certificados.index', [
             'socio' => $usuario->socio,
-            'certificados' => Certificado::where('user_id', $usuario->id)->latest()->get(),
+            'certificados' => Certificado::delUsuario($usuario)->latest()->get(),
+            'destinatarios' => Certificado::delUsuario($usuario)
+                ->distinct()->orderBy('dirigido_a')->limit(50)->pluck('dirigido_a'),
         ]);
     }
 
@@ -26,7 +28,7 @@ class CertificadoController extends Controller
         $usuario = $request->user();
         $socio = $usuario->socio;
 
-        $pendientes = Certificado::where('user_id', $usuario->id)->where('estado', 'solicitado')->count();
+        $pendientes = Certificado::delUsuario($usuario)->where('estado', 'solicitado')->count();
         if ($pendientes >= 3) {
             return back()->withInput()->withErrors([
                 'tipo' => 'Ya tienes 3 solicitudes pendientes. Espera a que la directiva las revise.',
@@ -78,7 +80,8 @@ class CertificadoController extends Controller
     public function descargar(Request $request, Certificado $certificado)
     {
         abort_unless(
-            $certificado->user_id === $request->user()->id && $certificado->estado === 'emitido',
+            Certificado::delUsuario($request->user())->whereKey($certificado->id)->exists()
+                && $certificado->estado === 'emitido',
             404
         );
 

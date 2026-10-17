@@ -36,7 +36,34 @@ class HorarioFijo extends Model
             ->where('hora_fin', '>', $horaInicio)
             ->exists();
 
-        return $choca ? 'Se superpone con otro horario fijo.' : null;
+        if ($choca) {
+            return 'Se superpone con otro horario fijo.';
+        }
+
+        $reservas = Reserva::ocupan()
+            ->where('fin', '>', now())->get();
+
+        foreach ($reservas as $reserva) {
+            if ($reserva->inicio->isoWeekday() !== $dia) {
+                continue;
+            }
+
+            $inicio = $reserva->inicio->format('H:i');
+            $fin = $reserva->fin->format('H:i');
+
+            // Guardar el mismo horario no modifica sus reservas ya generadas.
+            if ($ignorarId !== null && (int) $reserva->horario_fijo_id === $ignorarId
+                && $inicio === $horaInicio && $fin === $horaFin) {
+                continue;
+            }
+
+            if ($inicio < $horaFin && $fin > $horaInicio) {
+                return 'Se superpone con una reserva del '.$reserva->inicio->format('d-m-Y')
+                    .'. Las reservas ya generadas se mantienen; elige otro horario.';
+            }
+        }
+
+        return null;
     }
 
     public function grupo(): BelongsTo
