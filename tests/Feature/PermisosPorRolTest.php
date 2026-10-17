@@ -31,6 +31,10 @@ $modulos = [
     'agenda' => 'agenda.index',
     'auditoría' => 'auditoria.index',
     'finanzas' => 'ingresos.index',
+    'parámetros' => 'parametros.index',
+    'actas' => 'actas.index',
+    'proyectos' => 'proyectos.index',
+    'inventario' => 'inventario.index',
 ];
 
 it('limita cada rol a sus módulos', function (string $rol, array $permitidos) use ($modulos) {
@@ -45,11 +49,11 @@ it('limita cada rol a sus módulos', function (string $rol, array $permitidos) u
             : $respuesta->assertForbidden();
     }
 })->with([
-    'administrador' => ['admin', ['usuarios']],
-    'presidente' => ['presidente', ['socios', 'certificados (gestión)', 'agenda', 'auditoría', 'finanzas']],
-    'secretario' => ['secretario', ['socios', 'certificados (gestión)', 'agenda']],
-    'tesorero' => ['tesorero', ['finanzas']],
-    'vecino' => ['vecino', []],
+    'administrador' => ['admin', ['usuarios', 'parámetros', 'proyectos']],
+    'presidente' => ['presidente', ['socios', 'certificados (gestión)', 'agenda', 'auditoría', 'finanzas', 'actas', 'proyectos', 'inventario']],
+    'secretario' => ['secretario', ['socios', 'certificados (gestión)', 'agenda', 'actas', 'proyectos', 'inventario']],
+    'tesorero' => ['tesorero', ['finanzas', 'actas', 'proyectos']],
+    'vecino' => ['vecino', ['proyectos']],
 ]);
 
 it('solo un socio con ficha activa accede a los certificados en línea', function () {

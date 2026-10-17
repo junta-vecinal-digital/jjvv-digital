@@ -32,7 +32,7 @@
                 <div class="p-4 rounded-lg text-sm {{ $clases }}">
                     <strong>{{ $titulo }}</strong>
                     @if ($estado === 'vencido')
-                        <div>Su vigencia terminó el {{ $certificado->fecha_vencimiento->format('d-m-Y') }}.</div>
+                        <div>Su vigencia terminó el {{ $certificado->fecha_vencimiento->format('d/m/Y') }}.</div>
                     @elseif ($estado === 'anulado')
                         <div>Fue dejado sin efecto por la directiva y no tiene validez.</div>
                     @endif
@@ -43,8 +43,8 @@
                     <div><dt class="text-gray-500 dark:text-gray-400">Folio</dt><dd>{{ $certificado->folio }}</dd></div>
                     <div><dt class="text-gray-500 dark:text-gray-400">A nombre de</dt><dd>{{ $certificado->nombre_solicitante }} ({{ $rutEnmascarado }})</dd></div>
                     <div><dt class="text-gray-500 dark:text-gray-400">Presentado ante</dt><dd>{{ $certificado->dirigido_a }}</dd></div>
-                    <div><dt class="text-gray-500 dark:text-gray-400">Emitido el</dt><dd>{{ $certificado->fecha_emision->format('d-m-Y') }}</dd></div>
-                    <div><dt class="text-gray-500 dark:text-gray-400">Válido hasta</dt><dd>{{ $certificado->fecha_vencimiento->format('d-m-Y') }}</dd></div>
+                    <div><dt class="text-gray-500 dark:text-gray-400">Emitido el</dt><dd>{{ $certificado->fecha_emision->format('d/m/Y') }}</dd></div>
+                    <div><dt class="text-gray-500 dark:text-gray-400">Válido hasta</dt><dd>{{ $certificado->fecha_vencimiento->format('d/m/Y') }}</dd></div>
                     @if ($certificado->otorgante)
                         <div><dt class="text-gray-500 dark:text-gray-400">Otorgado por</dt><dd>{{ $certificado->otorgante->name }}</dd></div>
                     @endif

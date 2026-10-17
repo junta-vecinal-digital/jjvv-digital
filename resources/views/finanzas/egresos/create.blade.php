@@ -24,7 +24,7 @@
 
                             <div>
                                 <x-input-label for="fecha_pago" value="Fecha de pago" />
-                                <x-text-input id="fecha_pago" name="fecha_pago" type="date" class="mt-1 block w-full" :value="old('fecha_pago', now()->toDateString())" max="{{ now()->toDateString() }}" required />
+                                <x-date-input id="fecha_pago" name="fecha_pago" class="mt-1 block w-full" :value="old('fecha_pago', now()->toDateString())" max="{{ now()->toDateString() }}" required />
                                 <x-input-error :messages="$errors->get('fecha_pago')" class="mt-2" />
                             </div>
 
@@ -61,7 +61,7 @@
 
                             <div>
                                 <x-input-label for="comprobante" value="Copia del comprobante (PDF, JPG o PNG, máx. 5 MB)" />
-                                <input id="comprobante" name="comprobante" type="file" required accept=".pdf,.jpg,.jpeg,.png" class="mt-1 block w-full text-sm" />
+                                <x-file-input id="comprobante" name="comprobante" required accept=".pdf,.jpg,.jpeg,.png" />
                                 <x-input-error :messages="$errors->get('comprobante')" class="mt-2" />
                             </div>
 

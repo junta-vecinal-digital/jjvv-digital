@@ -16,8 +16,26 @@
                 </div>
             @endif
 
+            @if (session('status') === 'certificado-socio-emitido')
+                <p class="ui-panel p-4 text-green-700 dark:text-green-400">Tu certificado de socio ya fue emitido. Puedes descargarlo desde el listado.</p>
+            @endif
+            <section class="ui-panel p-6 space-y-4">
+                <h3 class="text-lg font-semibold">Emitir mi certificado de socio</h3>
+                <p>Para socios activos. Se emite inmediatamente, sin pago ni revisión de la directiva, con los datos de tu ficha.</p>
+                <p>{{ $socio->nombre_completo }} · {{ $socio->rut }} · {{ $socio->direccion }}</p>
+                <x-input-error :messages="$errors->getBag('certificadoSocio')->get('otorgante')" />
+                <form method="POST" action="{{ route('certificados.store') }}" class="space-y-3" x-data="{ enviando: false }" @submit="if (enviando) $event.preventDefault(); else enviando = true">
+                    @csrf
+                    <input type="hidden" name="tipo" value="socio">
+                    <x-input-label for="socio_dirigido_a" value="¿Dónde o ante quién lo presentarás?" />
+                    <x-text-input id="socio_dirigido_a" name="dirigido_a" list="destinatarios-certificado" :value="old('tipo') === 'socio' ? old('dirigido_a') : ''" maxlength="255" required class="w-full" />
+                    <x-input-error :messages="$errors->getBag('certificadoSocio')->get('dirigido_a')" />
+                    <x-primary-button x-bind:disabled="enviando">Emitir certificado de socio</x-primary-button>
+                </form>
+            </section>
+
             <div class="p-4 sm:p-8 ui-panel">
-                <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Solicitar un certificado</h3>
+                <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Solicitar certificado de residencia</h3>
                 <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
                     Para el certificado de residencia debes presentar en la sede tu carnet de identidad y una boleta de luz o agua.
                     El aporte voluntario es de ${{ number_format(\App\Models\Parametro::entero('certificado_residencia_valor'), 0, ',', '.') }}.
@@ -72,7 +90,7 @@
 
                             <div class="mt-4">
                                 <x-input-label for="comprobante" value="Comprobante de transferencia (PDF, JPG o PNG, máx. 5 MB)" />
-                                <input id="comprobante" name="comprobante" type="file" required accept=".pdf,.jpg,.jpeg,.png" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
+                                <x-file-input id="comprobante" name="comprobante" required accept=".pdf,.jpg,.jpeg,.png" />
                                 <x-input-error :messages="$errors->get('comprobante')" class="mt-2" />
                             </div>
 
@@ -97,13 +115,13 @@
                     <tbody class="divide-y divide-gray-200 dark:divide-gray-700 text-gray-800 dark:text-gray-200">
                         @forelse ($certificados as $c)
                             <tr>
-                                <td class="px-4 py-3">{{ $c->etiquetaTipo() }}<div class="text-xs text-gray-500">{{ $c->created_at->format('d-m-Y') }}</div></td>
+                                <td class="px-4 py-3">{{ $c->etiquetaTipo() }}<div class="text-xs text-gray-500">{{ $c->created_at->format('d/m/Y') }}</div></td>
                                 <td class="px-4 py-3">{{ $c->dirigido_a }}</td>
                                 <td class="px-4 py-3">{{ $c->folio ?? '—' }}</td>
                                 <td class="px-4 py-3">
                                     <x-estado-certificado :estado="$c->estado" />
                                     @if ($c->estado === 'emitido')
-                                        <div class="text-xs text-gray-500 mt-1">Vence {{ $c->fecha_vencimiento->format('d-m-Y') }}</div>
+                                        <div class="text-xs text-gray-500 mt-1">Vence {{ $c->fecha_vencimiento->format('d/m/Y') }}</div>
                                     @elseif ($c->observaciones && in_array($c->estado, ['rechazado', 'anulado']))
                                         <div class="text-xs text-gray-500 mt-1">{{ $c->observaciones }}</div>
                                     @endif
@@ -115,7 +133,7 @@
                                         </a>
                                         @if ($c->tipo === 'residencia')
                                             <span class="block text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                                Disponible hasta {{ $c->descarga_disponible_hasta->format('d-m-Y H:i') }}
+                                                Disponible hasta {{ $c->descarga_disponible_hasta->format('d/m/Y H:i') }}
                                             </span>
                                         @endif
                                     @elseif ($c->tipo === 'residencia' && $c->estado === 'emitido')

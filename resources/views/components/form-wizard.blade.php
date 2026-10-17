@@ -1,6 +1,7 @@
 @props(['steps', 'fields' => []])
 
 @php
+    $steps = [...$steps, 'Resumen'];
     $primerPaso = 0;
     foreach ($fields as $numero => $campos) {
         if ($errors->hasAny($campos)) {

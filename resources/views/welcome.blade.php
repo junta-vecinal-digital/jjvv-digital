@@ -18,7 +18,7 @@
         @endif
     </head>
     <body class="bg-[#FDFDFC] dark:bg-[#0a0a0a] text-[#1b1b18] flex p-6 lg:p-8 items-center lg:justify-center min-h-screen flex-col">
-        <header class="w-full lg:max-w-4xl max-w-[335px] text-sm mb-6 not-has-[nav]:hidden">
+        <header class="w-full max-w-4xl text-sm mb-6 not-has-[nav]:hidden">
             @if (Route::has('login'))
                 <nav class="flex items-center justify-end gap-4">
                     @auth
@@ -48,17 +48,33 @@
             @endif
         </header>
         <div class="flex items-center justify-center w-full transition-opacity opacity-100 duration-750 lg:grow starting:opacity-0">
-            <main class="flex max-w-[335px] w-full flex-col lg:max-w-4xl justify-center">
-                <div class="bg-[#fff2f2] dark:bg-[#1D0002] relative rounded-lg aspect-[335/364] lg:aspect-auto w-full lg:w-[438px] shrink-0 overflow-hidden mx-auto">
-                
-                
-
-
-
-                
-
-                    <div class="absolute inset-0 rounded-t-lg lg:rounded-t-none lg:rounded-r-lg shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.16)] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d]"></div>
-                </div>
+            <main class="w-full max-w-4xl space-y-6">
+                <section class="ui-panel p-6 lg:p-8">
+                    <h1 class="text-2xl font-semibold">Junta de vecinos</h1>
+                    <p class="mt-3 text-sm">Consulta los horarios de atención para realizar tus trámites en ventanilla.</p>
+                    <h2 class="mt-6 text-lg font-semibold">Horarios de atención al público</h2>
+                    @if ($horariosAtencion->isEmpty())
+                        <p class="mt-4 text-sm">Aún no hay horarios de atención publicados.</p>
+                    @else
+                        <p class="mt-2 text-sm">Estos horarios se repiten cada semana.</p>
+                        <dl class="mt-4 divide-y divide-gray-200 dark:divide-gray-800">
+                            @foreach (\App\Models\HorarioAtencion::DIAS as $dia => $nombre)
+                                <div class="grid gap-2 py-3 sm:grid-cols-2">
+                                    <dt class="font-medium">{{ $nombre }}</dt>
+                                    <dd class="text-sm">
+                                        @forelse ($horariosAtencion->get($dia, collect()) as $horario)
+                                            <p>{{ substr($horario->hora_inicio, 0, 5) }} a {{ substr($horario->hora_fin, 0, 5) }}</p>
+                                        @empty
+                                            Sin atención programada
+                                        @endforelse
+                                    </dd>
+                                </div>
+                            @endforeach
+                        </dl>
+                    @endif
+                    <p class="mt-4 text-sm">Para firmar el libro de socios, reserva una cita desde tu cuenta una vez aprobada tu documentación.</p>
+                    <a href="{{ route('verificar.formulario') }}" class="mt-6 inline-block text-sm underline">Verificar un certificado</a>
+                </section>
             </main>
         </div>
 

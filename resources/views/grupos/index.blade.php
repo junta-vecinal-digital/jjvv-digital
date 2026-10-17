@@ -10,7 +10,9 @@
                 <p class="px-4 sm:px-0 text-green-700 dark:text-green-400">Grupo creado.</p>
             @endif
 
-            <div class="ui-panel overflow-x-auto">
+            <details class="ui-panel" open>
+                <summary class="cursor-pointer p-4 font-medium">Grupos registrados ({{ $grupos->count() }})</summary>
+                <div class="max-h-96 overflow-auto">
                 <table class="ui-table divide-y divide-gray-200 dark:divide-gray-700">
                     <thead class="bg-gray-50 dark:bg-gray-700/50 text-left text-gray-600 dark:text-gray-300">
                         <tr>
@@ -25,7 +27,7 @@
                                 <td class="px-4 py-3">
                                     <a href="{{ route('grupos.show', $grupo) }}" class="underline">{{ $grupo->nombre }}</a>
                                 </td>
-                                <td class="px-4 py-3">{{ $grupo->representante?->nombre_completo ?? '—' }}</td>
+                                <td class="px-4 py-3">{{ $grupo->datosRepresentante()['nombre'] ?? '—' }}</td>
                                 <td class="px-4 py-3">
                                     @if ($grupo->tieneRepresentanteVigente())
                                         Con representante
@@ -43,7 +45,8 @@
                         @endforelse
                     </tbody>
                 </table>
-            </div>
+                </div>
+            </details>
 
             @include('grupos._form', ['grupo' => null])
         </div>

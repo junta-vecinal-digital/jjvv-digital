@@ -2,7 +2,10 @@
     <x-slot name="header">
         <div class="flex flex-wrap items-center justify-between gap-3">
             <h2 class="text-2xl font-semibold text-gray-900 dark:text-white leading-tight">Socios</h2>
-            <a href="{{ route('socios.crear') }}" class="ui-button ui-button-primary">Registrar socio</a>
+            <div class="flex flex-wrap gap-3">
+                <a href="{{ route('reportes.socios') }}" class="ui-button ui-button-secondary">Exportar socios activos</a>
+                <a href="{{ route('socios.crear') }}" class="ui-button ui-button-primary">Registrar socio</a>
+            </div>
         </div>
     </x-slot>
 
@@ -60,7 +63,7 @@
                                 <td class="px-4 py-3">{{ $socio->nombre_completo }}</td>
                                 <td class="px-4 py-3">{{ $socio->rut }}</td>
                                 <td class="px-4 py-3">{{ $socio->telefono }}</td>
-                                <td class="px-4 py-3">{{ $socio->created_at->format('d-m-Y') }}</td>
+                                <td class="px-4 py-3">{{ $socio->created_at->format('d/m/Y') }}</td>
                                 <td class="px-4 py-3"><x-estado-socio :estado="$socio->estado" /></td>
                                 <td class="px-4 py-3 text-right">
                                     <a href="{{ route('socios.show', $socio) }}" class="underline text-brand-600 dark:text-brand-400">Revisar</a>

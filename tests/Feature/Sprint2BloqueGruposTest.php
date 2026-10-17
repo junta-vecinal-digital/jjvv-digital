@@ -42,19 +42,20 @@ test('asigna un representante activo con cuenta y copia sus datos al grupo', fun
         ->and($grupo->tieneRepresentanteVigente())->toBeTrue();
 });
 
-test('rechaza como representante a un socio sin cuenta de usuario', function () {
+test('acepta como representante a un socio sin cuenta de usuario', function () {
     $this->actingAs(dirigenteGrupos());
     $grupo = Grupo::create(['nombre' => 'Taller de Costura']);
     $socio = socioActivoConCuenta();
     $socio->update(['user_id' => null]);
 
     $this->post(route('grupos.representante', $grupo), ['socio_id' => $socio->id])
-        ->assertSessionHasErrors('socio_id');
+        ->assertSessionHasNoErrors()->assertRedirect();
 
-    expect($grupo->fresh()->representante_id)->toBeNull();
+    expect($grupo->fresh()->representante_id)->toBe($socio->id)
+        ->and($grupo->fresh()->tieneRepresentanteVigente())->toBeTrue();
 });
 
-test('al dar de baja al representante, el grupo queda sin representante', function () {
+test('al dar de baja al representante, el grupo conserva su representante', function () {
     $this->actingAs(dirigenteGrupos());
     $grupo = Grupo::create(['nombre' => 'Junta de Vigilancia']);
     $socio = socioActivoConCuenta();
@@ -66,5 +67,6 @@ test('al dar de baja al representante, el grupo queda sin representante', functi
         'fecha_baja' => now()->toDateString(),
     ])->assertRedirect();
 
-    expect($grupo->fresh()->representante_id)->toBeNull();
+    expect($grupo->fresh()->representante_id)->toBe($socio->id)
+        ->and($grupo->fresh()->tieneRepresentanteVigente())->toBeTrue();
 });

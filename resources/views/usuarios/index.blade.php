@@ -71,7 +71,7 @@
                                 </td>
                                 <td class="px-4 py-3">{{ $usuario->email }}</td>
                                 <td class="px-4 py-3"><x-rol-usuario :rol="$usuario->role" /></td>
-                                <td class="px-4 py-3">{{ $usuario->created_at->format('d-m-Y') }}</td>
+                                <td class="px-4 py-3">{{ $usuario->created_at->format('d/m/Y') }}</td>
                                 <td class="px-4 py-3 text-right">
                                     <a href="{{ route('usuarios.edit', $usuario) }}" class="underline text-brand-600 dark:text-brand-400">Editar</a>
                                 </td>

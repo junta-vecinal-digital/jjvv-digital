@@ -33,8 +33,8 @@
         <a href="{{ route('calendario.index', ['semana' => $desde->toDateString()]) }}">Volver al calendario</a>
     </div>
     <h1>Horario de la sede · {{ $periodo === 'mes' ? 'Mensual' : 'Semanal' }}</h1>
-    <p>Del {{ $desde->format('d-m-Y') }} al {{ $hasta->format('d-m-Y') }}<br>
-        Emitido el {{ $emitidoEn->format('d-m-Y H:i') }}</p>
+    <p>Del {{ $desde->format('d/m/Y') }} al {{ $hasta->format('d/m/Y') }}<br>
+        Emitido el {{ $emitidoEn->format('d/m/Y H:i') }}</p>
     <p class="nota">Las solicitudes pendientes ocupan el horario hasta su confirmación, cancelación o vencimiento. Los horarios fijos programados también ocupan la sede.</p>
     <table>
         <caption>Reservas y horarios fijos del período</caption>
@@ -43,13 +43,13 @@
             @foreach ($agenda as $dia)
                 @forelse ($dia['filas'] as $fila)
                     <tr>
-                        <th scope="row">{{ ucfirst($dia['fecha']->translatedFormat('l d-m-Y')) }}</th>
+                        <th scope="row">{{ ucfirst($dia['fecha']->translatedFormat('l d/m/Y')) }}</th>
                         <td class="horario">{{ $fila['inicio'] }} a {{ $fila['fin'] }}</td>
                         <td>{{ $fila['actividad'] }}</td>
                         <td>{{ $fila['estado'] }}</td>
                     </tr>
                 @empty
-                    <tr><th scope="row">{{ ucfirst($dia['fecha']->translatedFormat('l d-m-Y')) }}</th><td colspan="3">Sin reservas ni horarios fijos programados.</td></tr>
+                    <tr><th scope="row">{{ ucfirst($dia['fecha']->translatedFormat('l d/m/Y')) }}</th><td colspan="3">Sin reservas ni horarios fijos programados.</td></tr>
                 @endforelse
             @endforeach
         </tbody>

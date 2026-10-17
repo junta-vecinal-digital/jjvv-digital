@@ -37,8 +37,8 @@
                                 </div>
                                 <div x-show="estado === 'activo'">
                                     <x-input-label for="fecha_ingreso" value="Fecha de ingreso (firma del libro)" />
-                                    <input id="fecha_ingreso" name="fecha_ingreso" type="date" :disabled="estado !== 'activo'" :required="estado === 'activo'" class="{{ $cls }}"
-                                           max="{{ now()->toDateString() }}" value="{{ old('fecha_ingreso', now()->toDateString()) }}">
+                                    <x-date-input id="fecha_ingreso" name="fecha_ingreso" x-bind:disabled="estado !== 'activo'" x-bind:required="estado === 'activo'" class="{{ $cls }}"
+                                           max="{{ now()->toDateString() }}" value="{{ old('fecha_ingreso', now()->toDateString()) }}" />
                                     <x-input-error class="mt-2" :messages="$errors->get('fecha_ingreso')" />
                                 </div>
                             </div>

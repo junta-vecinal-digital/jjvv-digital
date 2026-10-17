@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Grupo;
 use App\Models\HorarioFijo;
 use App\Models\Reserva;
+use App\Models\TipoActividad;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -94,6 +95,7 @@ class HorarioFijoController extends Controller
             }
 
             $creadas = 0;
+            $nombreTipoGrupo = TipoActividad::where('clave', 'grupo')->value('nombre');
             $existentes = 0;
             $omitidas = [];
 
@@ -132,6 +134,8 @@ class HorarioFijoController extends Controller
                         'inicio' => $inicio,
                         'fin' => $fin,
                         'motivo' => 'Horario fijo',
+                        'tipo_nombre' => $nombreTipoGrupo,
+                        'responsable_nombre' => $grupo->datosRepresentante()['nombre'],
                         'grupo_id' => $grupo->id,
                         'socio_id' => $grupo->representante_id,
                         'horario_fijo_id' => $horario->id,

@@ -9,7 +9,6 @@
         // Se puede editar la solicitud mientras esté pendiente (incluye las reabiertas tras un rechazo).
         $edicion = $socio && $socio->estado === 'pendiente';
         $mostrarFormulario = ! $socio || $edicion;
-        $archivo = 'mt-1 block w-full text-sm text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-900 file:mr-4 file:py-2 file:px-4 file:border-0 file:bg-gray-200 dark:file:bg-gray-700 file:text-gray-700 dark:file:text-gray-200';
     @endphp
 
     <div class="py-6">
@@ -29,6 +28,7 @@
 
             @if ($socio)
                 {{-- Ya existe una solicitud: se muestra su estado --}}
+                <x-representante-badge :socio="$socio" />
                 <div class="p-6 ui-panel space-y-3">
                     <div class="flex flex-wrap items-center justify-between gap-3">
                         <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Estado de tu solicitud</h3>
@@ -38,7 +38,7 @@
                     <p class="text-sm text-gray-600 dark:text-gray-400">
                         @switch($socio->estado)
                             @case('pendiente')
-                                Recibimos tu solicitud el {{ $socio->created_at->format('d-m-Y') }}. Un dirigente está revisando tu carnet y tu boleta de servicio básico. Mientras tanto puedes corregir tus datos más abajo.
+                                Recibimos tu solicitud el {{ $socio->created_at->format('d/m/Y') }}. Un dirigente está revisando tu carnet y tu boleta de servicio básico. Mientras tanto puedes corregir tus datos más abajo.
                                 @if ($socio->observaciones)
                                     <span class="block mt-2 font-medium">Motivo del rechazo anterior: {{ $socio->observaciones }}</span>
                                 @endif
@@ -48,7 +48,7 @@
                                 <a href="{{ route('citas.index') }}" class="block mt-2 font-medium underline text-brand-600 dark:text-brand-400">Reservar hora para la firma</a>
                                 @break
                             @case('activo')
-                                Eres socio de la junta de vecinos desde el {{ $socio->fecha_ingreso?->format('d-m-Y') }}.
+                                Eres socio de la junta de vecinos desde el {{ $socio->fecha_ingreso?->format('d/m/Y') }}.
                                 @break
                             @case('rechazado')
                                 Tu solicitud no pudo ser aprobada.
@@ -58,7 +58,7 @@
                                 <span class="block mt-2">Si puedes corregir el problema, acércate a la sede para que un dirigente reabra tu solicitud.</span>
                                 @break
                             @case('inactivo')
-                                Tu inscripción como socio fue dada de baja el {{ $socio->fecha_baja?->format('d-m-Y') }}. Si crees que es un error, acércate a la sede.
+                                Tu inscripción como socio fue dada de baja el {{ $socio->fecha_baja?->format('d/m/Y') }}. Si crees que es un error, acércate a la sede.
                                 @break
                         @endswitch
                     </p>
@@ -118,7 +118,7 @@
 
                                     <div>
                                         <x-input-label for="residente_desde" value="Resido en el sector desde" />
-                                        <x-text-input id="residente_desde" name="residente_desde" type="date" class="mt-1 block w-full"
+                                        <x-date-input id="residente_desde" name="residente_desde" class="mt-1 block w-full"
                                             :value="old('residente_desde', $socio?->residente_desde?->toDateString())" max="{{ now()->subMonths(6)->toDateString() }}" required />
                                         <x-input-error class="mt-2" :messages="$errors->get('residente_desde')" />
                                     </div>
@@ -129,7 +129,7 @@
                             <x-form-step number="2">
                                 <div>
                                     <x-input-label for="carnet" value="Carnet de identidad (foto o PDF)" />
-                                    <input id="carnet" name="carnet" type="file" accept=".jpg,.jpeg,.png,.pdf" @required(! $edicion) class="{{ $archivo }}" />
+                                    <x-file-input id="carnet" name="carnet" accept=".jpg,.jpeg,.png,.pdf" :required="! $edicion" />
                                     @if ($edicion)
                                         <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Déjalo vacío para conservar el archivo actual.</p>
                                     @endif
@@ -138,7 +138,7 @@
 
                                 <div>
                                     <x-input-label for="boleta" value="Boleta de luz, agua u otro servicio básico (foto o PDF)" />
-                                    <input id="boleta" name="boleta" type="file" accept=".jpg,.jpeg,.png,.pdf" @required(! $edicion) class="{{ $archivo }}" />
+                                    <x-file-input id="boleta" name="boleta" accept=".jpg,.jpeg,.png,.pdf" :required="! $edicion" />
                                     @if ($edicion)
                                         <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Déjalo vacío para conservar el archivo actual.</p>
                                     @endif

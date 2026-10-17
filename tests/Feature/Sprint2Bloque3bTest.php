@@ -59,6 +59,7 @@ function reservaBloque3b(Socio $socio, array $cambios = []): Reserva
         'inicio' => now()->addDays(5)->setTime(10, 0),
         'fin' => now()->addDays(5)->setTime(12, 0),
         'motivo' => 'Arriendo de sede',
+        'aporte_variable' => false, // Casos históricos: conservan el pago y la garantía originales.
         'socio_id' => $socio->id,
         'creado_por' => $socio->user_id,
         'valor_arriendo' => 40000,
@@ -84,7 +85,7 @@ function registrarBloque3b($caso, Reserva $reserva): void
     ])->assertSessionHasNoErrors()->assertRedirect();
 }
 
-test('el socio activo solicita un arriendo con un comprobante total y sin suplantar al responsable', function () {
+test('el socio solicita sin suplantar al responsable ni definir el aporte o la garantía', function () {
     $this->actingAs($this->socio3b->user);
     $this->post(route('arriendos.store'), datosArriendoBloque3b([
         'socio_id' => socioBloque3b()->id,
@@ -95,11 +96,12 @@ test('el socio activo solicita un arriendo con un comprobante total y sin suplan
     expect($reserva->estado)->toBe('pendiente')
         ->and($reserva->socio_id)->toBe($this->socio3b->id)
         ->and($reserva->creado_por)->toBe($this->socio3b->user_id)
-        ->and($reserva->valor_arriendo)->toBe(40000)
-        ->and($reserva->valor_garantia)->toBe(40000)
+        ->and($reserva->aporte_variable)->toBeTrue()
+        ->and($reserva->valor_arriendo)->toBeNull()
+        ->and($reserva->valor_garantia)->toBeNull()
         ->and($reserva->vence_en->equalTo(now()->addHours(48)))->toBeTrue();
-    Storage::disk('local')->assertExists($reserva->comprobante_arriendo_path);
-    expect(Storage::disk('local')->allFiles())->toHaveCount(1);
+    expect($reserva->comprobante_arriendo_path)->toBeNull();
+    expect(Storage::disk('local')->allFiles())->toBe([]);
     $this->assertDatabaseCount('ingresos', 0);
     $this->assertDatabaseCount('garantias', 0);
     $this->get(route('arriendos.index'))->assertOk();
@@ -137,16 +139,16 @@ test('no se admite un grupo sin representante o con otro responsable', function 
     $this->assertDatabaseCount('reservas', 0);
 })->with([true, false]);
 
-test('el comprobante es obligatorio privado y limitado a PDF o imágenes hasta 5 MB', function (string $caso) {
+test('el comprobante posterior es obligatorio privado y limitado a PDF o imágenes hasta 5 MB', function (string $caso) {
     $archivo = match ($caso) {
         'ausente' => null,
         'tipo inválido' => UploadedFile::fake()->create('archivo.txt', 1, 'text/plain'),
         'demasiado grande' => UploadedFile::fake()->create('total.pdf', 5121, 'application/pdf'),
     };
-    $this->post(route('arriendos.store'), datosArriendoBloque3b([
-        'socio_id' => $this->socio3b->id, 'comprobante' => $archivo,
-    ]))->assertSessionHasErrors('comprobante');
-    $this->assertDatabaseCount('reservas', 0);
+    $reserva = reservaBloque3b($this->socio3b, ['aporte_variable' => true, 'valor_garantia' => null, 'comprobante_arriendo_path' => null]);
+    Storage::disk('local')->delete('comprobantes/arriendos/total.pdf');
+    $this->post(route('arriendos.comprobante.store', $reserva), ['comprobante' => $archivo])->assertSessionHasErrors('comprobante');
+    expect($reserva->fresh()->comprobante_arriendo_path)->toBeNull();
     expect(Storage::disk('local')->allFiles())->toBe([]);
 })->with(['ausente', 'tipo inválido', 'demasiado grande']);
 
@@ -162,7 +164,7 @@ test('una solicitud pendiente bloquea la superposición pero permite el bloque c
     $this->assertDatabaseCount('reservas', 2);
 });
 
-test('los valores y el plazo se congelan y se rechaza un precio desactualizado', function () {
+test('el aporte manual y el plazo se conservan sin depender de la antigua tarifa fija', function () {
     Parametro::where('clave', 'arriendo_plazo_confirmacion_horas')->update(['valor' => '24']);
     $this->post(route('arriendos.store'), datosArriendoBloque3b(['socio_id' => $this->socio3b->id]))
         ->assertSessionHasNoErrors();
@@ -172,8 +174,8 @@ test('los valores y el plazo se congelan y se rechaza un precio desactualizado',
         ->and($reserva->vence_en->equalTo(now()->addHours(24)))->toBeTrue();
     $this->post(route('arriendos.store'), datosArriendoBloque3b([
         'socio_id' => $this->socio3b->id, 'hora_inicio' => '12:00', 'hora_fin' => '13:00',
-    ]))->assertSessionHasErrors('arriendo');
-    $this->assertDatabaseCount('reservas', 1);
+    ]))->assertSessionHasNoErrors();
+    $this->assertDatabaseCount('reservas', 2);
 });
 
 test('solo presidente o secretario confirma ambos pagos sin crear ingreso financiero', function (string $rol) {
@@ -250,7 +252,7 @@ test('finanzas registra solo el arriendo validado y separa la garantía sin dupl
     $usuario = User::factory()->create(['role' => $rol]);
     $this->actingAs($usuario);
     registrarBloque3b($this, $reserva);
-    expect(Ingreso::sole()->monto)->toBe(40000)
+    expect(Ingreso::sole()->concepto)->toBe('arriendo')->and(Ingreso::sole()->monto)->toBe(40000)
         ->and(Ingreso::sole()->registrado_por)->toBe($usuario->id)
         ->and(Ingreso::saldoCaja())->toBe(40000)
         ->and($reserva->fresh()->garantia->registrada_por)->toBe($usuario->id);

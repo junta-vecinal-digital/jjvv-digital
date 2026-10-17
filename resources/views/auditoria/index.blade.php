@@ -44,12 +44,12 @@
 
                 <div>
                     <label for="desde" class="block">Desde</label>
-                    <input id="desde" type="date" name="desde" value="{{ request('desde') }}" class="{{ $claseInput }}">
+                    <x-date-input id="desde" name="desde" value="{{ request('desde') }}" class="{{ $claseInput }}" />
                 </div>
 
                 <div>
                     <label for="hasta" class="block">Hasta</label>
-                    <input id="hasta" type="date" name="hasta" value="{{ request('hasta') }}" class="{{ $claseInput }}">
+                    <x-date-input id="hasta" name="hasta" value="{{ request('hasta') }}" class="{{ $claseInput }}" />
                 </div>
 
                 <div>
@@ -91,7 +91,7 @@
                     <tbody class="divide-y divide-gray-200 dark:divide-gray-700 text-gray-800 dark:text-gray-200 align-top">
                         @forelse ($auditorias as $a)
                             <tr>
-                                <td class="px-4 py-3 whitespace-nowrap">{{ $a->created_at?->format('d-m-Y H:i') }}</td>
+                                <td class="px-4 py-3 whitespace-nowrap">{{ $a->created_at?->format('d/m/Y H:i') }}</td>
                                 <td class="px-4 py-3">{{ $a->usuario?->name ?? 'Sistema / autoregistro' }}</td>
                                 <td class="px-4 py-3">{{ $eventos[$a->evento] ?? $a->evento }}</td>
                                 <td class="px-4 py-3 whitespace-nowrap">{{ $a->etiquetaRegistro() }}</td>
@@ -138,7 +138,7 @@
                             <tr>
                                 <td class="px-4 py-3">{{ $socio->nombre_completo }}</td>
                                 <td class="px-4 py-3 whitespace-nowrap">{{ $socio->rut }}</td>
-                                <td class="px-4 py-3 whitespace-nowrap">{{ $socio->fecha_baja?->format('d-m-Y') ?? '—' }}</td>
+                                <td class="px-4 py-3 whitespace-nowrap">{{ $socio->fecha_baja?->format('d/m/Y') ?? '—' }}</td>
                                 <td class="px-4 py-3">{{ $socio->motivo_baja ?? '—' }}</td>
                             </tr>
                         @empty

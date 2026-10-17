@@ -41,7 +41,7 @@
                     <tbody>
                         @forelse ($ingresos as $ingreso)
                             <tr class="border-b align-top">
-                                <td class="py-2">{{ $ingreso->fecha_pago->format('d-m-Y') }}</td>
+                                <td class="py-2">{{ $ingreso->fecha_pago->format('d/m/Y') }}</td>
                                 <td>
                                     {{ \App\Models\Ingreso::CONCEPTOS[$ingreso->concepto] ?? $ingreso->concepto }}
                                     @if ($ingreso->tipo_cuota)
@@ -49,12 +49,12 @@
                                     @endif
                                     @if ($ingreso->estaAnulado())
                                         <div class="text-xs text-red-600 dark:text-red-400">
-                                            Anulado el {{ $ingreso->anulado_en->format('d-m-Y') }}: {{ $ingreso->motivo_anulacion }}
+                                            Anulado el {{ $ingreso->anulado_en->format('d/m/Y') }}: {{ $ingreso->motivo_anulacion }}
                                         </div>
                                     @endif
                                     @if ($ingreso->devolucion)
                                         <div class="text-xs text-amber-700 dark:text-amber-400">
-                                            Devuelto el {{ $ingreso->devolucion->fecha_devolucion->format('d-m-Y') }}: {{ $ingreso->devolucion->motivo }}
+                                            Devuelto el {{ $ingreso->devolucion->fecha_devolucion->format('d/m/Y') }}: {{ $ingreso->devolucion->motivo }}
                                         </div>
                                     @endif
                                 </td>
@@ -62,8 +62,11 @@
                                 <td>{{ \App\Models\Ingreso::MEDIOS[$ingreso->medio_pago] }}</td>
                                 <td>
                                     {{ $ingreso->talonario ?? $ingreso->numero_transaccion }}
-                                    @if ($ingreso->reserva_id || $ingreso->garantia)
-                                        <a class="underline" href="{{ route('arriendos.show', $ingreso->reserva_id ?? $ingreso->garantia->reserva_id) }}">Arriendo y comprobante</a>
+                                    @php($solicitudInsumoId = $ingreso->solicitud_insumo_id ?? $ingreso->garantia?->solicitud_insumo_id)
+                                    @if ($solicitudInsumoId)
+                                        <a class="underline" href="{{ route('finanzas.insumos.show', $solicitudInsumoId) }}">Préstamo y comprobante</a>
+                                    @elseif ($ingreso->reserva_id || $ingreso->garantia)
+                                        <a class="underline" href="{{ route('arriendos.show', ['reserva' => $ingreso->reserva_id ?? $ingreso->garantia->reserva_id, 'desde' => 'finanzas']) }}">Reserva y comprobante</a>
                                     @endif
                                 </td>
                                 <td>{{ $ingreso->registrador?->name ?? '—' }}</td>

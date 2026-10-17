@@ -6,6 +6,7 @@ use App\Models\Grupo;
 use App\Models\HorarioFijo;
 use App\Models\Reserva;
 use App\Models\Socio;
+use App\Models\TipoActividad;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -29,11 +30,6 @@ class ReservaController extends Controller
         $lunes = $this->lunesDe($request->query('semana'));
         $dias = collect(range(0, 6))->map(fn ($i) => $lunes->copy()->addDays($i));
         ['inicios' => $horas, 'fines' => $horasFin] = Reserva::bloquesDeLaSede();
-
-        $horaSugerida = collect($horas)->first(fn ($hora) => $hora > now()->format('H:i'));
-        $fechaSugerida = $horaSugerida ? now()->toDateString() : now()->addDay()->toDateString();
-        $horaSugerida ??= $horas[0] ?? '';
-        $horaFinSugerida = $horasFin[array_search($horaSugerida, $horas)] ?? '';
 
         $celdas = []; // [fecha][hora] => ['tipo' => 'reserva'|'fijo', 'texto' => ...]
 
@@ -85,20 +81,28 @@ class ReservaController extends Controller
             }
         }
 
-        // Solo grupos con representante vigente pueden tener reservas nuevas (RFS-42).
-        $grupos = $esDirigente
-            ? Grupo::with('representante')->orderBy('nombre')->get()
-                ->filter(fn ($g) => $g->tieneRepresentanteVigente())->values()
-            : collect();
-
-        $socios = $esDirigente
-            ? Socio::where('estado', 'activo')->orderBy('nombre_completo')->get(['id', 'nombre_completo', 'rut'])
-            : collect();
-
         return view('calendario.index', compact(
-            'esDirigente', 'lunes', 'dias', 'horas', 'horasFin', 'celdas', 'grupos', 'reservas', 'socios',
-            'fechaSugerida', 'horaSugerida', 'horaFinSugerida'
+            'esDirigente', 'lunes', 'dias', 'horas', 'celdas'
         ));
+    }
+
+    public function gestion(Request $request)
+    {
+        Reserva::liberarVencidos();
+        $lunes = $this->lunesDe($request->query('semana'));
+        ['inicios' => $horas, 'fines' => $horasFin] = Reserva::bloquesDeLaSede();
+        $horaSugerida = collect($horas)->first(fn ($hora) => $hora > now()->format('H:i'));
+        $fechaSugerida = $horaSugerida ? now()->toDateString() : now()->addDay()->toDateString();
+        $horaSugerida ??= $horas[0] ?? '';
+        $horaFinSugerida = $horasFin[array_search($horaSugerida, $horas)] ?? '';
+
+        return view('reservas.index', compact('lunes', 'horas', 'horasFin', 'horaSugerida', 'fechaSugerida', 'horaFinSugerida') + [
+            'reservas' => Reserva::with(['grupo', 'socio', 'creador'])->ocupan()
+                ->where('fin', '>', $lunes)->where('inicio', '<', $lunes->copy()->addWeek())->orderBy('inicio')->get(),
+            'grupos' => Grupo::with('representante')->orderBy('nombre')->get()->filter(fn ($g) => $g->tieneRepresentanteVigente()),
+            'socios' => Socio::where('estado', 'activo')->orderBy('nombre_completo')->get(['id', 'nombre_completo', 'rut']),
+            'tiposActividad' => TipoActividad::where('activo', true)->orderBy('id')->get(),
+        ]);
     }
 
     /** Horario semanal o mensual para impresión (RFU-38, RFS-57). */
@@ -164,7 +168,7 @@ class ReservaController extends Controller
                 'fecha' => ['required', 'date', 'after_or_equal:today', 'before_or_equal:'.now()->addMonths(6)->toDateString()],
                 'hora_inicio' => ['required', 'date_format:H:i'],
                 'hora_fin' => ['required', 'date_format:H:i', 'after:hora_inicio'],
-                'tipo' => ['required', 'in:grupo,particular,actividad'],
+                'tipo' => ['required', 'string', 'max:20', Rule::exists('tipos_actividad', 'clave')->where('activo', true)],
                 'grupo_id' => ['exclude_unless:tipo,grupo', 'required', 'exists:grupos,id'],
                 'socio_id' => ['exclude_unless:tipo,particular', 'required', Rule::exists('socios', 'id')->where('estado', 'activo')],
             ], [
@@ -185,6 +189,7 @@ class ReservaController extends Controller
 
             $grupoId = null;
             $socioId = $datos['tipo'] === 'particular' ? $datos['socio_id'] : null;
+            $responsable = $socioId ? Socio::findOrFail($socioId)->nombre_completo : $request->user()->name;
 
             if ($datos['tipo'] === 'grupo') {
                 $grupo = Grupo::findOrFail($datos['grupo_id']);
@@ -195,25 +200,29 @@ class ReservaController extends Controller
 
                 $grupoId = $grupo->id;
                 $socioId = $grupo->representante_id;
+                $responsable = $grupo->datosRepresentante()['nombre'];
             }
 
             if ($error = Reserva::errorDeConflicto($inicio, $fin)) {
                 return $this->rechazar($error);
             }
 
+            $tipoActividad = TipoActividad::where('clave', $datos['tipo'])->firstOrFail();
             Reserva::create([
                 'tipo' => $datos['tipo'],
                 'estado' => 'confirmada',
                 'inicio' => $inicio,
                 'fin' => $fin,
-                'motivo' => Reserva::TIPOS[$datos['tipo']],
+                'motivo' => $tipoActividad->nombre,
+                'tipo_nombre' => $tipoActividad->nombre,
+                'responsable_nombre' => $responsable,
                 'grupo_id' => $grupoId,
                 'socio_id' => $socioId,
                 'creado_por' => $request->user()->id,
             ]);
 
             return redirect()
-                ->route('calendario.index', ['semana' => $inicio->copy()->startOfWeek()->toDateString()])
+                ->route('reservas.index', ['semana' => $inicio->copy()->startOfWeek()->toDateString()])
                 ->with('status', 'reserva-creada');
         });
     }

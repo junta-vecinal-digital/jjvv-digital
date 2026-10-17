@@ -10,7 +10,10 @@
                 <p class="px-4 sm:px-0 text-green-700 dark:text-green-400">Cambios guardados.</p>
             @endif
 
-            @include('grupos._form', ['grupo' => $grupo])
+            <details class="ui-panel" @if ($errors->any() && ! $errors->has('horario')) open @endif>
+                <summary class="cursor-pointer p-4 font-medium">Editar grupo</summary>
+                @include('grupos._form', ['grupo' => $grupo])
+            </details>
 
             {{-- Horarios fijos (RFU-34, RFS-47, RFS-49) --}}
             @php
@@ -126,9 +129,12 @@
                     @csrf
                     <div>
                         <x-input-label for="mes" value="Generar reservas del mes" />
-                        <x-text-input id="mes" name="mes" type="month" class="mt-1 block"
-                            :value="now()->addMonth()->format('Y-m')"
-                            min="{{ now()->format('Y-m') }}" max="{{ now()->addMonths(6)->format('Y-m') }}" required />
+                        <select id="mes" name="mes" class="ui-input mt-1 block" required>
+                            @for ($adelanto = 0; $adelanto <= 6; $adelanto++)
+                                @php($mesReserva = now()->startOfMonth()->addMonths($adelanto))
+                                <option value="{{ $mesReserva->format('Y-m') }}" @selected(old('mes', now()->startOfMonth()->addMonth()->format('Y-m')) === $mesReserva->format('Y-m'))>{{ ucfirst($mesReserva->translatedFormat('F Y')) }}</option>
+                            @endfor
+                        </select>
                     </div>
                     <x-primary-button :disabled="! $grupo->tieneRepresentanteVigente()">Generar reservas</x-primary-button>
                 </form>

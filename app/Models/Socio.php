@@ -46,6 +46,13 @@ class Socio extends Model
         return in_array($estado, self::TRANSICIONES[$this->estado] ?? [], true);
     }
 
+    /** Etiqueta informativa; no modifica rol, estado ni permisos de la ficha. */
+    public function esRepresentante(): bool
+    {
+        return Grupo::where('representante_id', $this->id)
+            ->when($this->user_id, fn ($q) => $q->orWhere('representante_usuario_id', $this->user_id))->exists();
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

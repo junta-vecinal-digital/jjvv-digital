@@ -44,12 +44,14 @@
 
     <div class="flex flex-wrap gap-3">
         <x-secondary-button @click="generarClave()">Generar contraseña</x-secondary-button>
-        <x-secondary-button @click="mostrarClave = !mostrarClave" x-bind:aria-pressed="mostrarClave">Mostrar / ocultar</x-secondary-button>
     </div>
     <div>
         <x-input-label for="password" :value="$usuario ? 'Nueva contraseña (opcional)' : 'Contraseña temporal'" />
-        <x-text-input id="password" name="password" type="password" x-model="clave" x-bind:type="mostrarClave ? 'text' : 'password'" class="mt-1 block w-full"
-            autocomplete="new-password" :required="! $usuario" />
+        <div class="mt-1 flex items-center gap-2">
+            <x-text-input id="password" name="password" type="password" x-model="clave" x-bind:type="mostrarClave ? 'text' : 'password'" class="min-w-0 flex-1"
+                autocomplete="new-password" :required="! $usuario" />
+            <x-secondary-button class="shrink-0" @click="mostrarClave = !mostrarClave" x-bind:aria-pressed="mostrarClave" aria-controls="password password_confirmation" x-text="mostrarClave ? 'Ocultar' : 'Mostrar'">Mostrar</x-secondary-button>
+        </div>
         <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
             @if ($usuario)
                 Déjala en blanco para mantener la contraseña actual.

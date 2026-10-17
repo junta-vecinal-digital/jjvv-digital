@@ -5,10 +5,10 @@ use App\Models\Ingreso;
 use App\Models\Parametro;
 use App\Models\User;
 
-test('el presidente puede cambiar un parámetro y queda registrado', function () {
-    $presidente = User::factory()->create(['role' => 'presidente']);
+test('el administrador puede cambiar un parámetro y queda registrado', function () {
+    $administrador = User::factory()->create(['role' => 'admin']);
 
-    $this->actingAs($presidente)
+    $this->actingAs($administrador)
         ->put('/parametros', [
             'valores' => [
                 'sede_hora_inicio' => '08:00',

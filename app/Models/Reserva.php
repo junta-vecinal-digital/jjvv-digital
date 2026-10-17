@@ -19,6 +19,9 @@ class Reserva extends Model
         'valor_arriendo', 'valor_garantia', 'vence_en', 'validado_en',
         'validado_por', 'cancelada_en', 'cancelada_por',
         'comprobante_arriendo_path',
+        'aporte_variable', 'aporte_definido_por', 'aporte_definido_en',
+        'tipo_nombre', 'responsable_nombre',
+        'responsable_rut', 'responsable_direccion', 'responsable_telefono', 'canal',
     ];
 
     protected $casts = [
@@ -27,6 +30,8 @@ class Reserva extends Model
         'vence_en' => 'datetime',
         'validado_en' => 'datetime',
         'cancelada_en' => 'datetime',
+        'aporte_variable' => 'boolean',
+        'aporte_definido_en' => 'datetime',
     ];
 
     public const TIPOS = [
@@ -35,6 +40,11 @@ class Reserva extends Model
         'arriendo' => 'Arriendo',
         'actividad' => 'Actividad de la junta',
     ];
+
+    public function etiquetaTipo(): string
+    {
+        return $this->tipo_nombre ?? self::TIPOS[$this->tipo] ?? $this->tipo;
+    }
 
     /** Estados que ocupan el horario. 'cancelada' (3b) lo libera. */
     public const ESTADOS_OCUPAN = ['confirmada', 'pendiente'];

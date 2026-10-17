@@ -8,6 +8,7 @@ use App\Models\Reserva;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 /** Presidente y tesorero: registro financiero posterior a la validación del arriendo. */
 class ArriendoFinancieroController extends Controller
@@ -32,22 +33,26 @@ class ArriendoFinancieroController extends Controller
             DB::table('parametros')->where('clave', 'sede_hora_inicio')->update(['valor' => DB::raw('valor')]);
             $reserva->refresh();
             abort_unless($reserva->tipo === 'arriendo' && $reserva->validado_en, 422, 'El arriendo debe estar validado.');
+            if ($reserva->aporte_variable && $reserva->valor_arriendo <= 0) {
+                return back()->withErrors(['finanzas' => 'Una reserva gratuita no genera ingresos.']);
+            }
             if ($reserva->ingresos()->vigentes()->exists()) {
                 return back()->withErrors(['finanzas' => 'Este arriendo ya tiene un ingreso vigente.']);
             }
 
             Ingreso::create([
                 'reserva_id' => $reserva->id,
-                'concepto' => 'arriendo',
+                'concepto' => $reserva->aporte_variable ? 'aporte_reserva' : 'arriendo',
                 'fecha_pago' => $datos['fecha_pago'],
                 'monto' => $reserva->valor_arriendo,
                 'medio_pago' => $datos['medio_pago'],
                 'talonario' => $datos['medio_pago'] === 'efectivo' ? $datos['talonario'] : null,
-                'observaciones' => 'Pago de arriendo #'.$reserva->id.'. Comprobante compartido con la garantía.',
+                'observaciones' => $reserva->aporte_variable ? 'Aporte voluntario por reserva de sede #'.$reserva->id.'.'
+                    : 'Pago de arriendo #'.$reserva->id.'. Comprobante compartido con la garantía.',
                 'registrado_por' => $request->user()->id,
             ]);
             $garantia = $reserva->garantia;
-            if (! $garantia->registrada_en) {
+            if ($garantia && ! $garantia->registrada_en) {
                 $garantia->update([
                     'registrada_en' => now(),
                     'registrada_por' => $request->user()->id,
@@ -66,6 +71,7 @@ class ArriendoFinancieroController extends Controller
         return DB::transaction(function () use ($garantia) {
             DB::table('parametros')->where('clave', 'sede_hora_inicio')->update(['valor' => DB::raw('valor')]);
             $garantia->refresh();
+            $this->validarDevolucionInsumos($garantia);
             if ($garantia->estado !== 'recibida') {
                 return back()->withErrors(['finanzas' => 'Solo una garantía recibida puede quedar por devolver.']);
             }
@@ -82,6 +88,7 @@ class ArriendoFinancieroController extends Controller
         return DB::transaction(function () use ($request, $garantia, $datos) {
             DB::table('parametros')->where('clave', 'sede_hora_inicio')->update(['valor' => DB::raw('valor')]);
             $garantia->refresh();
+            $this->validarDevolucionInsumos($garantia, $datos['fecha_resolucion']);
             if (! $garantia->registrada_en || ! in_array($garantia->estado, ['recibida', 'por_devolver'], true)) {
                 return back()->withErrors(['finanzas' => 'La garantía debe estar registrada y pendiente de resolución.']);
             }
@@ -112,6 +119,7 @@ class ArriendoFinancieroController extends Controller
         return DB::transaction(function () use ($request, $garantia, $datos) {
             DB::table('parametros')->where('clave', 'sede_hora_inicio')->update(['valor' => DB::raw('valor')]);
             $garantia->refresh();
+            $this->validarDevolucionInsumos($garantia, $datos['fecha_resolucion']);
             if (! $garantia->registrada_en || ! in_array($garantia->estado, ['recibida', 'por_devolver'], true)) {
                 return back()->withErrors(['finanzas' => 'La garantía debe estar registrada y pendiente de resolución.']);
             }
@@ -159,8 +167,23 @@ class ArriendoFinancieroController extends Controller
             'monto' => $garantia->monto_retenido,
             'medio_pago' => $garantia->medio_pago,
             'talonario' => $garantia->talonario,
-            'observaciones' => 'Retención por daños del arriendo #'.$garantia->reserva_id.': '.$garantia->motivo_retencion,
+            'numero_transaccion' => $garantia->solicitudInsumo?->numero_transaccion,
+            'observaciones' => $garantia->solicitud_insumo_id
+                ? 'Retención por daños del préstamo de insumos #'.$garantia->solicitud_insumo_id.': '.$garantia->motivo_retencion
+                : 'Retención por daños del arriendo #'.$garantia->reserva_id.': '.$garantia->motivo_retencion,
             'registrado_por' => $autor,
         ]);
+    }
+
+    private function validarDevolucionInsumos(Garantia $garantia, ?string $fecha = null): void
+    {
+        if (! $garantia->solicitud_insumo_id) return;
+        $solicitud = $garantia->solicitudInsumo;
+        if ($solicitud->estado !== 'devuelto') {
+            throw ValidationException::withMessages(['finanzas' => 'Registra primero la devolución completa de los insumos para resolver su garantía.']);
+        }
+        if ($fecha && $fecha < $solicitud->fecha_devolucion->toDateString()) {
+            throw ValidationException::withMessages(['fecha_resolucion' => 'La resolución no puede ser anterior a la devolución de los insumos.']);
+        }
     }
 }

@@ -21,7 +21,7 @@ class IngresoController extends Controller
     public function create()
     {
         return view('finanzas.ingresos.create', [
-            'conceptos' => array_diff_key(Ingreso::CONCEPTOS, ['arriendo' => true]),
+            'conceptos' => array_diff_key(Ingreso::CONCEPTOS, ['arriendo' => true, 'aporte_reserva' => true, 'prestamo_insumos' => true]),
             'tiposCuota' => Ingreso::TIPOS_CUOTA,
             'medios' => Ingreso::MEDIOS,
         ]);
@@ -30,7 +30,7 @@ class IngresoController extends Controller
     public function store(Request $request)
     {
         $datos = $request->validate([
-            'concepto' => ['required', Rule::in(array_diff(array_keys(Ingreso::CONCEPTOS), ['arriendo']))],
+            'concepto' => ['required', Rule::in(array_diff(array_keys(Ingreso::CONCEPTOS), ['arriendo', 'aporte_reserva', 'prestamo_insumos']))],
             'tipo_cuota' => ['nullable', 'required_if:concepto,cuota_socios,aporte_grupos', Rule::in(array_keys(Ingreso::TIPOS_CUOTA))],
             'fecha_pago' => ['required', 'date', 'before_or_equal:today'],
             'monto' => ['required', 'integer', 'min:1', 'max:100000000'],

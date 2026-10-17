@@ -39,6 +39,7 @@
                                     @endforeach
                                 </select>
                                 <x-input-error class="mt-2" :messages="$errors->get('tipo')" />
+                                <p x-show="tipo === 'socio'" class="mt-2 text-sm">Este certificado de socio será solo para imprimir en ventanilla. No aparecerá en las descargas de su titular.</p>
                             </div>
 
                             <div>

@@ -1,0 +1,111 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Garantia;
+use App\Models\Ingreso;
+use App\Models\SolicitudInsumo;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+
+class PrestamoFinancieroController extends Controller
+{
+    public function index()
+    {
+        return view('finanzas.insumos.index', [
+            'solicitudes' => SolicitudInsumo::with(['ingresos', 'garantiaRecibida'])
+                ->whereIn('estado', ['aprobado', 'entregado', 'devuelto'])->latest('id')->paginate(20),
+        ]);
+    }
+
+    public function show(SolicitudInsumo $solicitud)
+    {
+        abort_if($solicitud->estado === 'pendiente', 404);
+        return view('finanzas.insumos.show', ['solicitud' => $solicitud->load(['lineas', 'ingresos', 'garantiaRecibida.ingresos'])]);
+    }
+
+    public function registrar(Request $request, SolicitudInsumo $solicitud)
+    {
+        $datos = $request->validate([
+            'fecha_pago' => ['required', 'date_format:Y-m-d', 'after_or_equal:'.$solicitud->created_at->toDateString(), 'before_or_equal:today'],
+            'medio_pago' => ['required', Rule::in(array_keys(Ingreso::MEDIOS))],
+            'talonario' => ['nullable', 'required_if:medio_pago,efectivo', 'string', 'max:30'],
+            'numero_transaccion' => ['nullable', Rule::requiredIf($request->input('medio_pago') === 'transferencia' && ! $request->hasFile('comprobante')), 'string', 'max:50'],
+            'comprobante' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+        ]);
+
+        return DB::transaction(function () use ($request, $solicitud, $datos) {
+            $this->bloquear($solicitud);
+            if ($solicitud->pago_registrado_en || $solicitud->ingresos()->exists() || $solicitud->garantiaRecibida()->exists()) {
+                throw ValidationException::withMessages(['finanzas' => 'La recepción ya fue registrada. Si anulaste el ingreso, usa Volver a registrar cobro.']);
+            }
+            if ($solicitud->monto == 0 && $solicitud->garantia == 0) {
+                throw ValidationException::withMessages(['finanzas' => 'Un préstamo gratuito sin garantía no genera movimientos financieros.']);
+            }
+            $solicitud->update([
+                'pago_registrado_en' => now(), 'pago_registrado_por' => $request->user()->id,
+                'fecha_pago' => $datos['fecha_pago'], 'medio_pago' => $datos['medio_pago'],
+                'talonario' => $datos['medio_pago'] === 'efectivo' ? $datos['talonario'] : null,
+                'numero_transaccion' => $datos['medio_pago'] === 'transferencia' ? ($datos['numero_transaccion'] ?? null) : null,
+                'comprobante_path' => isset($datos['comprobante']) ? $datos['comprobante']->store('comprobantes/insumos', 'local') : null,
+            ]);
+            if ($solicitud->monto > 0) $this->crearIngreso($solicitud, $request->user()->id);
+            if ($solicitud->garantia > 0) {
+                Garantia::create([
+                    'solicitud_insumo_id' => $solicitud->id, 'monto' => $solicitud->garantia,
+                    'estado' => $solicitud->estado === 'devuelto' ? 'por_devolver' : 'recibida',
+                    'recibida_en' => now(), 'validado_por' => $request->user()->id,
+                    'registrada_en' => now(), 'registrada_por' => $request->user()->id,
+                    'fecha_pago' => $datos['fecha_pago'], 'medio_pago' => $datos['medio_pago'],
+                    'talonario' => $solicitud->talonario,
+                ]);
+            }
+            return back()->with('status', 'Recepción registrada: el cobro es ingreso y la garantía se conserva separada.');
+        });
+    }
+
+    public function reingresar(Request $request, SolicitudInsumo $solicitud)
+    {
+        return DB::transaction(function () use ($request, $solicitud) {
+            $this->bloquear($solicitud);
+            if (! $solicitud->pago_registrado_en || $solicitud->monto <= 0 || $solicitud->ingresos()->vigentes()->exists()) {
+                throw ValidationException::withMessages(['finanzas' => 'Solo puedes volver a registrar un cobro positivo recibido cuyo ingreso esté anulado.']);
+            }
+            $this->crearIngreso($solicitud, $request->user()->id);
+            return back()->with('status', 'Cobro registrado nuevamente. La recepción original y la garantía se conservan.');
+        });
+    }
+
+    public function comprobante(SolicitudInsumo $solicitud)
+    {
+        abort_unless($solicitud->pago_registrado_en && $solicitud->comprobante_path
+            && Storage::disk('local')->exists($solicitud->comprobante_path), 404);
+        return Storage::disk('local')->response($solicitud->comprobante_path);
+    }
+
+    private function bloquear(SolicitudInsumo $solicitud): void
+    {
+        // Comparte serialización con el registro y la resolución de garantías históricas.
+        DB::table('parametros')->where('clave', 'sede_hora_inicio')->update(['valor' => DB::raw('valor')]);
+        DB::table('solicitudes_insumos')->where('id', $solicitud->id)->update(['estado' => DB::raw('estado')]);
+        $solicitud->refresh();
+        if (! in_array($solicitud->estado, ['aprobado', 'entregado', 'devuelto'], true)) {
+            throw ValidationException::withMessages(['finanzas' => 'Primero debe aprobarse la solicitud y definirse sus montos.']);
+        }
+    }
+
+    private function crearIngreso(SolicitudInsumo $solicitud, int $autor): void
+    {
+        Ingreso::create([
+            'solicitud_insumo_id' => $solicitud->id, 'concepto' => 'prestamo_insumos',
+            'monto' => $solicitud->monto, 'fecha_pago' => $solicitud->fecha_pago,
+            'medio_pago' => $solicitud->medio_pago, 'talonario' => $solicitud->talonario,
+            'numero_transaccion' => $solicitud->numero_transaccion,
+            'observaciones' => 'Cobro por préstamo de insumos #'.$solicitud->id.'. Garantía separada de los ingresos.',
+            'registrado_por' => $autor,
+        ]);
+    }
+}

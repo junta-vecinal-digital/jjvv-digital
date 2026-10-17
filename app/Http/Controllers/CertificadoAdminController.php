@@ -68,7 +68,8 @@ class CertificadoAdminController extends Controller
 
         $certificado = Certificado::create([
             ...$datos,
-            'user_id' => $socio?->user_id,
+            'user_id' => $datos['tipo'] === 'socio' ? null : $socio?->user_id,
+            'solo_impresion' => $datos['tipo'] === 'socio',
             'documentos_verificados' => $request->boolean('documentos_verificados'),
         ]);
         $certificado->emitir($request->user());
@@ -101,6 +102,10 @@ class CertificadoAdminController extends Controller
             ...$datos,
             'documentos_verificados' => $request->boolean('documentos_verificados'),
         ])->save();
+
+        if ($certificado->tipo === 'socio') {
+            $certificado->forceFill(['solo_impresion' => true, 'user_id' => null])->save();
+        }
 
         $certificado->emitir($request->user());
         $certificado->registrarIngreso($request->user());

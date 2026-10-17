@@ -1,6 +1,5 @@
 @php
     $cls = 'mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-brand-500 dark:focus:border-brand-400 focus:ring-brand-500 dark:focus:ring-brand-400 rounded-md shadow-sm';
-    $archivo = 'mt-1 block w-full text-sm text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-900 file:mr-4 file:py-2 file:px-4 file:border-0 file:bg-gray-200 dark:file:bg-gray-700 file:text-gray-700 dark:file:text-gray-200';
     $socio = $socio ?? null;
 @endphp
 
@@ -45,8 +44,8 @@
         </div>
         <div>
             <x-input-label for="residente_desde" value="Reside en el sector desde" />
-            <input id="residente_desde" name="residente_desde" type="date" max="{{ now()->subMonths(6)->toDateString() }}" class="{{ $cls }}" required
-                   value="{{ old('residente_desde', $socio?->residente_desde?->toDateString()) }}">
+            <x-date-input id="residente_desde" name="residente_desde" max="{{ now()->subMonths(6)->toDateString() }}" class="{{ $cls }}" required
+                   value="{{ old('residente_desde', $socio?->residente_desde?->toDateString()) }}" />
             <x-input-error class="mt-2" :messages="$errors->get('residente_desde')" />
         </div>
     </div>
@@ -56,7 +55,7 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div>
             <x-input-label for="carnet" value="Carnet de identidad (opcional, foto o PDF)" />
-            <input id="carnet" name="carnet" type="file" accept=".jpg,.jpeg,.png,.pdf" class="{{ $archivo }}">
+            <x-file-input id="carnet" name="carnet" accept=".jpg,.jpeg,.png,.pdf" />
             @if ($socio?->carnet_path)
                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Ya hay un archivo cargado; al subir otro se reemplaza.</p>
             @endif
@@ -64,7 +63,7 @@
         </div>
         <div>
             <x-input-label for="boleta" value="Boleta de servicio básico (opcional, foto o PDF)" />
-            <input id="boleta" name="boleta" type="file" accept=".jpg,.jpeg,.png,.pdf" class="{{ $archivo }}">
+            <x-file-input id="boleta" name="boleta" accept=".jpg,.jpeg,.png,.pdf" />
             @if ($socio?->boleta_path)
                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Ya hay un archivo cargado; al subir otro se reemplaza.</p>
             @endif

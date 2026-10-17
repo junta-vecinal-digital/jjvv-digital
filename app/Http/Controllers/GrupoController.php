@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Grupo;
 use App\Models\Socio;
 use App\Models\Reserva;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -15,7 +16,7 @@ class GrupoController extends Controller
     {
         return view('grupos.index', [
             'grupos' => Grupo::with('representante')->orderBy('nombre')->get(),
-            'socios' => $this->sociosDisponibles(),
+            'personas' => $this->personasDisponibles(),
         ]);
     }
 
@@ -35,7 +36,7 @@ class GrupoController extends Controller
                 'representante',
                 'horariosFijos' => fn ($q) => $q->orderBy('dia_semana')->orderBy('hora_inicio'),
             ]),
-            'socios' => $this->sociosDisponibles(),
+            'personas' => $this->personasDisponibles(),
             'horas' => $bloques['inicios'],
             'horasFin' => $bloques['fines'],
         ]);
@@ -48,7 +49,7 @@ class GrupoController extends Controller
         return redirect()->route('grupos.show', $grupo)->with('status', 'grupo-actualizado');
     }
 
-    /** RFS-39 y RFS-40: el representante debe ser socio activo con cuenta; sus datos se copian al grupo. */
+    /** Conserva el acceso de asignación desde una ficha; la cuenta ya no es obligatoria. */
     public function asignarRepresentante(Request $request, Grupo $grupo)
     {
         $datos = $request->validate([
@@ -57,14 +58,13 @@ class GrupoController extends Controller
 
         $socio = Socio::findOrFail($datos['socio_id']);
 
-        if ($socio->estado !== 'activo' || $socio->user_id === null) {
-            return back()->withErrors([
-                'socio_id' => 'El representante debe ser socio activo con cuenta de usuario.',
-            ]);
-        }
-
         $grupo->update([
             'representante_id' => $socio->id,
+            'representante_usuario_id' => $socio->user_id,
+            'representante_nombre' => $socio->nombre_completo,
+            'representante_correo' => $socio->email,
+            'representante_telefono' => $socio->telefono,
+            'representante_direccion' => $socio->direccion,
             'contacto_nombre' => $socio->nombre_completo,
             'contacto_correo' => $socio->email,
             'contacto_telefono' => $socio->telefono,
@@ -89,20 +89,40 @@ class GrupoController extends Controller
         return redirect()->route('grupos.show', $grupo)->with('status', 'contacto-actualizado');
     }
 
-    private function sociosDisponibles()
+    private function personasDisponibles(): array
     {
-        return Socio::where('estado', 'activo')->whereNotNull('user_id')
-            ->orderBy('nombre_completo')
-            ->get(['id', 'nombre_completo', 'rut', 'email', 'telefono', 'direccion']);
+        $personas = [];
+        foreach (Socio::with('user')->whereIn('estado', ['activo', 'inactivo'])->orderBy('nombre_completo')->get() as $socio) {
+            $personas['socio:'.$socio->id] = [
+                'etiqueta' => $socio->nombre_completo.' · '.$socio->rut.' · Socio',
+                'socio_id' => $socio->id, 'usuario_id' => $socio->user_id,
+                'nombre' => $socio->nombre_completo, 'correo' => $socio->email ?? $socio->user?->email,
+                'telefono' => $socio->telefono, 'direccion' => $socio->direccion,
+            ];
+        }
+        foreach (User::with('socio')->whereIn('role', ['presidente', 'secretario', 'tesorero'])->orderBy('name')->get() as $usuario) {
+            $personas['usuario:'.$usuario->id] = [
+                'etiqueta' => $usuario->name.' · '.$usuario->nombreRol(),
+                'socio_id' => $usuario->socio?->id, 'usuario_id' => $usuario->id,
+                'nombre' => $usuario->socio?->nombre_completo ?? $usuario->name,
+                'correo' => $usuario->socio?->email ?? $usuario->email,
+                'telefono' => $usuario->socio?->telefono, 'direccion' => $usuario->socio?->direccion,
+            ];
+        }
+
+        return $personas;
     }
 
     private function validarGrupo(Request $request, ?Grupo $grupo = null): array
     {
+        $personas = $this->personasDisponibles();
         $datos = $request->validate([
             'nombre' => ['required', 'string', 'max:255', Rule::unique('grupos', 'nombre')->ignore($grupo?->id)],
-            'socio_id' => ['nullable', Rule::exists('socios', 'id')->where(
-                fn ($query) => $query->where('estado', 'activo')->whereNotNull('user_id')
-            )],
+            'origen_representante' => ['required', 'string', Rule::in(['sin_representante', 'manual', ...array_keys($personas)])],
+            'representante_nombre' => ['nullable', 'required_unless:origen_representante,sin_representante', 'string', 'max:255'],
+            'representante_correo' => ['nullable', 'email', 'max:255'],
+            'representante_telefono' => ['nullable', 'string', 'max:20'],
+            'representante_direccion' => ['nullable', 'string', 'max:255'],
             'usar_contacto_representante' => ['sometimes', 'boolean'],
             'contacto_nombre' => ['nullable', 'string', 'max:255'],
             'contacto_correo' => ['nullable', 'email', 'max:255'],
@@ -110,21 +130,29 @@ class GrupoController extends Controller
             'contacto_direccion' => ['nullable', 'string', 'max:255'],
         ], [
             'nombre.unique' => 'Ya existe un grupo con este nombre.',
-            'socio_id.exists' => 'El representante debe ser un socio activo con cuenta de usuario.',
+            'representante_nombre.required_unless' => 'Ingresa el nombre del representante.',
         ]);
 
-        $socioId = array_key_exists('socio_id', $datos) ? $datos['socio_id'] : $grupo?->representante_id;
-        $datos['representante_id'] = $socioId;
-
-        if ($request->boolean('usar_contacto_representante', $grupo === null || $request->has('socio_id'))) {
-            $socio = $socioId ? Socio::findOrFail($socioId) : null;
-            $datos['contacto_nombre'] = $socio?->nombre_completo;
-            $datos['contacto_correo'] = $socio?->email;
-            $datos['contacto_telefono'] = $socio?->telefono;
-            $datos['contacto_direccion'] = $socio?->direccion;
+        $origen = $datos['origen_representante'];
+        // Un nombre distinto identifica a una persona ingresada manualmente.
+        if (isset($personas[$origen]) && trim($datos['representante_nombre']) !== $personas[$origen]['nombre']) {
+            $origen = 'manual';
+        }
+        $datos['representante_id'] = $personas[$origen]['socio_id'] ?? null;
+        $datos['representante_usuario_id'] = $personas[$origen]['usuario_id'] ?? null;
+        if ($origen === 'sin_representante') {
+            foreach (['nombre', 'correo', 'telefono', 'direccion'] as $campo) {
+                $datos['representante_'.$campo] = null;
+            }
         }
 
-        unset($datos['socio_id'], $datos['usar_contacto_representante']);
+        if ($request->boolean('usar_contacto_representante', true)) {
+            foreach (['nombre', 'correo', 'telefono', 'direccion'] as $campo) {
+                $datos['contacto_'.$campo] = $datos['representante_'.$campo] ?? null;
+            }
+        }
+
+        unset($datos['origen_representante'], $datos['usar_contacto_representante']);
 
         return $datos;
     }

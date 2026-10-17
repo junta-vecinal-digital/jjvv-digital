@@ -15,6 +15,8 @@ class Ingreso extends Model
     /** Conceptos de ingreso (RFS-58). */
     public const CONCEPTOS = [
         'arriendo' => 'Arriendo de sede',
+        'aporte_reserva' => 'Aporte voluntario por reserva de sede',
+        'prestamo_insumos' => 'Préstamo de insumos',
         'cuota_socios' => 'Cuota de socios',
         'aporte_grupos' => 'Aporte de grupos',
         'certificados' => 'Certificados',
@@ -35,6 +37,7 @@ class Ingreso extends Model
         'concepto', 'fecha_pago', 'monto', 'medio_pago',
         'talonario', 'numero_transaccion', 'observaciones',
         'tipo_cuota', 'certificado_id', 'registrado_por', 'reserva_id', 'garantia_id',
+        'solicitud_insumo_id',
     ];
 
     protected function casts(): array
@@ -110,5 +113,10 @@ class Ingreso extends Model
     public function garantia(): BelongsTo
     {
         return $this->belongsTo(Garantia::class);
+    }
+
+    public function solicitudInsumo(): BelongsTo
+    {
+        return $this->belongsTo(SolicitudInsumo::class);
     }
 }

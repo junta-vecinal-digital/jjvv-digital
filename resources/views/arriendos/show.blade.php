@@ -1,42 +1,84 @@
 <x-app-layout>
-    <x-slot name="header"><h2 class="text-2xl font-semibold">Arriendo #{{ $reserva->id }}</h2></x-slot>
+    <x-slot name="header"><h2 class="text-2xl font-semibold">{{ $reserva->aporte_variable ? 'Reserva de sede' : 'Arriendo' }} #{{ $reserva->id }}</h2></x-slot>
     <div class="max-w-4xl mx-auto px-4 py-6 space-y-6">
-        <a class="underline" href="{{ route($esFinanciero ? 'finanzas.arriendos.index' : 'arriendos.index') }}">Volver a arriendos</a>
+        @if ($volverReservas)
+            <a class="underline" href="{{ route('reservas.index', ['semana' => $reserva->inicio->copy()->startOfWeek()->toDateString()]) }}">Volver a reservas</a>
+        @else
+            <a class="underline" href="{{ route($volverFinanzas ? 'finanzas.arriendos.index' : 'arriendos.index') }}">{{ $volverFinanzas ? 'Volver a arriendos y garantías' : 'Volver a arriendos' }}</a>
+        @endif
         @if (session('status'))
-            <p class="ui-panel p-4">{{ match(session('status')) { 'arriendo-solicitado' => 'Solicitud enviada. El horario quedó reservado mientras se revisa el pago.', 'arriendo-confirmado' => 'Arriendo confirmado y garantía registrada como recibida.', 'reserva-cancelada' => 'Reserva cancelada y horario liberado.', 'arriendo-registrado' => 'Pago del arriendo registrado en ingresos y garantía registrada por separado.', 'garantia-por-devolver' => 'Garantía marcada como por devolver.', 'garantia-resuelta' => 'Resolución de garantía registrada.', 'retencion-registrada' => 'Ingreso por retención registrado nuevamente.', default => '' } }}</p>
+            <p class="ui-panel p-4">{{ match(session('status')) { 'arriendo-solicitado' => 'Solicitud registrada. El horario quedó reservado dentro del plazo de confirmación.', 'aporte-definido' => 'Aporte definido. El plazo de confirmación se mantiene.', 'comprobante-adjuntado' => 'Comprobante adjuntado para revisión.', 'arriendo-confirmado' => $reserva->aporte_variable ? 'Reserva confirmada.' : 'Arriendo confirmado y garantía registrada como recibida.', 'reserva-cancelada' => 'Reserva cancelada y horario liberado.', 'arriendo-registrado' => $reserva->aporte_variable ? 'Aporte registrado en ingresos.' : 'Pago del arriendo registrado en ingresos y garantía registrada por separado.', 'garantia-por-devolver' => 'Garantía marcada como por devolver.', 'garantia-resuelta' => 'Resolución de garantía registrada.', 'retencion-registrada' => 'Ingreso por retención registrado nuevamente.', default => '' } }}</p>
         @endif
         <x-input-error :messages="$errors->get('arriendo')" />
         <x-input-error :messages="$errors->get('reserva')" />
         <x-input-error :messages="$errors->get('finanzas')" />
         <section class="ui-panel p-6 space-y-4">
             <p>Estado: <strong>{{ \App\Models\Reserva::ESTADOS[$reserva->estado] ?? $reserva->estado }}</strong></p>
-            <p>Solicitante: {{ $reserva->socio?->nombre_completo }}</p>
+            <p>Solicitante: {{ $reserva->responsable_nombre ?? $reserva->socio?->nombre_completo }}</p>
+            @if ($reserva->responsable_rut)<p>RUT: {{ $reserva->responsable_rut }}</p>@endif
+            @if ($reserva->responsable_direccion)<p>Domicilio: {{ $reserva->responsable_direccion }}</p>@endif
+            @if ($reserva->responsable_telefono)<p>Teléfono: {{ $reserva->responsable_telefono }}</p>@endif
+            @if ($reserva->canal)<p>Canal: {{ $reserva->canal === 'ventanilla' ? 'Ventanilla' : 'En línea' }}</p>@endif
             @if ($reserva->grupo)<p>Grupo: {{ $reserva->grupo->nombre }}</p>@endif
-            <p>{{ $reserva->inicio->format('d-m-Y') }}, {{ $reserva->inicio->format('H:i') }} a {{ $reserva->fin->format('H:i') }}</p>
-            <p>Arriendo: ${{ number_format($reserva->valor_arriendo, 0, ',', '.') }} · Garantía: ${{ number_format($reserva->valor_garantia, 0, ',', '.') }}</p>
-            <p class="font-semibold">Total: ${{ number_format($reserva->valor_arriendo + $reserva->valor_garantia, 0, ',', '.') }}</p>
+            <p>{{ $reserva->inicio->format('d/m/Y') }}, {{ $reserva->inicio->format('H:i') }} a {{ $reserva->fin->format('H:i') }}</p>
+            @if ($reserva->aporte_variable)
+                <p class="font-semibold">Aporte voluntario: {{ $reserva->valor_arriendo === null ? 'Pendiente de definir por presidente o secretario' : ($reserva->valor_arriendo == 0 ? '$0 · Reserva gratuita' : '$'.number_format($reserva->valor_arriendo, 0, ',', '.')) }}</p>
+            @else
+                <p>Arriendo histórico: ${{ number_format($reserva->valor_arriendo, 0, ',', '.') }} · Garantía: ${{ number_format($reserva->valor_garantia, 0, ',', '.') }}</p>
+                <p class="font-semibold">Total: ${{ number_format($reserva->valor_arriendo + $reserva->valor_garantia, 0, ',', '.') }}</p>
+            @endif
             @if ($reserva->estado === 'pendiente')
-                <p>Plazo para validar: {{ $reserva->vence_en->format('d-m-Y H:i') }}. Sin validación, el horario se libera automáticamente.</p>
+                <p>Plazo para validar: {{ $reserva->vence_en->format('d/m/Y H:i') }}. Sin validación, el horario se libera automáticamente.</p>
             @elseif ($reserva->estado === 'vencida')
                 <p>La solicitud venció sin validación. El horario quedó liberado.</p>
             @endif
             @if ($reserva->garantia)
                 <p>Garantía: {{ \App\Models\Garantia::ESTADOS[$reserva->garantia->estado] }}</p>
             @endif
-            <a class="underline" href="{{ route('arriendos.comprobante', $reserva) }}" target="_blank" rel="noopener">Ver comprobante del total</a>
+            @if ($reserva->comprobante_arriendo_path)
+                <a class="underline" href="{{ route('arriendos.comprobante', $reserva) }}" target="_blank" rel="noopener">{{ $reserva->aporte_variable ? 'Ver comprobante del aporte' : 'Ver comprobante del total' }}</a>
+            @endif
         </section>
+        @if ($esDirigente && $reserva->aporte_variable && $reserva->estado === 'pendiente' && $reserva->valor_arriendo === null)
+            <form class="ui-panel p-6 space-y-4" method="POST" action="{{ route('arriendos.aporte', $reserva) }}">
+                @csrf
+                <h3 class="text-lg font-semibold">Definir aporte voluntario</h3>
+                <p>Ingresa el monto acordado con el solicitante. $0 corresponde a una reserva gratuita. El monto se fija una sola vez.</p>
+                <x-input-label for="valor_arriendo" value="Aporte voluntario acordado (CLP)" />
+                <x-text-input id="valor_arriendo" name="valor_arriendo" type="number" :value="old('valor_arriendo', 0)" min="0" max="4294967295" step="1" required />
+                <x-input-error :messages="$errors->get('valor_arriendo')" />
+                <x-primary-button>Definir aporte</x-primary-button>
+            </form>
+        @endif
+        @if ($reserva->aporte_variable && $reserva->estado === 'pendiente' && $reserva->valor_arriendo > 0 && ! $reserva->comprobante_arriendo_path)
+            <form class="ui-panel p-6 space-y-4" method="POST" enctype="multipart/form-data" action="{{ route('arriendos.comprobante.store', $reserva) }}">
+                @csrf
+                <h3 class="text-lg font-semibold">Adjuntar comprobante del aporte</h3>
+                <x-input-label for="comprobante" value="Comprobante del aporte recibido" />
+                <x-file-input id="comprobante" name="comprobante" accept="application/pdf,image/jpeg,image/png" required />
+                <p>PDF, JPG o PNG, máximo 5 MB. El plazo de confirmación se mantiene.</p>
+                <x-input-error :messages="$errors->get('comprobante')" />
+                <x-primary-button>Adjuntar comprobante</x-primary-button>
+            </form>
+        @endif
         @if ($esFinanciero && $reserva->validado_en)
             <section class="ui-panel p-6 space-y-4">
                 <h3 class="text-lg font-semibold">Registro financiero</h3>
-                @if ($reserva->ingresos->contains(fn ($ingreso) => ! $ingreso->estaAnulado()))
+                @if ($reserva->aporte_variable && $reserva->valor_arriendo == 0)
+                    <p>Reserva gratuita: no corresponde registrar un ingreso.</p>
+                @elseif ($reserva->ingresos->contains(fn ($ingreso) => ! $ingreso->estaAnulado()))
                     <p>El pago del arriendo ya tiene un ingreso vigente.</p>
                 @else
-                    <p>Registrar ${{ number_format($reserva->valor_arriendo, 0, ',', '.') }} como ingreso y ${{ number_format($reserva->valor_garantia, 0, ',', '.') }} como garantía separada. Se reutiliza el comprobante del total.</p>
+                    @if ($reserva->aporte_variable)
+                        <p>Registrar ${{ number_format($reserva->valor_arriendo, 0, ',', '.') }} como aporte voluntario por reserva de sede. Se reutiliza el comprobante del aporte.</p>
+                    @else
+                        <p>Registrar ${{ number_format($reserva->valor_arriendo, 0, ',', '.') }} como ingreso y ${{ number_format($reserva->valor_garantia, 0, ',', '.') }} como garantía separada. Se reutiliza el comprobante del total.</p>
+                    @endif
                     <form method="POST" action="{{ route('finanzas.arriendos.registrar', $reserva) }}" class="space-y-4" x-data="{ medio: @js(old('medio_pago', 'transferencia')) }">
                         @csrf
                         <div>
                             <x-input-label for="fecha_pago" value="Fecha del pago recibido" />
-                            <x-text-input id="fecha_pago" name="fecha_pago" type="date" :value="old('fecha_pago', $reserva->validado_en->toDateString())" max="{{ now()->toDateString() }}" required />
+                            <x-date-input id="fecha_pago" name="fecha_pago" :value="old('fecha_pago', $reserva->validado_en->toDateString())" max="{{ now()->toDateString() }}" required />
                             <x-input-error :messages="$errors->get('fecha_pago')" />
                         </div>
                         <div>
@@ -51,7 +93,7 @@
                             <x-text-input id="talonario" name="talonario" :value="old('talonario')" maxlength="30" x-bind:disabled="medio !== 'efectivo'" x-bind:required="medio === 'efectivo'" />
                             <x-input-error :messages="$errors->get('talonario')" />
                         </div>
-                        <x-primary-button>Registrar pago y garantía</x-primary-button>
+                        <x-primary-button>{{ $reserva->aporte_variable ? 'Registrar aporte' : 'Registrar pago y garantía' }}</x-primary-button>
                     </form>
                 @endif
                 @foreach ($reserva->ingresos as $ingreso)
@@ -59,82 +101,23 @@
                 @endforeach
             </section>
         @endif
-        @if ($reserva->garantia?->resuelta_en)
-            <section class="ui-panel p-6 space-y-3">
-                <h3 class="text-lg font-semibold">Resolución de la garantía</h3>
-                <p>Fecha: {{ $reserva->garantia->fecha_resolucion->format('d-m-Y') }}</p>
-                <p>Devuelto: ${{ number_format($reserva->garantia->monto_devuelto, 0, ',', '.') }}</p>
-                <p>Retenido por daños: ${{ number_format($reserva->garantia->monto_retenido, 0, ',', '.') }}</p>
-                @if ($reserva->garantia->motivo_retencion)<p>{{ $reserva->garantia->motivo_retencion }}</p>@endif
-                @if ($esFinanciero && $reserva->garantia->estado === 'retenida')
-                    @foreach ($reserva->garantia->ingresos as $ingreso)
-                        <p>Ingreso por retención #{{ $ingreso->id }}: {{ $ingreso->estaAnulado() ? 'Anulado' : 'Vigente' }}</p>
-                    @endforeach
-                    @unless ($reserva->garantia->ingresos->contains(fn ($ingreso) => ! $ingreso->estaAnulado()))
-                        <p>El ingreso de esta retención está anulado. Puedes volver a registrarlo conservando el monto y la resolución original.</p>
-                        <form method="POST" action="{{ route('finanzas.garantias.registrar-retencion', $reserva->garantia) }}">
-                            @csrf
-                            <x-primary-button>Volver a registrar ingreso por retención</x-primary-button>
-                        </form>
-                    @endunless
-                @endif
-            </section>
-        @endif
-        @if ($esFinanciero && $reserva->garantia?->registrada_en && in_array($reserva->garantia->estado, ['recibida', 'por_devolver'], true))
-            <section class="ui-panel p-6 space-y-4">
-                <h3 class="text-lg font-semibold">Gestionar garantía</h3>
-                <p>La garantía no forma parte de los ingresos. Devolverla no descuenta nuevamente del saldo de caja.</p>
-                @if ($reserva->garantia->estado === 'recibida')
-                    <form method="POST" action="{{ route('finanzas.garantias.por-devolver', $reserva->garantia) }}">
-                        @csrf
-                        <x-secondary-button type="submit">Marcar por devolver</x-secondary-button>
-                    </form>
-                @endif
-                <form method="POST" action="{{ route('finanzas.garantias.devolver', $reserva->garantia) }}" class="space-y-3" onsubmit="return confirm('¿Confirmar que ya devolviste el total de la garantía?')">
-                    @csrf
-                    <x-input-label for="fecha_devolucion" value="Fecha de devolución" />
-                    <x-text-input id="fecha_devolucion" name="fecha_resolucion" type="date" :value="old('fecha_resolucion', now()->toDateString())" min="{{ $reserva->garantia->fecha_pago->toDateString() }}" max="{{ now()->toDateString() }}" required />
-                    <x-input-error :messages="$errors->get('fecha_resolucion')" />
-                    <x-primary-button>Registrar devolución total</x-primary-button>
-                </form>
-                <details @if ($errors->hasAny(['monto_retenido', 'motivo_retencion'])) open @endif>
-                    <summary class="cursor-pointer underline">Retener por daños y devolver el resto</summary>
-                    <form method="POST" action="{{ route('finanzas.garantias.retener', $reserva->garantia) }}" class="mt-4 space-y-4"
-                        x-data="{ retenido: @js(old('monto_retenido', '')), total: {{ $reserva->garantia->monto }} }"
-                        @submit="if (!confirm('¿Confirmar la retención y que ya devolviste el saldo restante?')) $event.preventDefault()">
-                        @csrf
-                        <div>
-                            <x-input-label for="fecha_retencion" value="Fecha de retención y devolución del saldo" />
-                            <x-text-input id="fecha_retencion" name="fecha_resolucion" type="date" :value="old('fecha_resolucion', now()->toDateString())" min="{{ $reserva->garantia->fecha_pago->toDateString() }}" max="{{ now()->toDateString() }}" required />
-                            <x-input-error :messages="$errors->get('fecha_resolucion')" />
-                        </div>
-                        <div>
-                            <x-input-label for="monto_retenido" value="Monto retenido por daños (CLP)" />
-                            <x-text-input id="monto_retenido" name="monto_retenido" type="number" x-model="retenido" min="1" max="{{ $reserva->garantia->monto }}" step="1" required />
-                            <x-input-error :messages="$errors->get('monto_retenido')" />
-                        </div>
-                        <p>Saldo a devolver: <strong x-text="'$' + Math.max(0, total - Number(retenido || 0)).toLocaleString('es-CL')"></strong></p>
-                        <div>
-                            <x-input-label for="motivo_retencion" value="Motivo de la retención" />
-                            <textarea id="motivo_retencion" name="motivo_retencion" maxlength="500" rows="3" class="ui-input w-full" required>{{ old('motivo_retencion') }}</textarea>
-                            <x-input-error :messages="$errors->get('motivo_retencion')" />
-                        </div>
-                        <p>Solo el monto retenido se sumará a ingresos. Confirma cuando hayas devuelto el saldo restante; si retienes toda la garantía, el saldo será $0.</p>
-                        <x-primary-button>Registrar retención y devolución del saldo</x-primary-button>
-                    </form>
-                </details>
-            </section>
-        @endif
-        @if ($esDirigente && $reserva->estado === 'pendiente')
+        @include('finanzas._garantia', ['garantia' => $reserva->garantia, 'esFinanciero' => $esFinanciero])
+        @if ($esDirigente && $reserva->estado === 'pendiente' && (! $reserva->aporte_variable || ($reserva->valor_arriendo !== null && ($reserva->valor_arriendo == 0 || $reserva->comprobante_arriendo_path))))
             <form class="ui-panel p-6 space-y-4" method="POST" action="{{ route('arriendos.confirmar', $reserva) }}">
                 @csrf
-                <h3 class="text-lg font-semibold">Validar recepción del pago</h3>
-                <p>Revisa el comprobante y verifica ambos montos antes de confirmar.</p>
-                <label class="flex gap-2"><input type="checkbox" name="pago_verificado" value="1" required @checked(old('pago_verificado'))> Pago del arriendo verificado</label>
-                <x-input-error :messages="$errors->get('pago_verificado')" />
-                <label class="flex gap-2"><input type="checkbox" name="garantia_verificada" value="1" required @checked(old('garantia_verificada'))> Pago de la garantía verificado</label>
-                <x-input-error :messages="$errors->get('garantia_verificada')" />
-                <x-primary-button>Confirmar arriendo</x-primary-button>
+                <h3 class="text-lg font-semibold">Confirmar reserva</h3>
+                @if (! $reserva->aporte_variable || $reserva->valor_arriendo > 0)
+                    <p>Revisa el comprobante y verifica el pago antes de confirmar.</p>
+                    <label class="flex gap-2"><input type="checkbox" name="pago_verificado" value="1" required @checked(old('pago_verificado'))> Pago verificado</label>
+                    <x-input-error :messages="$errors->get('pago_verificado')" />
+                @else
+                    <p>La reserva es gratuita y puede confirmarse sin pago.</p>
+                @endif
+                @if (! $reserva->aporte_variable)
+                    <label class="flex gap-2"><input type="checkbox" name="garantia_verificada" value="1" required @checked(old('garantia_verificada'))> Pago de la garantía verificado</label>
+                    <x-input-error :messages="$errors->get('garantia_verificada')" />
+                @endif
+                <x-primary-button>Confirmar reserva</x-primary-button>
             </form>
         @endif
         @if ($esDirigente && in_array($reserva->estado, \App\Models\Reserva::ESTADOS_OCUPAN, true))

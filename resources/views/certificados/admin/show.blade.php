@@ -20,6 +20,9 @@
     @endphp
 
     <div class="py-6">
+        @if ($certificado->solo_impresion)
+            <p class="mx-auto max-w-3xl px-4 pb-4 text-sm">Certificado de socio emitido en ventanilla: disponible solo para impresión, sin acceso desde la cuenta del socio.</p>
+        @endif
         <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
             @if (isset($mensajes[session('status')]))
@@ -38,7 +41,7 @@
                     <div><dt class="text-gray-500 dark:text-gray-400">RUT</dt><dd class="text-gray-900 dark:text-gray-100">{{ $c->rut_solicitante }}</dd></div>
                     <div><dt class="text-gray-500 dark:text-gray-400">Dirección</dt><dd class="text-gray-900 dark:text-gray-100">{{ $c->direccion }}</dd></div>
                     <div><dt class="text-gray-500 dark:text-gray-400">Dirigido a</dt><dd class="text-gray-900 dark:text-gray-100">{{ $c->dirigido_a }}</dd></div>
-                    <div><dt class="text-gray-500 dark:text-gray-400">Solicitud registrada</dt><dd class="text-gray-900 dark:text-gray-100">{{ $c->created_at->format('d-m-Y H:i') }}</dd></div>
+                    <div><dt class="text-gray-500 dark:text-gray-400">Solicitud registrada</dt><dd class="text-gray-900 dark:text-gray-100">{{ $c->created_at->format('d/m/Y H:i') }}</dd></div>
                     @if ($c->socio)
                         <div><dt class="text-gray-500 dark:text-gray-400">Ficha de socio</dt><dd><a class="underline text-brand-600 dark:text-brand-400" href="{{ route('socios.show', $c->socio) }}">{{ $c->socio->nombre_completo }}</a></dd></div>
                     @endif
@@ -53,8 +56,8 @@
                         </div>
                     @endif
                     @if ($c->estado !== 'solicitado' && $c->estado !== 'rechazado')
-                        <div><dt class="text-gray-500 dark:text-gray-400">Emitido el</dt><dd class="text-gray-900 dark:text-gray-100">{{ $c->fecha_emision?->format('d-m-Y') }}</dd></div>
-                        <div><dt class="text-gray-500 dark:text-gray-400">Vence el</dt><dd class="text-gray-900 dark:text-gray-100">{{ $c->fecha_vencimiento?->format('d-m-Y') }}</dd></div>
+                        <div><dt class="text-gray-500 dark:text-gray-400">Emitido el</dt><dd class="text-gray-900 dark:text-gray-100">{{ $c->fecha_emision?->format('d/m/Y') }}</dd></div>
+                        <div><dt class="text-gray-500 dark:text-gray-400">Vence el</dt><dd class="text-gray-900 dark:text-gray-100">{{ $c->fecha_vencimiento?->format('d/m/Y') }}</dd></div>
                         <div><dt class="text-gray-500 dark:text-gray-400">Otorgado por</dt><dd class="text-gray-900 dark:text-gray-100">{{ $c->otorgante?->name }} ({{ $c->otorgante?->nombreRol() }})</dd></div>
                         <div><dt class="text-gray-500 dark:text-gray-400">Código de verificación</dt><dd class="text-gray-900 dark:text-gray-100 font-mono">{{ $c->codigoFormateado() }}</dd></div>
                     @endif
@@ -145,10 +148,10 @@
                     <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">Retiro en la sede</h3>
 
                     @if ($c->fecha_retiro)
-                        <p class="text-sm text-gray-700 dark:text-gray-300">Retirado el {{ $c->fecha_retiro->format('d-m-Y') }}.</p>
+                        <p class="text-sm text-gray-700 dark:text-gray-300">Retirado el {{ $c->fecha_retiro->format('d/m/Y') }}.</p>
                     @elseif ($c->descargas->isNotEmpty())
                         <p class="text-sm text-gray-700 dark:text-gray-300">
-                            El socio descargó este certificado el {{ $c->descargas->first()->descargado_en->format('d-m-Y H:i') }}.
+                            El socio descargó este certificado el {{ $c->descargas->first()->descargado_en->format('d/m/Y H:i') }}.
                             No puede retirarlo en sede; debe solicitar uno nuevo y pagarlo nuevamente.
                         </p>
                     @else
@@ -159,7 +162,7 @@
                             @csrf
                             <div>
                                 <x-input-label for="fecha_retiro" value="Fecha de retiro" />
-                                <input id="fecha_retiro" name="fecha_retiro" type="date" value="{{ today()->toDateString() }}" class="{{ $cls }}" required>
+                                <x-date-input id="fecha_retiro" name="fecha_retiro" value="{{ today()->toDateString() }}" class="{{ $cls }}" required />
                                 <x-input-error class="mt-2" :messages="$errors->get('fecha_retiro')" />
                             </div>
                             <x-primary-button>Registrar retiro</x-primary-button>
@@ -174,7 +177,7 @@
                     <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3">Descargas</h3>
                     @forelse ($c->descargas as $descarga)
                         <p class="text-sm text-gray-700 dark:text-gray-300">
-                            {{ $descarga->descargado_en->format('d-m-Y H:i') }}
+                            {{ $descarga->descargado_en->format('d/m/Y H:i') }}
                             · {{ $descarga->usuario?->name ?? 'Usuario eliminado' }}
                             · IP {{ $descarga->ip }}
                         </p>

@@ -32,7 +32,7 @@
 
                     <div>
                         <x-input-label for="fecha" value="Fecha" />
-                        <x-text-input id="fecha" name="fecha" type="date" class="mt-1 block w-full"
+                        <x-date-input id="fecha" name="fecha" class="mt-1 block w-full"
                             :value="old('fecha', now()->toDateString())" min="{{ now()->toDateString() }}" max="{{ now()->addMonths(6)->toDateString() }}" required />
                         <x-input-error class="mt-2" :messages="$errors->get('fecha')" />
                     </div>

@@ -3,15 +3,22 @@
 namespace App\Http\Controllers;
 
 use App\Models\Parametro;
+use App\Models\TipoActividad;
+use App\Models\TipoInsumo;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
-/** Presidente y secretario: edición de los parámetros del sistema (RFS-88). */
+/** Administrador: parámetros y catálogo de actividades gratuitas (RFS-44/88). */
 class ParametroController extends Controller
 {
     public function index()
     {
         return view('parametros.index', [
-            'parametros' => Parametro::orderBy('id')->get(),
+            'parametros' => Parametro::whereNotIn('clave', ['arriendo_valor', 'arriendo_garantia'])->orderBy('id')->get(),
+            'tiposActividad' => TipoActividad::orderBy('id')->get(),
+            'tiposInsumo' => TipoInsumo::orderBy('categoria')->orderBy('nombre')->get()->groupBy('categoria'),
         ]);
     }
 
@@ -25,8 +32,6 @@ class ParametroController extends Controller
             'certificado_plazo_descarga_dias' => ['required', 'integer', 'min:1', 'max:30'],
             'certificado_residencia_valor' => ['required', 'integer', 'min:0'],
             'arriendo_plazo_confirmacion_horas' => ['required', 'integer', 'min:1', 'max:336'],
-            'arriendo_valor' => ['required', 'integer', 'min:0'],
-            'arriendo_garantia' => ['required', 'integer', 'min:0'],
         ];
 
         $datos = $request->validate(
@@ -54,5 +59,39 @@ class ParametroController extends Controller
         }
 
         return redirect()->route('parametros.index')->with('status', 'parametros-guardados');
+    }
+
+    public function crearActividad(Request $request)
+    {
+        $datos = $request->validate(['nombre_actividad' => ['required', 'string', 'max:120', Rule::unique('tipos_actividad', 'nombre')]]);
+        TipoActividad::create(['clave' => 'act_'.Str::lower(Str::random(12)), 'nombre' => $datos['nombre_actividad'], 'activo' => true]);
+
+        return redirect()->route('parametros.index')->with('status', 'actividad-guardada');
+    }
+
+    public function crearInsumo(Request $request)
+    {
+        $datos = $request->validate([
+            'nombre_insumo' => ['required', 'string', 'max:255', Rule::unique('tipos_insumo', 'nombre')],
+            'categoria_insumo' => ['required', Rule::in(array_keys(TipoInsumo::CATEGORIAS))],
+        ]);
+        TipoInsumo::create(['nombre' => $datos['nombre_insumo'], 'categoria' => $datos['categoria_insumo']]);
+
+        return redirect()->route('parametros.index')->with('status', 'insumo-agregado');
+    }
+
+    public function actualizarActividad(Request $request, TipoActividad $tipoActividad)
+    {
+        return DB::transaction(function () use ($request, $tipoActividad) {
+            // Serializa cambios de catálogo con las nuevas reservas manuales.
+            DB::table('parametros')->where('clave', 'sede_hora_inicio')->update(['valor' => DB::raw('valor')]);
+            $datos = $request->validate([
+                'nombre_actividad' => ['required', 'string', 'max:120', Rule::unique('tipos_actividad', 'nombre')->ignore($tipoActividad->id)],
+                'activo' => ['required', 'boolean'],
+            ]);
+            $tipoActividad->update(['nombre' => $datos['nombre_actividad'], 'activo' => $datos['activo']]);
+
+            return redirect()->route('parametros.index')->with('status', 'actividad-guardada');
+        });
     }
 }

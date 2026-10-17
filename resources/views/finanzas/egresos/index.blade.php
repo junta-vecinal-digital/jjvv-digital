@@ -38,12 +38,12 @@
                     <tbody>
                         @forelse ($egresos as $egreso)
                             <tr class="border-b align-top">
-                                <td class="py-2">{{ $egreso->fecha_pago->format('d-m-Y') }}</td>
+                                <td class="py-2">{{ $egreso->fecha_pago->format('d/m/Y') }}</td>
                                 <td>
                                     {{ \App\Models\Egreso::CONCEPTOS[$egreso->concepto] ?? $egreso->concepto }}
                                     @if ($egreso->estaAnulado())
                                         <div class="text-xs text-red-600 dark:text-red-400">
-                                            Anulado el {{ $egreso->anulado_en->format('d-m-Y') }}: {{ $egreso->motivo_anulacion }}
+                                            Anulado el {{ $egreso->anulado_en->format('d/m/Y') }}: {{ $egreso->motivo_anulacion }}
                                         </div>
                                     @endif
                                 </td>

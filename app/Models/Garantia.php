@@ -21,6 +21,7 @@ class Garantia extends Model
 
     protected $fillable = [
         'reserva_id', 'monto', 'estado', 'recibida_en', 'validado_por',
+        'solicitud_insumo_id',
         'registrada_en', 'registrada_por', 'fecha_pago', 'medio_pago', 'talonario',
         'fecha_resolucion', 'resuelta_en', 'resuelta_por', 'monto_devuelto', 'monto_retenido', 'motivo_retencion',
     ];
@@ -46,5 +47,10 @@ class Garantia extends Model
     public function ingresos(): HasMany
     {
         return $this->hasMany(Ingreso::class);
+    }
+
+    public function solicitudInsumo(): BelongsTo
+    {
+        return $this->belongsTo(SolicitudInsumo::class);
     }
 }

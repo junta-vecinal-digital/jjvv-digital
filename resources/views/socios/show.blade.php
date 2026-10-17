@@ -3,9 +3,9 @@
         <div class="flex flex-wrap items-center justify-between gap-3">
             <h2 class="text-2xl font-semibold text-gray-900 dark:text-white leading-tight">
                 {{ $socio->nombre_completo }}
+                <x-representante-badge :socio="$socio" />
             </h2>
             <div class="flex items-center gap-4 text-sm">
-                <a href="{{ route('socios.editar', $socio) }}" class="underline text-brand-600 dark:text-brand-400">Editar datos</a>
                 @if ($socio->estado === 'activo')
                     <a href="{{ route('admin.certificados.create', ['socio' => $socio->id]) }}" class="underline text-brand-600 dark:text-brand-400">Emitir certificado</a>
                 @endif
@@ -32,6 +32,13 @@
             @if (isset($mensajes[session('status')]))
                 <div class="p-4 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 rounded-lg text-sm">{{ $mensajes[session('status')] }}</div>
             @endif
+            @if (session('status') === 'socio-por_firmar')
+                <div role="status" class="rounded-lg bg-brand-50 p-4 text-sm text-brand-600 dark:bg-brand-500/15 dark:text-brand-400">
+                    Recuerda habilitar horas disponibles para la firma del libro en la
+                    <a href="{{ route('agenda.index') }}" class="font-medium underline">Agenda de firmas</a>.
+                    Los horarios públicos de atención no crean estas citas automáticamente.
+                </div>
+            @endif
             
             @include('socios._cuenta', ['socio' => $socio])
             
@@ -50,10 +57,10 @@
                     <div><dt class="text-gray-500 dark:text-gray-400">Teléfono</dt><dd class="text-gray-900 dark:text-gray-100">{{ $socio->telefono }}</dd></div>
                     <div><dt class="text-gray-500 dark:text-gray-400">Correo</dt><dd class="text-gray-900 dark:text-gray-100">{{ $socio->email ?? '—' }}</dd></div>
                     <div><dt class="text-gray-500 dark:text-gray-400">Dirección</dt><dd class="text-gray-900 dark:text-gray-100">{{ $socio->direccion }}</dd></div>
-                    <div><dt class="text-gray-500 dark:text-gray-400">Reside en el sector desde</dt><dd class="text-gray-900 dark:text-gray-100">{{ $socio->residente_desde->format('d-m-Y') }}</dd></div>
-                    <div><dt class="text-gray-500 dark:text-gray-400">Solicitud recibida</dt><dd class="text-gray-900 dark:text-gray-100">{{ $socio->created_at->format('d-m-Y H:i') }}</dd></div>
+                    <div><dt class="text-gray-500 dark:text-gray-400">Reside en el sector desde</dt><dd class="text-gray-900 dark:text-gray-100">{{ $socio->residente_desde->format('d/m/Y') }}</dd></div>
+                    <div><dt class="text-gray-500 dark:text-gray-400">Solicitud recibida</dt><dd class="text-gray-900 dark:text-gray-100">{{ $socio->created_at->format('d/m/Y H:i') }}</dd></div>
                     @if ($socio->fecha_ingreso)
-                        <div><dt class="text-gray-500 dark:text-gray-400">Fecha de ingreso</dt><dd class="text-gray-900 dark:text-gray-100">{{ $socio->fecha_ingreso->format('d-m-Y') }}</dd></div>
+                        <div><dt class="text-gray-500 dark:text-gray-400">Fecha de ingreso</dt><dd class="text-gray-900 dark:text-gray-100">{{ $socio->fecha_ingreso->format('d/m/Y') }}</dd></div>
                     @endif
                     @if ($socio->revisor)
                         <div><dt class="text-gray-500 dark:text-gray-400">Última revisión por</dt><dd class="text-gray-900 dark:text-gray-100">{{ $socio->revisor->name }}</dd></div>
@@ -62,7 +69,7 @@
                         <div class="sm:col-span-2"><dt class="text-gray-500 dark:text-gray-400">Observaciones</dt><dd class="text-gray-900 dark:text-gray-100">{{ $socio->observaciones }}</dd></div>
                     @endif
                     @if ($socio->estado === 'inactivo')
-                        <div><dt class="text-gray-500 dark:text-gray-400">Fecha de baja</dt><dd class="text-gray-900 dark:text-gray-100">{{ $socio->fecha_baja?->format('d-m-Y') }}</dd></div>
+                        <div><dt class="text-gray-500 dark:text-gray-400">Fecha de baja</dt><dd class="text-gray-900 dark:text-gray-100">{{ $socio->fecha_baja?->format('d/m/Y') }}</dd></div>
                         <div class="sm:col-span-2"><dt class="text-gray-500 dark:text-gray-400">Motivo de la baja</dt><dd class="text-gray-900 dark:text-gray-100">{{ $socio->motivo_baja }}</dd></div>
                     @endif
                 </dl>
@@ -166,9 +173,9 @@
 
                         <div>
                             <x-input-label for="fecha_baja" value="Fecha de la baja" />
-                            <input id="fecha_baja" name="fecha_baja" type="date" required
+                            <x-date-input id="fecha_baja" name="fecha_baja" required
                                 max="{{ now()->toDateString() }}" value="{{ old('fecha_baja', now()->toDateString()) }}"
-                                class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-brand-500 dark:focus:border-brand-400 focus:ring-brand-500 dark:focus:ring-brand-400 rounded-md shadow-sm">
+                                class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-brand-500 dark:focus:border-brand-400 focus:ring-brand-500 dark:focus:ring-brand-400 rounded-md shadow-sm" />
                             <x-input-error class="mt-2" :messages="$errors->get('fecha_baja')" />
                         </div>
 
@@ -181,7 +188,7 @@
                 <div class="p-6 ui-panel">
                     <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">Reactivar socio</h3>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                        Recupera sus accesos de socio y conserva su fecha de ingreso original ({{ $socio->fecha_ingreso?->format('d-m-Y') ?? 'sin fecha' }}). La baja queda registrada en la auditoría.
+                        Recupera sus accesos de socio y conserva su fecha de ingreso original ({{ $socio->fecha_ingreso?->format('d/m/Y') ?? 'sin fecha' }}). La baja queda registrada en la auditoría.
                     </p>
                     <form method="POST" action="{{ route('socios.update', $socio) }}">
                         @csrf

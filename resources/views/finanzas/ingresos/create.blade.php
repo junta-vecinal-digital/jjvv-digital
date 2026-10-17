@@ -36,7 +36,7 @@
 
                             <div>
                                 <x-input-label for="fecha_pago" value="Fecha de pago" />
-                                <x-text-input id="fecha_pago" name="fecha_pago" type="date" class="mt-1 block w-full" :value="old('fecha_pago', now()->toDateString())" max="{{ now()->toDateString() }}" required />
+                                <x-date-input id="fecha_pago" name="fecha_pago" class="mt-1 block w-full" :value="old('fecha_pago', now()->toDateString())" max="{{ now()->toDateString() }}" required />
                                 <x-input-error :messages="$errors->get('fecha_pago')" class="mt-2" />
                             </div>
 

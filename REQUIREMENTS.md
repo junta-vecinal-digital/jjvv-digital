@@ -6,7 +6,7 @@
 | --- | --- |
 | Vecino | Persona que reside en la unidad vecinal. Es un rol de usuario. |
 | Socio | Vecino con ficha en estado activo. Se deduce de la ficha; no es un rol aparte. |
-| Representante | Socio activo designado como representante vigente de un grupo. Se deduce de la designación; no es un rol aparte. |
+| Representante | Persona designada como representante vigente de un grupo. Puede ser socio, dirigente o una persona sin ficha ni cuenta de usuario; no es un rol aparte. |
 | Dirigente | Presidente, secretario o tesorero. |
 | Administrador | Gestiona usuarios y roles. No es dirigente. |
 
@@ -14,17 +14,19 @@
 
 | Rol | Acceso |
 | --- | --- |
-| Presidente | Todos los módulos, incluida la auditoría. |
-| Secretario | Socios, citas, certificados, grupos, calendario, inventario y actas. |
-| Tesorero | Finanzas, actas y reportes financieros. |
-| Administrador | Usuarios y roles. Ve los datos de cuenta de cada usuario (nombre, correo y rol). No ve fichas de socios, finanzas ni actas de directiva. |
-| Vecino y socio | Registro, solicitud de inscripción, certificados, calendario y actas de asamblea, según su estado. |
+| Presidente | Todos los módulos, incluida la auditoría, excepto parámetros. |
+| Secretario | Socios, citas, atención al público, certificados, grupos, calendario, reservas, inventario, gestión de solicitudes y préstamos de insumos, y actas. |
+| Tesorero | Finanzas, actas y reportes financieros. Puede solicitar insumos para sí, como dirigente, sin obtener permisos de gestión del inventario o de las solicitudes ajenas. |
+| Administrador | Usuarios, roles y parámetros, incluidos los catálogos de actividades gratuitas y de insumos. Ve los datos de cuenta de cada usuario (nombre, correo y rol). No ve fichas de socios, finanzas ni actas de directiva. |
+| Vecino y socio | Registro y solicitud de inscripción. Certificados, calendario, actas de asamblea, solicitudes de sede e insumos según su estado y los permisos específicos. |
 
 Todo usuario con sesión iniciada ve los proyectos en modo solo lectura. En los requisitos, "el presidente o el secretario" indica que basta con uno de los dos.
 
+Los socios activos y los dirigentes pueden solicitar insumos en línea. Los dirigentes conservan ese permiso aunque no tengan ficha activa; solicitar insumos no concede acceso a gestionar el inventario. Los representantes no socios solicitan en ventanilla, identificando su agrupación. La etiqueta de representante en una ficha existente es únicamente informativa y no concede roles ni permisos.
+
 ## Requisitos funcionales de usuario (RFU)
 
-Los 64 RFU describen qué puede hacer cada actor, agrupados en 11 módulos.
+Los RFU describen qué puede hacer cada actor, agrupados por módulo.
 
 ### 1. Registro e inscripción de socios
 
@@ -63,25 +65,25 @@ Los 64 RFU describen qué puede hacer cada actor, agrupados en 11 módulos.
 ### 3. Grupos y organizaciones
 
 - **RFU-29** El presidente o el secretario puede crear y editar grupos, con su nombre y horarios de uso de la sede.
-- **RFU-30** El presidente o el secretario puede asignar el representante vigente de un grupo (un socio activo con cuenta de usuario) y editar sus datos de contacto.
+- **RFU-30** El presidente o el secretario puede registrar y editar el representante vigente de un grupo, autocompletando desde socios o dirigentes o ingresando sus datos manualmente, sin exigir ficha de socio ni cuenta de usuario.
 
-### 4. Calendario de espacios
+### 4. Calendario y reservas de sede
 
 - **RFU-31** El socio puede ver los horarios de la sede como libres u ocupados.
 - **RFU-32** El presidente o el secretario puede ver el detalle de cada reserva.
-- **RFU-33** El presidente o el secretario puede ingresar reservas de uso de grupo, arriendo y actividad de la junta.
+- **RFU-33** El presidente o el secretario puede gestionar en Reservas el uso de la sede por grupos, particulares y actividades de la junta, con o sin aporte. Puede registrar en ventanilla una reserva de una persona de la unidad vecinal sin exigir ficha ni cuenta. El calendario se utiliza para consultar la ocupación.
 - **RFU-34** El presidente o el secretario puede crear y editar los horarios fijos de un grupo y generar sus reservas mes a mes.
-- **RFU-35** El socio activo puede solicitar el arriendo de la sede y adjuntar su comprobante de pago.
-- **RFU-36** El presidente o el secretario puede validar el pago y la garantía de un arriendo para confirmarlo.
+- **RFU-35** El socio activo puede solicitar el uso de la sede en línea y adjuntar el comprobante cuando corresponda al aporte informado por el presidente o el secretario.
+- **RFU-36** El presidente o el secretario puede definir el aporte por cada reserva, admitiendo $0 para uso gratuito, y confirmar la reserva validando el pago cuando corresponda. Las nuevas reservas de sede no tienen garantía gestionada por el sistema.
 - **RFU-37** El presidente o el secretario puede cancelar una reserva, incluida una solicitud de arriendo pendiente.
 - **RFU-38** El presidente o el secretario puede imprimir el horario semanal o mensual.
-- **RFU-39** El presidente o el secretario puede configurar los parámetros del sistema: horario de la sede, duración de los bloques, vigencia del certificado, plazo de descarga, plazo de confirmación del arriendo y valor del arriendo y de la garantía.
+- **RFU-39** Solo el administrador puede configurar los parámetros del sistema: horario de la sede, duración de los bloques, vigencia del certificado, plazo de descarga y plazo de confirmación de solicitudes de sede. También puede gestionar los catálogos de actividades gratuitas y de insumos. El aporte por reserva y el monto y garantía por préstamo se definen por operación, no mediante tarifas fijas de parámetros.
 
 ### 5. Ingresos y egresos
 
-- **RFU-40** El presidente o el tesorero puede registrar ingresos con su concepto, monto, medio de pago y comprobante, incluido el pago de un arriendo ya validado. La garantía del arriendo se registra por separado y solo el monto retenido por daños se convierte en ingreso.
-- **RFU-41** El presidente o el tesorero puede clasificar cada cuota o aporte como ordinaria o extraordinaria.
-- **RFU-42** El presidente o el tesorero puede registrar la garantía de un arriendo y cambiar su estado (recibida, devuelta, por devolver, retenida por daños).
+- **RFU-40** El presidente o el tesorero puede registrar ingresos con su concepto, monto, medio de pago y comprobante, incluidos los aportes por reservas de sede y los cobros por préstamos de insumos. Las garantías de insumos se registran por separado y solo el monto retenido por daños se convierte en ingreso. Las operaciones gratuitas no generan un ingreso de $0.
+- **RFU-41** El presidente o el tesorero puede clasificar las cuotas de socios y los aportes de grupos como ordinarios o extraordinarios. Los aportes por reservas de sede y los cobros por préstamos se identifican mediante su propio concepto financiero.
+- **RFU-42** El presidente o el tesorero puede registrar la garantía de un préstamo de insumos y cambiar su estado (recibida, devuelta, por devolver, retenida por daños). Las garantías históricas de sede conservan su gestión hasta resolverse.
 - **RFU-43** El presidente o el tesorero puede ingresar manualmente el monto retenido por daños.
 - **RFU-44** El presidente o el tesorero puede registrar egresos (servicios básicos y mantención) con su comprobante.
 - **RFU-45** El presidente o el tesorero puede devolver una cuota indicando un motivo.
@@ -90,9 +92,9 @@ Los 64 RFU describen qué puede hacer cada actor, agrupados en 11 módulos.
 
 ### 6. Inventario
 
-- **RFU-48** El presidente o el secretario puede registrar ítems del inventario con su cantidad.
-- **RFU-49** El presidente o el secretario puede registrar préstamos de ítems a una organización registrada o a un nombre libre, con su responsable.
-- **RFU-50** El presidente o el secretario puede registrar la devolución de un préstamo y el estado de regreso.
+- **RFU-48** El presidente o el secretario puede registrar existencias seleccionando insumos del catálogo administrado en Parámetros y editar su cantidad total, sin dejarla por debajo de las unidades comprometidas o fuera de servicio.
+- **RFU-49** El presidente o el secretario puede gestionar solicitudes de insumos, registrar en ventanilla las de representantes no socios con su agrupación y seleccionar a un dirigente responsable. Una solicitud puede incluir varios tipos de insumos y sus cantidades. Quien gestiona el préstamo, presidente o secretario, define manualmente un monto total, que puede ser $0, y la garantía por préstamo.
+- **RFU-50** El presidente o el secretario puede registrar la entrega y la devolución completa de un préstamo, con estado de salida/regreso y unidades dañadas. Puede consultar los préstamos atrasados según su fecha comprometida de devolución.
 
 ### 7. Actas
 
@@ -123,9 +125,13 @@ Los 64 RFU describen qué puede hacer cada actor, agrupados en 11 módulos.
 - **RFU-63** El administrador puede gestionar roles.
 - **RFU-64** Todo usuario puede eliminar su propia cuenta desde su perfil.
 
+- **RFU-65** El socio activo puede emitir autónomamente su certificado de socio. El presidente o el secretario puede emitirlo en ventanilla exclusivamente para imprimir, sin incorporarlo a las descargas del socio.
+- **RFU-66** El presidente o el secretario puede gestionar horarios semanales de atención al público, con varios tramos por día, visibles en la portada pública e independientes de las citas de firma.
+- **RFU-67** El socio activo o el dirigente puede solicitar insumos en línea, indicando los insumos y cantidades y su agrupación cuando sea representante. El sistema le recuerda los horarios públicos de atención para retirar los insumos.
+
 ## Requisitos funcionales de sistema (RFS)
 
-Los 89 RFS traducen los RFU en comportamiento verificable del sistema y fijan las reglas de negocio acordadas.
+Los RFS traducen los RFU en comportamiento verificable del sistema y fijan las reglas de negocio acordadas.
 
 ### 1. Registro, inscripción y socios
 
@@ -145,7 +151,7 @@ Los 89 RFS traducen los RFU en comportamiento verificable del sistema y fijan la
 - **RFS-14** El sistema deberá permitir al presidente o al secretario buscar socios por nombre o RUT, filtrarlos por estado y editar sus datos. Al editar, la regla de 6 meses de residencia solo se exige si cambia la fecha de residencia.
 - **RFS-15** El sistema deberá permitir al presidente o al secretario asignar correo y contraseña a un socio registrado en ventanilla, generando su cuenta con rol vecino y vinculándola a su ficha.
 - **RFS-16** El sistema deberá permitir dar de baja a un socio (estado "inactivo") con motivo y fecha obligatorios, y reactivarlo.
-- **RFS-17** El sistema deberá retirar de inmediato a un socio dado de baja los accesos propios de socio, como las actas de asamblea y las solicitudes en línea de certificado y de arriendo.
+- **RFS-17** El sistema deberá retirar de inmediato a un socio dado de baja los accesos propios de socio, como las actas de asamblea y las solicitudes en línea de certificado, sede e insumos. Se conservan los permisos que le correspondan por su rol; un dirigente podrá solicitar insumos aunque no tenga ficha activa.
 - **RFS-18** El sistema deberá registrar en cada cambio sobre socios su autor, fecha y el dato modificado.
 
 ### 2. Certificados
@@ -173,38 +179,38 @@ Los 89 RFS traducen los RFU en comportamiento verificable del sistema y fijan la
 ### 3. Grupos y organizaciones
 
 - **RFS-38** El sistema deberá permitir crear y editar grupos con nombre y horarios de uso de la sede.
-- **RFS-39** El sistema deberá asociar a cada grupo un único representante vigente, que sea socio activo y tenga cuenta de usuario.
+- **RFS-39** El sistema deberá asociar a cada grupo un único representante vigente, sin exigir ficha de socio ni cuenta de usuario. Permitirá seleccionar socios o dirigentes para autocompletar los datos o ingresarlos manualmente.
 - **RFS-40** El sistema deberá copiar al grupo los datos de contacto del representante (nombre, correo, teléfono, dirección) y permitir editarlos sin alterar la ficha del representante.
-- **RFS-41** El sistema deberá dejar al grupo sin representante cuando su representante sea dado de baja como socio, hasta que se asigne uno nuevo.
+- **RFS-41** El sistema deberá conservar al representante del grupo aunque sea dado de baja como socio. Solo se lo retirará o reemplazará mediante una acción explícita en la gestión del grupo.
 - **RFS-42** Mientras un grupo no tenga representante, el sistema no deberá generar ni aceptar nuevas reservas ni arriendos a nombre del grupo. Las reservas ya generadas se mantienen.
 
-### 4. Calendario de espacios
+### 4. Calendario y reservas de sede
 
-- **RFS-43** El sistema deberá mostrar un calendario digital con las reservas de la sede.
-- **RFS-44** El sistema deberá registrar en cada reserva: día, hora, motivo, tipo, quién reserva y quién la ingresa. El ingreso manual ofrecerá una única lista fija: actividad de grupo, actividad particular gratuita y actividad de la junta; el motivo se completará automáticamente desde esa selección. La actividad particular se asociará a un socio activo responsable. Los arriendos mantienen su flujo separado de pago y garantía (RFS-50 a RFS-54).
+- **RFS-43** El sistema deberá mostrar un calendario digital de consulta con la ocupación de la sede. La creación y gestión de reservas estarán separadas del calendario, en el módulo Reservas, que incluirá un apartado de insumos.
+- **RFS-44** El sistema deberá registrar en cada reserva: día, hora, motivo, tipo, quién reserva y quién la ingresa. El ingreso manual ofrecerá el catálogo de actividades gratuitas, inicialmente actividad de grupo, actividad particular gratuita y actividad de la junta; el motivo se completará automáticamente desde esa selección. Solo el administrador podrá agregar, renombrar y desactivar tipos, conservando las referencias de las reservas anteriores. La actividad particular se asociará a un socio activo responsable. Las reservas de sede con aporte seguirán RFS-50 a RFS-54 y RFS-61, sin garantía para operaciones nuevas.
 - **RFS-45** El sistema deberá limitar las reservas al horario de la sede (por defecto de 09:00 a 22:00) en bloques de 1 hora, ambos configurables.
 - **RFS-46** El sistema deberá rechazar cualquier reserva que se superponga con un horario ocupado.
 - **RFS-47** El sistema deberá modelar el horario fijo de un grupo como reserva recurrente, cuyas reservas genera cada mes el presidente o el secretario y que se confirman automáticamente.
 - **RFS-48** El sistema no deberá permitir que un arriendo se superponga con un horario fijo de grupo.
 - **RFS-49** El sistema deberá permitir al presidente o al secretario editar los horarios fijos de los grupos.
-- **RFS-50** El sistema deberá permitir a socios activos solicitar un arriendo y rechazar la solicitud de vecinos sin inscripción activa. Se adjuntará un único comprobante por el total del arriendo y la garantía.
-- **RFS-51** El sistema deberá dejar el arriendo en estado "pendiente" y bloquear su horario hasta que el presidente o el secretario valide el pago y la garantía.
-- **RFS-52** El sistema deberá liberar automáticamente el horario de un arriendo pendiente si nadie valida el pago dentro del plazo configurable (por defecto 48 horas desde la solicitud), sin perjuicio de la cancelación manual.
-- **RFS-53** El sistema deberá confirmar el arriendo cuando el presidente o el secretario valide el pago y la garantía. El registro posterior en finanzas no condiciona la reserva.
-- **RFS-54** El sistema deberá permitir cancelar una reserva y, si la garantía asociada ya estaba recibida, marcarla como "por devolver".
+- **RFS-50** El sistema deberá permitir a socios activos solicitar el uso de la sede en línea. En ventanilla, el presidente o el secretario podrá registrar la reserva de cualquier persona de la unidad vecinal, sin exigir ficha ni cuenta, con nombre, RUT, domicilio y teléfono. El aporte será definido por presidente o secretario para cada reserva. Si es mayor que $0, se registrará el comprobante del aporte; si es $0, no se exigirá pago ni comprobante. No se cobrará garantía de sede en el sistema para reservas nuevas.
+- **RFS-51** El sistema deberá dejar las solicitudes de sede en estado "pendiente" y bloquear su horario hasta su confirmación por presidente o secretario, respetando el plazo de RFS-52 y sin exigir garantía para operaciones nuevas.
+- **RFS-52** El sistema deberá liberar automáticamente el horario de una solicitud de sede pendiente si no se confirma dentro del plazo configurable (por defecto 48 horas desde la solicitud), sin perjuicio de la cancelación manual.
+- **RFS-53** El sistema deberá permitir confirmar una reserva gratuita sin verificar pago ni garantía. Cuando tenga aporte mayor que $0, presidente o secretario deberá verificar el pago para confirmarla. El registro posterior en finanzas no condiciona la reserva.
+- **RFS-54** El sistema deberá permitir cancelar una reserva. Las reservas nuevas de sede no tendrán garantía asociada; si una reserva histórica conserva una garantía recibida, esta se marcará como "por devolver" al cancelarla.
 - **RFS-55** El sistema deberá mostrar a los socios los horarios como libres u ocupados, sin detalle.
 - **RFS-56** El sistema deberá mostrar al presidente y al secretario el detalle de cada reserva.
 - **RFS-57** El sistema deberá permitir al presidente o al secretario imprimir el horario semanal y mensual.
 
 ### 5. Ingresos y egresos
 
-- **RFS-58** El sistema deberá registrar cada ingreso con concepto (arriendo de sede, cuota de socios, aporte de grupos, certificados, otros), fecha de pago, monto, medio de pago (efectivo o transferencia), quién lo ingresa y comprobante.
+- **RFS-58** El sistema deberá registrar cada ingreso con concepto (aporte voluntario por reserva de sede, préstamo de insumos, cuota de socios, aporte de grupos, certificados, otros), fecha de pago, monto, medio de pago (efectivo o transferencia), quién lo ingresa y comprobante. Los conceptos anteriores se conservarán en los movimientos históricos, sin reclasificarlos automáticamente.
 - **RFS-59** El sistema deberá exigir, para pagos en efectivo, el número de talonario y, para transferencias, la copia o el número de transacción.
-- **RFS-60** El sistema deberá exigir clasificar toda cuota o aporte como ordinaria o extraordinaria, sin asociarla a proyectos.
-- **RFS-61** El sistema deberá registrar el arriendo con un valor de $40.000 más $40.000 de garantía (valores configurables).
-- **RFS-62** El sistema deberá gestionar la garantía de forma separada de los ingresos, con estados: recibida, devuelta, por devolver y retenida por daños.
+- **RFS-60** El sistema deberá exigir clasificar las cuotas de socios y los aportes de grupos como ordinarios o extraordinarios, sin asociarlos a proyectos. Los aportes por reservas de sede y cobros por préstamos se registrarán con sus conceptos propios, sin esa clasificación.
+- **RFS-61** El sistema deberá permitir al presidente o al secretario ingresar manualmente un aporte voluntario por cada reserva de sede. Un aporte de $0 corresponderá a una reserva gratuita; un monto mayor que $0 identificará una reserva pagada o arriendo. Se eliminan las tarifas fijas de sede y la garantía para reservas nuevas; los acuerdos sobre garantías de sede se resolverán fuera del sistema.
+- **RFS-62** El sistema deberá gestionar la garantía de insumos por préstamo, separada de los ingresos, con estados: recibida, devuelta, por devolver y retenida por daños. Las garantías históricas de sede conservarán sus montos y estados y podrán resolverse con las reglas existentes.
 - **RFS-63** El sistema deberá convertir la garantía en ingreso solo cuando su estado sea "retenida por daños", usando el monto ingresado manualmente, sin superar la garantía recibida. Se permitirá retención parcial y devolución del resto en una misma operación, guardando ambos montos, fecha, motivo y autor.
-- **RFS-64** El sistema deberá permitir al presidente o al tesorero registrar el pago de un arriendo ya validado como ingreso y su garantía como registro separado, conforme a RFS-62 y RFS-63.
+- **RFS-64** El sistema deberá permitir al presidente o al tesorero registrar como ingresos los aportes recibidos por reservas de sede y los cobros recibidos por préstamos de insumos, vinculados a su operación. Las garantías de insumos se registrarán por separado, conforme a RFS-62 y RFS-63. Las operaciones de monto $0 no crearán ingresos; se conservará la trazabilidad de las operaciones y garantías históricas de sede.
 - **RFS-65** El sistema deberá registrar egresos (servicios básicos y mantención) con fecha, número de transacción, copia del comprobante y quién pagó.
 - **RFS-66** El sistema deberá permitir devolver una cuota con motivo obligatorio y descontar el monto de la caja.
 - **RFS-67** El sistema no deberá permitir borrar movimientos; solo anularlos con motivo obligatorio.
@@ -212,10 +218,10 @@ Los 89 RFS traducen los RFU en comportamiento verificable del sistema y fijan la
 
 ### 6. Inventario
 
-- **RFS-69** El sistema deberá registrar ítems con nombre y cantidad.
-- **RFS-70** El sistema deberá registrar préstamos con ítem, cantidad, estado de salida y de regreso, fechas de solicitud, préstamo y devolución, y responsable (nombre y teléfono).
-- **RFS-71** El sistema deberá permitir asignar el préstamo a una organización registrada o a un nombre libre.
-- **RFS-72** El sistema deberá impedir prestar más unidades de las disponibles.
+- **RFS-69** El sistema deberá registrar existencias seleccionando un insumo del catálogo administrado en Parámetros y su cantidad total. Presidente o secretario podrá editar esa cantidad respetando RFS-101. El catálogo incluirá los insumos predefinidos de RFS-95.
+- **RFS-70** El sistema deberá registrar solicitudes y préstamos con uno o varios insumos, cada uno con su cantidad y estado de salida/regreso, fecha de solicitud, fecha de entrega, fecha comprometida y fecha efectiva de devolución, solicitante y sus datos de contacto, agrupación cuando corresponda y dirigente responsable seleccionado de presidente, secretario o tesorero. El responsable no se ingresará como texto libre; se distinguirá del solicitante y del usuario que registra la operación.
+- **RFS-71** El sistema deberá permitir solicitudes de insumos en línea a socios activos y dirigentes; los dirigentes no necesitarán ficha activa. Los representantes no socios solicitarán en ventanilla, por medio de presidente o secretario, identificando obligatoriamente al grupo que representan. Cuando un socio o dirigente solicitante también sea representante, deberá registrarse la agrupación correspondiente. No se aceptarán nuevos préstamos a un nombre libre que no cumpla estas condiciones.
+- **RFS-72** El sistema deberá impedir aprobar o entregar más unidades de las disponibles, comprobando las existencias en el servidor y evitando sobreasignaciones simultáneas. Las solicitudes pendientes no descontarán unidades; las aprobadas reservarán las cantidades de todos sus insumos. Disponibles será el total menos las unidades reservadas pendientes de entrega, las entregadas aún no devueltas y las fuera de servicio, sin contar dos veces las mismas unidades.
 
 ### 7. Actas
 
@@ -226,7 +232,7 @@ Los 89 RFS traducen los RFU en comportamiento verificable del sistema y fijan la
 ### 8. Proyectos
 
 - **RFS-76** El sistema deberá permitir al presidente registrar y editar proyectos con título, organismo, fecha de postulación, estado (postulado, adjudicado o rechazado) y monto opcional.
-- **RFS-77** El sistema deberá registrar quién ingresó el proyecto en la plataforma del organismo y completar automáticamente quién lo registró en el sistema.
+- **RFS-77** El sistema deberá seleccionar de los dirigentes (presidente, secretario o tesorero) a quien ingresó el proyecto en la plataforma del organismo, al registrar un proyecto o cambiar a esa persona en uno existente, sin admitir un nombre nuevo como texto libre. Completará automáticamente quién lo registró en el sistema y mantendrá la distinción entre ambas personas. Los nombres guardados en proyectos anteriores se conservarán al consultar o editar otros datos, sin reasignarlos automáticamente.
 - **RFS-78** El sistema deberá mostrar los proyectos en modo solo lectura a todo usuario con sesión iniciada, sin posibilidad de postular.
 
 ### 9. Reportes
@@ -236,12 +242,28 @@ Los 89 RFS traducen los RFU en comportamiento verificable del sistema y fijan la
 
 ### 10. Roles, permisos, auditoría, parámetros y cuenta
 
-- **RFS-81** El sistema deberá restringir el acceso a cada módulo según el rol: presidente a todos; secretario a socios, citas, certificados, grupos, calendario, inventario y actas; tesorero a finanzas, actas y reportes financieros.
-- **RFS-82** El sistema deberá autorizar las acciones propias de un socio (certificado de residencia en línea, actas de asamblea y solicitud de arriendo) según el estado activo de su ficha y no según su rol, de modo que un dirigente con ficha activa también pueda ejecutarlas.
-- **RFS-83** El sistema deberá permitir al administrador gestionar usuarios y roles y ver el nombre, correo y rol de cada usuario, sin acceso a fichas de socios, finanzas ni actas de directiva.
+- **RFS-81** El sistema deberá restringir el acceso según el rol: presidente a todos los módulos excepto parámetros; secretario a socios, citas, atención al público, certificados, grupos, calendario, reservas, gestión de inventario y préstamos, y actas; tesorero a finanzas, actas y reportes financieros. Los parámetros y los catálogos serán exclusivos del administrador. Todos los dirigentes podrán solicitar insumos para sí, sin que ese permiso conceda al tesorero gestión de inventario, aprobación de solicitudes o acceso a préstamos ajenos.
+- **RFS-82** El sistema deberá autorizar las acciones propias de un socio (certificado de residencia en línea, actas de asamblea y solicitudes de sede e insumos) según el estado activo de su ficha y no según su rol. Los dirigentes tendrán además permiso para solicitar insumos en línea sin ficha activa, conforme a RFS-71; esta excepción no ampliará por sí sola sus otros accesos de socio.
+- **RFS-83** El sistema deberá permitir al administrador gestionar usuarios, roles y parámetros, y ver el nombre, correo y rol de cada usuario, sin acceso a fichas de socios, finanzas ni actas de directiva.
 - **RFS-84** El sistema no deberá permitir que un administrador cambie su propio rol.
 - **RFS-85** El sistema deberá registrar fecha, autor, cambios y dirección IP en socios, certificados (incluidas las descargas), usuarios, finanzas y cuotas devueltas.
 - **RFS-86** El sistema no deberá permitir editar ni eliminar los registros de trazabilidad.
 - **RFS-87** El sistema deberá permitir solo al presidente consultar la auditoría, con filtros por fecha, autor y tipo de registro (socio, certificado, usuario o finanzas).
-- **RFS-88** El sistema deberá permitir al presidente o al secretario configurar el horario de la sede, la duración de los bloques, la vigencia del certificado, el plazo de descarga, el plazo de confirmación del arriendo y el valor del arriendo y de la garantía.
+- **RFS-88** El sistema deberá permitir exclusivamente al administrador configurar el horario de la sede, la duración de los bloques, la vigencia del certificado, el plazo de descarga, el plazo de confirmación de solicitudes de sede y los catálogos de actividades gratuitas e insumos. No se definirán tarifas fijas de sede ni precios por insumo en Parámetros: presidente o secretario definirá el aporte de cada reserva y el monto y garantía de cada préstamo.
 - **RFS-89** El sistema deberá permitir a cada usuario eliminar su propia cuenta desde su perfil, conservando la ficha de socio y los registros de trazabilidad sin vínculo al usuario.
+
+- **RFS-90** El sistema deberá emitir inmediatamente el certificado de socio solicitado desde una cuenta con ficha activa, sin revisión de presidente o secretario, usando al presidente vigente como otorgante. Si lo emite presidente o secretario en ventanilla, quedará disponible solo para impresión y no se incorporará a las descargas del socio. El certificado de residencia mantendrá su flujo de pago y revisión.
+- **RFS-91** El sistema deberá permitir a presidente y secretario establecer horarios semanales de atención al público con varios tramos por día y mostrarlos en la portada pública. Las citas de firma serán independientes y podrán generarse en cualquier horario permitido para citas; al aprobar la documentación de un vecino, se mostrará un recordatorio para liberar citas, sin crearlas automáticamente ni restringirlas al horario de atención.
+
+### 11. Navegación, reservas e insumos — ampliación acordada
+
+- **RFS-92** El sistema deberá organizar el menú lateral mediante desplegables: Reservas de sede (Reservas y Solicitudes de arriendo), Horarios de atención (Atención al público y Agenda de firmas) y Solicitudes (Certificados y Solicitudes de insumos), conservando Finanzas agrupado. Adaptará los enlaces a los permisos del usuario y situará Auditoría al final. Calendario será una consulta separada; Reservas incluirá apartados de sede e insumos. Las solicitudes pendientes de insumos y los préstamos entregados se consultarán en bandejas distintas.
+- **RFS-93** El sistema deberá situar el control para mostrar u ocultar la contraseña al lado del campo correspondiente en el formulario del administrador para editar usuarios.
+- **RFS-94** El sistema deberá mostrar una etiqueta informativa de representante en la ficha existente que corresponda a una persona designada en un grupo. La etiqueta no será un rol ni concederá permisos o habilitará funciones. No se exigirá crear ficha o cuenta a un representante externo para mostrar o gestionar su representación en el grupo.
+- **RFS-95** El sistema deberá ofrecer un catálogo de insumos organizado en categorías, ampliable desde Parámetros exclusivamente por el administrador. Incluirá: mobiliario y eventos (sillas, mesas, toldos, carpas estructurales, vajilla y mantelería); equipamiento (equipos de amplificación); herramientas (de jardinería, eléctricas, escalas y escaleras extensibles); y ayudas técnicas en comodato (catres clínicos, sillas de ruedas, burritos, muletas y bastones). La selección de insumos se realizará mediante listas desplegables; el catálogo no fijará precios ni garantías por unidad.
+- **RFS-96** El sistema deberá distinguir los estados pendiente, aprobado con unidades reservadas, entregado y devuelto en las solicitudes y préstamos de insumos. Presidente o secretario comprobará y reservará las existencias de todos los insumos al aprobar, y registrará posteriormente la entrega. El solicitante no podrá aprobar su propia solicitud mediante el permiso de consulta o solicitud; la gestión requerirá el permiso de presidente o secretario. La reserva y la entrega no descontarán dos veces las mismas unidades.
+- **RFS-97** El sistema deberá permitir al presidente o al secretario que gestione el préstamo definir manualmente un monto total y una garantía por préstamo. El monto podrá ser $0. Ambos valores corresponderán al conjunto de insumos de esa operación, sin multiplicarse por unidades, tipos de insumo o días. Se guardarán en el préstamo, separados del catálogo, y la garantía se gestionará conforme a RFS-62/63, independientemente del ingreso por el cobro.
+- **RFS-98** El sistema deberá recordar al solicitante los horarios públicos de atención de la directiva para retirar insumos, sin crear citas de firma. Un préstamo entregado, aún no devuelto y con fecha comprometida anterior al día actual se mostrará atrasado. Los atrasos se indicarán mediante un punto rojo, sin contadores, en el acceso correspondiente del menú para presidente y secretario; las solicitudes de insumos pendientes se señalarán del mismo modo en su bandeja. Estos avisos no requerirán correo ni un estado de lectura.
+- **RFS-99** El sistema deberá registrar la devolución completa de todos los insumos de un préstamo, sin devoluciones parciales ni devoluciones duplicadas. Guardará fecha efectiva, estado de regreso, unidades dañadas por insumo y autor. Las unidades utilizables volverán a estar disponibles y las dañadas permanecerán fuera de servicio. Una cantidad dañada no podrá superar las unidades prestadas del insumo. No se incorpora un flujo de reparación o reincorporación en esta entrega.
+- **RFS-100** El sistema deberá conservar las reservas, pagos, garantías, préstamos y datos de proyectos anteriores a esta ampliación. No eliminará ni recalculará sus montos, autores o condiciones para adecuarlos a las reglas nuevas. Las garantías históricas de sede conservarán su resolución financiera; los registros anteriores que no cumplan las nuevas condiciones de elegibilidad o catálogo mantendrán su historial, sin habilitar nuevas operaciones contrarias a las reglas vigentes.
+- **RFS-101** El sistema deberá permitir a presidente o secretario editar la cantidad total de existencias de un insumo, sin admitir cantidades negativas ni un total inferior a las unidades reservadas para entrega, prestadas sin devolver y fuera de servicio. La edición de existencias y la aprobación/entrega/devolución de préstamos deberán comprobarse de forma consistente ante operaciones simultáneas, conservando el historial.

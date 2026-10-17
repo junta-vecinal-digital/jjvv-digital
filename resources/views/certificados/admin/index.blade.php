@@ -48,7 +48,7 @@
                                 <td class="px-4 py-3">{{ $c->etiquetaTipo() }}</td>
                                 <td class="px-4 py-3">{{ $c->nombre_solicitante }}<div class="text-xs text-gray-500">{{ $c->rut_solicitante }}</div></td>
                                 <td class="px-4 py-3">{{ $c->dirigido_a }}</td>
-                                <td class="px-4 py-3">{{ ($c->fecha_emision ?? $c->created_at)->format('d-m-Y') }}</td>
+                                <td class="px-4 py-3">{{ ($c->fecha_emision ?? $c->created_at)->format('d/m/Y') }}</td>
                                 <td class="px-4 py-3"><x-estado-certificado :estado="$c->estado" /></td>
                                 <td class="px-4 py-3 text-right"><a href="{{ route('admin.certificados.show', $c) }}" class="underline text-brand-600 dark:text-brand-400">{{ $c->estado === 'solicitado' ? 'Revisar' : 'Ver' }}</a></td>
                             </tr>

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Socio;
-use App\Models\Grupo;
 use App\Models\User;
 use App\Rules\RutChileno;
 use Illuminate\Http\Request;
@@ -172,12 +171,6 @@ class SocioController extends Controller
         }
 
         $socio->update($cambios + ['revisado_por' => $request->user()->id]);
-
-        if ($destino === 'inactivo') {
-            // RFS-41: el grupo queda sin representante hasta que se asigne otro.
-            Grupo::where('representante_id', $socio->id)->get()
-                ->each(fn (Grupo $grupo) => $grupo->update(['representante_id' => null]));
-        }
 
         return redirect()->route('socios.show', $socio)->with('status', 'socio-'.$destino);
     }

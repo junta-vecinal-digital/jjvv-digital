@@ -34,6 +34,7 @@ class Certificado extends Model
         'tipo', 'user_id', 'socio_id', 'nombre_solicitante', 'rut_solicitante',
         'direccion', 'dirigido_a', 'aporte', 'documentos_verificados', 'observaciones',
         'numero_transaccion', 'comprobante_path', 'medio_pago', 'talonario',
+        'solo_impresion',
     ];
 
     protected function casts(): array
@@ -44,6 +45,7 @@ class Certificado extends Model
             'fecha_retiro' => 'date',
             'descarga_disponible_hasta' => 'datetime',
             'documentos_verificados' => 'boolean',
+            'solo_impresion' => 'boolean',
         ];
     }
 
@@ -74,7 +76,7 @@ class Certificado extends Model
     {
         $socioId = $usuario->socio?->id;
 
-        return $query->where(function (Builder $consulta) use ($usuario, $socioId) {
+        return $query->where('solo_impresion', false)->where(function (Builder $consulta) use ($usuario, $socioId) {
             $consulta->where('user_id', $usuario->id);
 
             if ($socioId !== null) {
@@ -111,7 +113,7 @@ class Certificado extends Model
     /** El certificado de socio no tiene plazo (RFS-20); el de residencia sí (RFS-24). */
     public function puedeDescargarse(): bool
     {
-        if ($this->estado !== 'emitido') {
+        if ($this->estado !== 'emitido' || $this->solo_impresion) {
             return false;
         }
 
@@ -181,6 +183,8 @@ class Certificado extends Model
         for ($intento = 1; ; $intento++) {
             try {
                 DB::transaction(function () use ($por) {
+                    // Comparte el bloqueo de folios con la nueva emisión autónoma.
+                    DB::table('parametros')->where('clave', 'certificado_vigencia_dias')->update(['valor' => DB::raw('valor')]);
                     $anio = (int) now()->year;
                     $correlativo = ((int) static::where('anio', $anio)->max('correlativo')) + 1;
 

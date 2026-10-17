@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Certificado;
 use App\Rules\RutChileno;
 use App\Models\DescargaCertificado;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 /** Vecino: solicita certificados y descarga los que ya fueron emitidos. */
@@ -28,16 +30,16 @@ class CertificadoController extends Controller
         $usuario = $request->user();
         $socio = $usuario->socio;
 
+        $tipo = $request->validate([
+            'tipo' => ['required', Rule::in(array_keys(Certificado::TIPOS))],
+        ])['tipo'];
+
         $pendientes = Certificado::delUsuario($usuario)->where('estado', 'solicitado')->count();
-        if ($pendientes >= 3) {
+        if ($tipo === 'residencia' && $pendientes >= 3) {
             return back()->withInput()->withErrors([
                 'tipo' => 'Ya tienes 3 solicitudes pendientes. Espera a que la directiva las revise.',
             ]);
         }
-
-        $tipo = $request->validate([
-            'tipo' => ['required', Rule::in(array_keys(Certificado::TIPOS))],
-        ])['tipo'];
 
         if ($tipo === 'socio') {
             if (! $socio || $socio->estado !== 'activo') {
@@ -46,13 +48,25 @@ class CertificadoController extends Controller
                 ]);
             }
 
-            $datos = $request->validate(['dirigido_a' => ['required', 'string', 'max:255']]);
+            $datos = $request->validateWithBag('certificadoSocio', ['dirigido_a' => ['required', 'string', 'max:255']]);
             $datos += [
                 'nombre_solicitante' => $socio->nombre_completo,
                 'rut_solicitante' => $socio->rut,
                 'direccion' => $socio->direccion,
                 'socio_id' => $socio->id,
             ];
+            $presidentes = User::where('role', 'presidente')->get();
+            if ($presidentes->count() !== 1) {
+                return back()->withInput()->withErrors(['otorgante' => 'Administración debe asignar un único presidente para emitir tu certificado de socio.'], 'certificadoSocio');
+            }
+
+            DB::transaction(function () use ($datos, $usuario, $presidentes) {
+                DB::table('parametros')->where('clave', 'certificado_vigencia_dias')->update(['valor' => DB::raw('valor')]);
+                $certificado = Certificado::create($datos + ['tipo' => 'socio', 'user_id' => $usuario->id, 'solo_impresion' => false]);
+                $certificado->emitir($presidentes->first());
+            });
+
+            return redirect()->route('certificados.index')->with('status', 'certificado-socio-emitido');
         } else {
             // Residencia: pago obligatorio por transferencia con comprobante (RFS-19).
             $request->merge(['rut_solicitante' => RutChileno::normalizar($request->rut_solicitante)]);
