@@ -7,6 +7,7 @@ use App\Models\Grupo;
 use App\Models\Parametro;
 use App\Models\Reserva;
 use App\Models\Socio;
+use App\Models\TipoActividad;
 use App\Rules\RutChileno;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -33,8 +34,9 @@ class ArriendoController extends Controller
                     ->orWhere('representante_usuario_id', $usuario->id)))
                 ->orderBy('nombre')->get()->filter(fn ($g) => $g->tieneRepresentanteVigente()),
             'bloques' => Reserva::bloquesDeLaSede(),
+            'tiposActividad' => TipoActividad::where('activo', true)->orderBy('id')->get(),
             'plazoHoras' => Parametro::entero('arriendo_plazo_confirmacion_horas'),
-            'arriendos' => Reserva::with(['socio', 'grupo', 'garantia'])->where('tipo', 'arriendo')
+            'arriendos' => Reserva::with(['socio', 'grupo', 'garantia'])
                 ->when(! $esDirigente, fn ($q) => $q->where('socio_id', $usuario->socio->id))
                 ->latest('id')->paginate(15),
         ]);
@@ -45,6 +47,11 @@ class ArriendoController extends Controller
         $usuario = $request->user();
         $esDirigente = $usuario->hasRole('presidente', 'secretario');
         abort_unless($esDirigente || $usuario->esSocioActivo(), 403);
+        if ($esDirigente && $request->filled('tipo_actividad') && $request->tipo_actividad !== 'sede') {
+            $request->validate(['valor_arriendo' => ['required', 'integer', 'in:0']]);
+            $request->merge(['tipo' => $request->input('tipo_actividad')]);
+            return app(ReservaController::class)->store($request);
+        }
         $manual = $esDirigente && $request->input('modalidad_solicitante', 'socio') === 'manual';
         if ($manual && is_string($request->responsable_rut)) {
             $request->merge(['responsable_rut' => RutChileno::normalizar($request->responsable_rut)]);
@@ -76,7 +83,7 @@ class ArriendoController extends Controller
                 $grupo = Grupo::findOrFail($datos['grupo_id']);
                 $esRepresentante = $manual
                     ? mb_strtolower(trim($datos['responsable_nombre'])) === mb_strtolower($grupo->datosRepresentante()['nombre'] ?? '')
-                        && (! $grupo->representante || $datos['responsable_rut'] === RutChileno::normalizar($grupo->representante->rut))
+                        && (! $grupo->datosRepresentante()['rut'] || $datos['responsable_rut'] === RutChileno::normalizar($grupo->datosRepresentante()['rut']))
                     : ((int) $grupo->representante_id === $socio->id || (int) $grupo->representante_usuario_id === $socio->user_id);
                 if (! $grupo->tieneRepresentanteVigente() || ! $esRepresentante) {
                     throw ValidationException::withMessages(['grupo_id' => 'El responsable debe ser el representante vigente del grupo.']);
@@ -101,7 +108,7 @@ class ArriendoController extends Controller
                 'responsable_rut' => $manual ? $datos['responsable_rut'] : $socio->rut,
                 'responsable_direccion' => $manual ? $datos['responsable_direccion'] : $socio->direccion,
                 'responsable_telefono' => $manual ? $datos['responsable_telefono'] : $socio->telefono,
-                'canal' => $esDirigente ? 'ventanilla' : 'en_linea',
+                'canal' => $esDirigente && ($manual || $socio?->user_id !== $usuario->id) ? 'ventanilla' : 'en_linea',
                 'socio_id' => $socio?->id,
                 'grupo_id' => $datos['grupo_id'] ?? null,
                 'creado_por' => $usuario->id,
@@ -160,6 +167,8 @@ class ArriendoController extends Controller
     public function adjuntarComprobante(Request $request, Reserva $reserva)
     {
         $this->autorizarConsulta($request, $reserva);
+        abort_unless($reserva->canal === 'ventanilla' ? $request->user()->hasRole('presidente', 'secretario')
+            : ($request->user()->esSocioActivo() && $reserva->socio_id === $request->user()->socio->id), 403);
         $datos = $request->validate([
             'comprobante' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
         ]);

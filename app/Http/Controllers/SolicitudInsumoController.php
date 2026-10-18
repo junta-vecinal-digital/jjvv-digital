@@ -9,6 +9,7 @@ use App\Models\Prestamo;
 use App\Models\Socio;
 use App\Models\SolicitudInsumo;
 use App\Models\User;
+use App\Rules\RutChileno;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -36,8 +37,10 @@ class SolicitudInsumoController extends Controller
     {
         $this->autorizarSolicitud($request);
         $gestion = $request->user()->hasRole('presidente', 'secretario');
+        if (is_string($request->solicitante_rut)) $request->merge(['solicitante_rut' => RutChileno::normalizar($request->solicitante_rut)]);
         $datos = $request->validate([
             'solicitante' => $gestion ? ['required', 'string'] : ['exclude'],
+            'solicitante_rut' => ['nullable', 'string', 'max:12', new RutChileno],
             'grupo_id' => ['nullable', 'integer'],
             'telefono_contacto' => ['required', 'string', 'max:20'],
             'direccion_contacto' => ['nullable', 'string', 'max:255'],
@@ -51,6 +54,10 @@ class SolicitudInsumoController extends Controller
             $personas = $this->personas($request);
             $persona = $gestion ? $personas->firstWhere('clave', $datos['solicitante']) : $personas->first();
             if (! $persona) throw ValidationException::withMessages(['solicitante' => 'Selecciona un socio activo, dirigente o representante de grupo vigente.']);
+            $rut = $persona['rut'] ?: ($datos['solicitante_rut'] ?? null);
+            if (! RutChileno::esValido($rut)) {
+                throw ValidationException::withMessages(['solicitante_rut' => 'Completa un RUT válido para el representante antes de solicitar insumos.']);
+            }
             $grupos = collect($persona['grupos']);
             $grupoId = $datos['grupo_id'] ?? ($grupos->count() === 1 ? $grupos->first()['id'] : null);
             if (($grupos->isNotEmpty() && ! $grupos->contains('id', $grupoId)) || ($grupos->isEmpty() && $grupoId)) {
@@ -59,6 +66,7 @@ class SolicitudInsumoController extends Controller
             $solicitud = SolicitudInsumo::create([
                 'estado' => 'pendiente', 'solicitante_id' => $persona['usuario_id'], 'socio_id' => $persona['socio_id'],
                 'solicitante_nombre' => $persona['nombre'], 'grupo_id' => $grupoId,
+                'solicitante_rut' => $rut,
                 'grupo_nombre' => $grupos->firstWhere('id', $grupoId)['nombre'] ?? null,
                 'telefono_contacto' => $datos['telefono_contacto'], 'direccion_contacto' => $datos['direccion_contacto'] ?? null,
                 'correo_contacto' => $persona['correo'], 'canal' => $gestion && $persona['usuario_id'] !== $request->user()->id ? 'ventanilla' : 'en_linea',
@@ -101,11 +109,12 @@ class SolicitudInsumoController extends Controller
             $externo = ! $solicitud->solicitante_id && ! $solicitud->socio_id;
             $representa = $grupo && $grupo->tieneRepresentanteVigente() && ($externo
                 ? $grupo->datosRepresentante()['nombre'] === $solicitud->solicitante_nombre
+                    && (! $grupo->datosRepresentante()['rut'] || $grupo->datosRepresentante()['rut'] === $solicitud->solicitante_rut)
                 : (($socio && $grupo->representante_id === $socio->id)
                     || ($usuario && $grupo->representante_usuario_id === $usuario->id)
                     || ($usuario?->socio && $grupo->representante_id === $usuario->socio->id)));
             if (($externo && ! $representa)
-                || (! $externo && ! $usuario?->esDirigente() && $socio?->estado !== 'activo')
+                || (! $externo && $socio?->estado !== 'activo')
                 || ($solicitud->grupo_id && ! $representa)) {
                 throw ValidationException::withMessages(['operacion' => 'El solicitante o la representación ya no cumple las condiciones para aprobar el préstamo.']);
             }
@@ -198,7 +207,7 @@ class SolicitudInsumoController extends Controller
 
     private function autorizarSolicitud(Request $request): void
     {
-        abort_unless($request->user()->esDirigente() || $request->user()->esSocioActivo(), 403);
+        abort_unless($request->user()->hasRole('presidente', 'secretario') || $request->user()->esSocioActivo(), 403);
     }
 
     private function autorizarConsulta(Request $request, SolicitudInsumo $solicitud): void
@@ -212,25 +221,20 @@ class SolicitudInsumoController extends Controller
         $gestion = $request->user()->hasRole('presidente', 'secretario');
         $grupos = Grupo::with('representante')->get()->filter->tieneRepresentanteVigente();
         $socios = $gestion ? Socio::with('user')->where('estado', 'activo')->get() : collect([$request->user()->socio])->filter(fn ($s) => $s?->estado === 'activo');
-        $usuarios = $gestion ? User::with('socio')->whereIn('role', ['presidente', 'secretario', 'tesorero'])->get() : collect([$request->user()]);
         $personas = collect();
         foreach ($socios as $socio) {
             $personas->push(['clave' => 'socio:'.$socio->id, 'nombre' => $socio->nombre_completo,
+                'rut' => $socio->rut,
                 'usuario_id' => $socio->user_id, 'socio_id' => $socio->id,
                 'telefono' => $socio->telefono, 'direccion' => $socio->direccion, 'correo' => $socio->user?->email,
                 'grupos' => $grupos->filter(fn ($g) => $g->representante_id === $socio->id || ($socio->user_id && $g->representante_usuario_id === $socio->user_id))->map->only(['id', 'nombre'])->values()->all()]);
         }
-        foreach ($usuarios as $usuario) {
-            if (! $usuario->esDirigente() || $personas->contains('usuario_id', $usuario->id)) continue;
-            $personas->push(['clave' => 'usuario:'.$usuario->id, 'nombre' => $usuario->name,
-                'usuario_id' => $usuario->id, 'socio_id' => null,
-                'telefono' => $usuario->socio?->telefono, 'direccion' => $usuario->socio?->direccion, 'correo' => $usuario->email,
-                'grupos' => $grupos->filter(fn ($g) => $g->representante_usuario_id === $usuario->id || ($usuario->socio && $g->representante_id === $usuario->socio->id))->map->only(['id', 'nombre'])->values()->all()]);
-        }
         if ($gestion) foreach ($grupos as $grupo) {
-            if ($personas->contains(fn ($p) => collect($p['grupos'])->contains('id', $grupo->id))) continue;
+            if ($personas->contains(fn ($p) => collect($p['grupos'])->contains('id', $grupo->id)) || $grupo->representante?->user?->esDirigente()
+                || User::find($grupo->representante_usuario_id)?->esDirigente()) continue;
             $persona = $grupo->datosRepresentante();
             $personas->push(['clave' => 'grupo:'.$grupo->id, 'nombre' => $persona['nombre'],
+                'rut' => $persona['rut'],
                 'usuario_id' => null, 'socio_id' => null, 'telefono' => $persona['telefono'], 'direccion' => $persona['direccion'],
                 'correo' => $persona['correo'], 'grupos' => [['id' => $grupo->id, 'nombre' => $grupo->nombre]]]);
         }

@@ -15,7 +15,7 @@ test('la gestión se separa del calendario y guarda en Reservas con las mismas v
     $this->actingAs(User::factory()->create(['role' => $rol]));
     $this->get(route('calendario.index'))->assertOk()
         ->assertDontSee('action="'.route('reservas.store').'"', false)->assertDontSee('Cancelar reserva');
-    $this->get(route('reservas.index'))->assertOk()->assertSee('action="'.route('reservas.store').'"', false)
+    $this->get(route('reservas.index'))->assertOk()->assertSee('action="'.route('arriendos.store').'"', false)
         ->assertSee(route('inventario.index'));
     $fecha = now()->addDay();
     $this->post(route('reservas.store'), [

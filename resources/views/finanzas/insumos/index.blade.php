@@ -1,5 +1,5 @@
 <x-app-layout>
-    <x-slot name="header"><h1 class="text-2xl font-semibold">Préstamos y garantías · Finanzas</h1></x-slot>
+    <x-slot name="header"><h1 class="text-2xl font-semibold">Préstamo de insumos · Finanzas</h1></x-slot>
     <div class="max-w-7xl mx-auto px-4 py-6 space-y-4">
         <p>Préstamos aprobados, entregados o devueltos. El cobro se registra como ingreso; la garantía se mantiene separada.</p>
         <section class="ui-panel overflow-x-auto">

@@ -6,6 +6,7 @@ use App\Models\Grupo;
 use App\Models\Socio;
 use App\Models\Reserva;
 use App\Models\User;
+use App\Rules\RutChileno;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -57,11 +58,15 @@ class GrupoController extends Controller
         ]);
 
         $socio = Socio::findOrFail($datos['socio_id']);
+        if (! RutChileno::esValido($socio->rut)) {
+            return back()->withErrors(['socio_id' => 'Completa un RUT válido en la ficha antes de asignar al representante.']);
+        }
 
         $grupo->update([
             'representante_id' => $socio->id,
             'representante_usuario_id' => $socio->user_id,
             'representante_nombre' => $socio->nombre_completo,
+            'representante_rut' => $socio->rut,
             'representante_correo' => $socio->email,
             'representante_telefono' => $socio->telefono,
             'representante_direccion' => $socio->direccion,
@@ -96,6 +101,7 @@ class GrupoController extends Controller
             $personas['socio:'.$socio->id] = [
                 'etiqueta' => $socio->nombre_completo.' · '.$socio->rut.' · Socio',
                 'socio_id' => $socio->id, 'usuario_id' => $socio->user_id,
+                'rut' => $socio->rut,
                 'nombre' => $socio->nombre_completo, 'correo' => $socio->email ?? $socio->user?->email,
                 'telefono' => $socio->telefono, 'direccion' => $socio->direccion,
             ];
@@ -104,6 +110,7 @@ class GrupoController extends Controller
             $personas['usuario:'.$usuario->id] = [
                 'etiqueta' => $usuario->name.' · '.$usuario->nombreRol(),
                 'socio_id' => $usuario->socio?->id, 'usuario_id' => $usuario->id,
+                'rut' => $usuario->socio?->rut,
                 'nombre' => $usuario->socio?->nombre_completo ?? $usuario->name,
                 'correo' => $usuario->socio?->email ?? $usuario->email,
                 'telefono' => $usuario->socio?->telefono, 'direccion' => $usuario->socio?->direccion,
@@ -116,10 +123,14 @@ class GrupoController extends Controller
     private function validarGrupo(Request $request, ?Grupo $grupo = null): array
     {
         $personas = $this->personasDisponibles();
+        $origen = $request->input('origen_representante');
+        $rut = $request->input('representante_rut') ?? (is_string($origen) ? ($personas[$origen]['rut'] ?? null) : null);
+        $request->merge(['representante_rut' => is_string($rut) ? RutChileno::normalizar($rut) : $rut]);
         $datos = $request->validate([
             'nombre' => ['required', 'string', 'max:255', Rule::unique('grupos', 'nombre')->ignore($grupo?->id)],
             'origen_representante' => ['required', 'string', Rule::in(['sin_representante', 'manual', ...array_keys($personas)])],
             'representante_nombre' => ['nullable', 'required_unless:origen_representante,sin_representante', 'string', 'max:255'],
+            'representante_rut' => ['exclude_if:origen_representante,sin_representante', 'bail', 'required', 'string', 'max:12', new RutChileno],
             'representante_correo' => ['nullable', 'email', 'max:255'],
             'representante_telefono' => ['nullable', 'string', 'max:20'],
             'representante_direccion' => ['nullable', 'string', 'max:255'],
@@ -134,14 +145,15 @@ class GrupoController extends Controller
         ]);
 
         $origen = $datos['origen_representante'];
-        // Un nombre distinto identifica a una persona ingresada manualmente.
-        if (isset($personas[$origen]) && trim($datos['representante_nombre']) !== $personas[$origen]['nombre']) {
+        // Un nombre o RUT distinto identifica a una persona ingresada manualmente.
+        if (isset($personas[$origen]) && (trim($datos['representante_nombre']) !== $personas[$origen]['nombre']
+            || $datos['representante_rut'] !== $personas[$origen]['rut'])) {
             $origen = 'manual';
         }
         $datos['representante_id'] = $personas[$origen]['socio_id'] ?? null;
         $datos['representante_usuario_id'] = $personas[$origen]['usuario_id'] ?? null;
         if ($origen === 'sin_representante') {
-            foreach (['nombre', 'correo', 'telefono', 'direccion'] as $campo) {
+            foreach (['nombre', 'rut', 'correo', 'telefono', 'direccion'] as $campo) {
                 $datos['representante_'.$campo] = null;
             }
         }

@@ -4,7 +4,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        <title>{{ config('app.name', 'Laravel') }}</title>
+        <title>{{ config('app.name', 'JJVV Digital') }}</title>
 
         @fonts
 
@@ -73,7 +73,7 @@
                         </dl>
                     @endif
                     <p class="mt-4 text-sm">Para firmar el libro de socios, reserva una cita desde tu cuenta una vez aprobada tu documentación.</p>
-                    <a href="{{ route('verificar.formulario') }}" class="mt-6 inline-block text-sm underline">Verificar un certificado</a>
+                    <a href="{{ route('verificar.formulario') }}" class="ui-button ui-button-primary mt-6 w-full px-6 py-4 text-lg shadow-lg sm:w-auto">Verificar un certificado</a>
                 </section>
             </main>
         </div>

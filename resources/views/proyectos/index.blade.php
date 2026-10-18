@@ -10,20 +10,7 @@
 
     <div class="mx-auto max-w-6xl space-y-4 px-4 py-6 sm:px-6 lg:px-8">
         <p class="text-sm text-gray-500 dark:text-gray-400">Consulta los proyectos postulados por la junta y su estado.</p>
-        <form method="GET" action="{{ route('proyectos.index') }}" class="ui-panel flex flex-wrap items-end gap-3 p-4">
-            <div>
-                <x-input-label for="estado" value="Estado" />
-                <select id="estado" name="estado" class="mt-1">
-                    <option value="">Todos</option>
-                    @foreach (\App\Models\Proyecto::ESTADOS as $estado => $nombre)
-                        <option value="{{ $estado }}" @selected(request('estado') === $estado)>{{ $nombre }}</option>
-                    @endforeach
-                </select>
-                <x-input-error :messages="$errors->get('estado')" class="mt-2" />
-            </div>
-            <button class="ui-button ui-button-secondary">Filtrar</button>
-            <a href="{{ route('proyectos.index') }}" class="ui-button ui-button-secondary">Limpiar</a>
-        </form>
+
         <div class="ui-panel overflow-x-auto">
             <table class="ui-table">
                 <thead><tr><th>Proyecto</th><th>Organismo</th><th>Fecha de postulación</th><th>Estado</th><th>Monto</th><th>Consulta</th></tr></thead>

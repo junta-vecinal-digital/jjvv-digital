@@ -7,6 +7,7 @@ use App\Models\HorarioFijo;
 use App\Models\Reserva;
 use App\Models\Socio;
 use App\Models\TipoActividad;
+use App\Rules\RutChileno;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -88,21 +89,7 @@ class ReservaController extends Controller
 
     public function gestion(Request $request)
     {
-        Reserva::liberarVencidos();
-        $lunes = $this->lunesDe($request->query('semana'));
-        ['inicios' => $horas, 'fines' => $horasFin] = Reserva::bloquesDeLaSede();
-        $horaSugerida = collect($horas)->first(fn ($hora) => $hora > now()->format('H:i'));
-        $fechaSugerida = $horaSugerida ? now()->toDateString() : now()->addDay()->toDateString();
-        $horaSugerida ??= $horas[0] ?? '';
-        $horaFinSugerida = $horasFin[array_search($horaSugerida, $horas)] ?? '';
-
-        return view('reservas.index', compact('lunes', 'horas', 'horasFin', 'horaSugerida', 'fechaSugerida', 'horaFinSugerida') + [
-            'reservas' => Reserva::with(['grupo', 'socio', 'creador'])->ocupan()
-                ->where('fin', '>', $lunes)->where('inicio', '<', $lunes->copy()->addWeek())->orderBy('inicio')->get(),
-            'grupos' => Grupo::with('representante')->orderBy('nombre')->get()->filter(fn ($g) => $g->tieneRepresentanteVigente()),
-            'socios' => Socio::where('estado', 'activo')->orderBy('nombre_completo')->get(['id', 'nombre_completo', 'rut']),
-            'tiposActividad' => TipoActividad::where('activo', true)->orderBy('id')->get(),
-        ]);
+        return app(ArriendoController::class)->index($request);
     }
 
     /** Horario semanal o mensual para impresión (RFU-38, RFS-57). */
@@ -197,6 +184,9 @@ class ReservaController extends Controller
                 if (! $grupo->tieneRepresentanteVigente()) {
                     return $this->rechazar('El grupo no tiene representante vigente y no puede recibir reservas nuevas.');
                 }
+                if (! RutChileno::esValido($grupo->datosRepresentante()['rut'])) {
+                    return $this->rechazar('Completa un RUT válido del representante del grupo antes de reservar.');
+                }
 
                 $grupoId = $grupo->id;
                 $socioId = $grupo->representante_id;
@@ -216,6 +206,7 @@ class ReservaController extends Controller
                 'motivo' => $tipoActividad->nombre,
                 'tipo_nombre' => $tipoActividad->nombre,
                 'responsable_nombre' => $responsable,
+                'responsable_rut' => $grupoId ? $grupo->datosRepresentante()['rut'] : ($socioId ? Socio::findOrFail($socioId)->rut : $request->user()->socio?->rut),
                 'grupo_id' => $grupoId,
                 'socio_id' => $socioId,
                 'creado_por' => $request->user()->id,

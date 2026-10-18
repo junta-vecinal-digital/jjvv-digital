@@ -12,7 +12,7 @@ beforeEach(function () {
     $this->withoutVite();
     $this->travelTo(Carbon::parse('2026-10-05 08:00:00'));
     $this->directiva3a = User::factory()->create(['role' => 'presidente']);
-    $this->grupo3a = Grupo::create(['nombre' => 'Taller de prueba 3a', 'representante_nombre' => 'Representante de prueba 3a']);
+    $this->grupo3a = Grupo::create(['nombre' => 'Taller de prueba 3a', 'representante_nombre' => 'Representante de prueba 3a', 'representante_rut' => '12345678-5']);
     $this->actingAs($this->directiva3a);
 });
 
@@ -127,7 +127,7 @@ test('un grupo sin representante no agrega horarios ni genera reservas y conserv
 test('horarios fijos sin generar bloquean reservas y otros horarios pero admiten un bloque contiguo', function () {
     horarioBloque3a($this->grupo3a);
     $this->post(route('reservas.store'), datosReservaBloque3a())->assertSessionHasErrors('reserva');
-    $otroGrupo = Grupo::create(['nombre' => 'Otro taller 3a', 'representante_nombre' => 'Otra persona']);
+    $otroGrupo = Grupo::create(['nombre' => 'Otro taller 3a', 'representante_nombre' => 'Otra persona', 'representante_rut' => '11111111-1']);
     $this->post(route('grupos.horarios.store', $otroGrupo), [
         'dia_semana' => 1, 'hora_inicio' => '11:00', 'hora_fin' => '13:00',
     ])->assertSessionHasErrors('horario');

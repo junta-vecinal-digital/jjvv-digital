@@ -51,7 +51,7 @@ function validarRut(campo) {
 
 function prepararValidacion(campos) {
     [...campos].filter(campo => !campo.disabled).forEach(campo => {
-        if (['rut', 'rut_solicitante', 'responsable_rut'].includes(campo.name)) validarRut(campo);
+        if (['rut', 'rut_solicitante', 'responsable_rut', 'representante_rut', 'solicitante_rut'].includes(campo.name)) validarRut(campo);
         campo.dispatchEvent(new Event('validar-fecha'));
     });
 }
@@ -92,7 +92,7 @@ Alpine.data('grupoWizard', (estado, personas) => ({
         if (this.origen !== 'manual') {
             const persona = this.personas[this.origen];
             this.representante = {
-                nombre: persona?.nombre ?? '', correo: persona?.correo ?? '',
+                nombre: persona?.nombre ?? '', rut: persona?.rut ?? '', correo: persona?.correo ?? '',
                 telefono: persona?.telefono ?? '', direccion: persona?.direccion ?? '',
             };
         }
@@ -200,7 +200,7 @@ Alpine.data('arriendoFormulario', (estado, representantes) => ({
 // La validación del servidor se mantiene; el navegador la anticipa al salir del campo.
 document.addEventListener('focusout', evento => {
     const campo = evento.target;
-    if (!(campo instanceof HTMLInputElement) || !['rut', 'rut_solicitante', 'responsable_rut'].includes(campo.name)) return;
+    if (!(campo instanceof HTMLInputElement) || !['rut', 'rut_solicitante', 'responsable_rut', 'representante_rut', 'solicitante_rut'].includes(campo.name)) return;
     validarRut(campo);
 });
 
@@ -221,7 +221,7 @@ document.addEventListener('input', evento => {
         campo.setCustomValidity('');
         delete campo.dataset.errorHtml;
     }
-    if (['rut', 'rut_solicitante', 'responsable_rut'].includes(campo.name) && campo.getAttribute('aria-invalid') === 'true') {
+    if (['rut', 'rut_solicitante', 'responsable_rut', 'representante_rut', 'solicitante_rut'].includes(campo.name) && campo.getAttribute('aria-invalid') === 'true') {
         campo.setCustomValidity('');
     }
 }, true);
@@ -278,8 +278,11 @@ Alpine.data('fechaEspanol', (valor, minimo, maximo) => ({
         this.ano = fecha.getFullYear();
         this.mes = fecha.getMonth();
     },
-    get titulo() {
-        return new Intl.DateTimeFormat('es-CL', { month: 'long', year: 'numeric' }).format(new Date(this.ano, this.mes, 1));
+    get anos() {
+        const actual = new Date().getFullYear();
+        const desde = this.minimo ? Number(this.minimo.slice(0, 4)) : Math.min(actual - 120, this.ano);
+        const hasta = this.maximo ? Number(this.maximo.slice(0, 4)) : Math.max(actual + 10, this.ano);
+        return Array.from({ length: Math.max(0, hasta - desde + 1) }, (_, i) => desde + i);
     },
     get dias() {
         const inicio = (new Date(this.ano, this.mes, 1).getDay() + 6) % 7;

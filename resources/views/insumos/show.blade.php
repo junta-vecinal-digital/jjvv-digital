@@ -11,6 +11,7 @@
             <p>Estado: <strong>{{ \App\Models\SolicitudInsumo::ESTADOS[$solicitud->estado] }}</strong>@if ($solicitud->atrasado()) <strong class="text-red-600">· Atrasado</strong>@endif</p>
             <p>Solicitante: {{ $solicitud->solicitante_nombre }} · {{ $solicitud->canal === 'ventanilla' ? 'Ventanilla' : 'En línea' }}</p>
             <p>Agrupación: {{ $solicitud->grupo_nombre ?? 'Particular' }}</p>
+            @if ($solicitud->solicitante_rut)<p>RUT: {{ $solicitud->solicitante_rut }}</p>@endif
             <p>Contacto: {{ $solicitud->telefono_contacto }}@if ($solicitud->correo_contacto) · {{ $solicitud->correo_contacto }}@endif</p>
             @if ($solicitud->direccion_contacto)<p>Dirección: {{ $solicitud->direccion_contacto }}</p>@endif
             <p>Solicitud: {{ $solicitud->created_at->format('d/m/Y') }} · Devolución comprometida: {{ $solicitud->fecha_comprometida->format('d/m/Y') }}</p>

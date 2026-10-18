@@ -6,7 +6,7 @@
         <form method="GET" action="{{ route('reportes.financieros') }}" class="ui-panel p-4 flex flex-wrap gap-4 items-end">
             <div><x-input-label for="desde" value="Desde" /><x-date-input id="desde" name="desde" :value="$filtros['desde']" required /></div>
             <div><x-input-label for="hasta" value="Hasta" /><x-date-input id="hasta" name="hasta" :value="$filtros['hasta']" required /></div>
-            <div><x-input-label for="grupo_id" value="Agrupación" /><select id="grupo_id" name="grupo_id" class="ui-input w-full"><option value="">Todas las agrupaciones</option><option value="sin_grupo" @selected(($filtros['grupo_id'] ?? '') === 'sin_grupo')>Sin agrupación</option>@foreach ($grupos as $grupo)<option value="{{ $grupo->id }}" @selected((string) ($filtros['grupo_id'] ?? '') === (string) $grupo->id)>{{ $grupo->nombre }}</option>@endforeach</select></div>
+            <div class="min-w-0 w-full sm:w-80"><x-input-label for="grupo_id" value="Agrupación" /><select id="grupo_id" name="grupo_id" class="ui-input w-full"><option value="">Todas las agrupaciones</option><option value="sin_grupo" @selected(($filtros['grupo_id'] ?? '') === 'sin_grupo')>Sin agrupación</option>@foreach ($grupos as $grupo)<option value="{{ $grupo->id }}" @selected((string) ($filtros['grupo_id'] ?? '') === (string) $grupo->id)>{{ $grupo->nombre }}</option>@endforeach</select></div>
             <button class="ui-button ui-button-primary">Filtrar</button>
             <a class="underline" href="{{ route('reportes.financieros') }}">Restablecer</a>
         </form>

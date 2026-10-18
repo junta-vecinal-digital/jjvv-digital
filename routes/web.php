@@ -79,7 +79,7 @@ Route::middleware('auth')->prefix('proyectos')->name('proyectos.')->group(functi
 });
 
 // ---------- Vecino ----------
-Route::middleware(['auth', 'role:vecino'])->group(function () {
+Route::middleware(['auth', 'role:vecino,presidente,secretario,tesorero'])->group(function () {
 
     // Solicitud de inscripción como socio
     Route::get('/socios/solicitud', [SocioController::class, 'create'])->name('socios.create');

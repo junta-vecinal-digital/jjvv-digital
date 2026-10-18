@@ -106,7 +106,10 @@
                 </div>
             @endif
 
-            @if (in_array($socio->estado, ['pendiente', 'por_firmar']))
+            @if ($socio->user_id === auth()->id())
+                <p class="ui-panel p-4">Otro presidente o secretario debe resolver tu ficha. No puedes aprobar tu propia inscripción.</p>
+            @endif
+            @if ($socio->user_id !== auth()->id() && in_array($socio->estado, ['pendiente', 'por_firmar']))
                 <div class="p-6 ui-panel">
                     <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">Resolución</h3>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
@@ -139,7 +142,7 @@
                 </div>
             @endif
 
-            @if ($socio->estado === 'rechazado')
+            @if ($socio->user_id !== auth()->id() && $socio->estado === 'rechazado')
                 <div class="p-6 ui-panel">
                     <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">Reabrir solicitud</h3>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
@@ -153,7 +156,7 @@
                 </div>
             @endif
 
-            @if ($socio->estado === 'activo')
+            @if ($socio->user_id !== auth()->id() && $socio->estado === 'activo')
                 <div class="p-6 ui-panel">
                     <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">Dar de baja</h3>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
@@ -184,7 +187,7 @@
                 </div>
             @endif
 
-            @if ($socio->estado === 'inactivo')
+            @if ($socio->user_id !== auth()->id() && $socio->estado === 'inactivo')
                 <div class="p-6 ui-panel">
                     <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">Reactivar socio</h3>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">

@@ -15,7 +15,7 @@ class Grupo extends Model
         'nombre', 'horarios_uso', 'representante_id',
         'contacto_nombre', 'contacto_correo', 'contacto_telefono', 'contacto_direccion',
         'representante_usuario_id', 'representante_nombre', 'representante_correo',
-        'representante_telefono', 'representante_direccion',
+        'representante_telefono', 'representante_direccion', 'representante_rut',
     ];
 
     public function representante(): BelongsTo
@@ -32,12 +32,14 @@ class Grupo extends Model
     {
         if (filled($this->representante_nombre)) {
             return [
+                'rut' => $this->representante_rut ?? $this->representante?->rut,
                 'nombre' => $this->representante_nombre, 'correo' => $this->representante_correo,
                 'telefono' => $this->representante_telefono, 'direccion' => $this->representante_direccion,
             ];
         }
 
         return [
+            'rut' => $this->representante?->rut,
             'nombre' => $this->representante?->nombre_completo, 'correo' => $this->representante?->email,
             'telefono' => $this->representante?->telefono, 'direccion' => $this->representante?->direccion,
         ];

@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header"><h1 class="text-2xl font-semibold">Finanzas · Préstamo de insumos #{{ $solicitud->id }}</h1></x-slot>
     <div class="max-w-4xl mx-auto px-4 py-6 space-y-6">
-        <a class="underline" href="{{ route('finanzas.insumos.index') }}">Volver a préstamos y garantías</a>
+        <a class="underline" href="{{ route('finanzas.insumos.index') }}">Volver a préstamo de insumos</a>
         @if (session('status'))<p class="ui-panel p-4">{{ match (session('status')) { 'garantia-resuelta' => 'Resolución de garantía registrada.', 'garantia-por-devolver' => 'Garantía marcada por devolver.', 'retencion-registrada' => 'Ingreso por retención registrado nuevamente.', default => session('status') } }}</p>@endif
         @if ($errors->any())<div class="ui-panel p-4 text-red-600">@foreach ($errors->all() as $error)<p>{{ $error }}</p>@endforeach</div>@endif
         <section class="ui-panel p-6 space-y-3">

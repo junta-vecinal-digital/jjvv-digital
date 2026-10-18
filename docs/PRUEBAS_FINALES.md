@@ -1,6 +1,6 @@
 # Sprint 4: comprobación final del MVP
 
-Estado: en curso. Los bloques y el recorrido integrado del sprint 3 fueron confirmados por el usuario. Todavía no se ha confirmado una ejecución conjunta de toda la suite ni el despliegue actualizado en Ubuntu.
+Estado: en curso. Los bloques y el recorrido integrado del sprint 3 fueron confirmados por el usuario. El usuario confirmó la suite completa antes de las observaciones finales. Los ajustes posteriores requieren nueva regresión; Ubuntu actualizado sigue pendiente.
 
 ## 1. Regresión automática local
 
@@ -8,12 +8,16 @@ Desde CMD, en la carpeta del proyecto:
 
 ```cmd
 php artisan config:clear
+php artisan migrate
+php artisan test tests/Feature/Sprint4MejorasCierreTest.php
 php artisan test
 ```
 
 `phpunit.xml` configura SQLite en memoria para las pruebas, correo y sesión en memoria y cola síncrona. Comprobar que no existan variables de entorno externas que sustituyan esa configuración. No usar una base con datos reales para ejecutar tests. No es necesario volver a ejecutar cada archivo por separado si la suite completa termina correctamente.
 
 Registrar el resultado completo: pruebas aprobadas, fallidas y omitidas. Si falla, conservar el nombre del test y el mensaje; corregir primero el caso antes de repetir la regresión. El agente no ejecuta tests.
+
+La migración 000013 agrega RUT a representantes y solicitudes de insumos, conservando los históricos sin inventar identificaciones. En cada dirigente, revisar Mi ficha de socio: completar inscripción, revisión y activación por otra persona. Comprobar que tesorero activo pueda solicitar sede y certificado de residencia; sin ficha activa conserva su cargo, pero no sus trámites personales.
 
 ## 2. Recorrido manual final
 
@@ -28,7 +32,7 @@ Usar datos de demostración y sesiones separadas para cada rol. Los escenarios y
 | Insumos y finanzas | Revisar solicitud, aprobación, entrega, devolución con daño y resolución de garantía; consultar el reporte del grupo. | Disponibilidad coherente, dañados fuera de servicio y garantía separada del ingreso; sin cobros ni devoluciones duplicados. El test integrado ya aprobado cubre este recorrido automáticamente. |
 | Avisos y atención | Revisar puntos rojos de pendientes/atrasos y horarios públicos en portada sin iniciar sesión. | Solo presidente/secretario ven los avisos previstos; las citas de firma no quedan restringidas a horarios de atención. |
 | Actas y proyectos | Abrir acta de asamblea/directiva según rol y consultar un proyecto con su postulador dirigente. | Permisos también en archivos privados; datos del proyecto e historial conservados. |
-| Reportes y presentación | Descargar PDF financiero y listado de socios en PDF/Excel; revisar selectores, fechas, adjuntos y vista de impresión. | Español, fechas legibles, columnas sin cortes y socios activos sin datos de contacto. |
+| Reportes y presentación | Descargar PDF financiero y listado de socios en PDF/Excel; revisar selectores, fechas, adjuntos y vista de impresión. | Español, fechas dd/mm/aaaa con selección directa de mes y año, flechas de selectores separadas del texto, columnas sin cortes y socios activos sin datos de contacto. |
 | Auditoría | Consultar un registro de socio y un movimiento financiero con filtros de fecha/autor/tipo. | Autor y cambios trazables; sin controles de edición o eliminación. |
 
 ## 3. Comprobaciones separadas de entorno

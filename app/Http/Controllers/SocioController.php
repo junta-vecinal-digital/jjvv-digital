@@ -134,6 +134,8 @@ class SocioController extends Controller
     /** Cambia el estado de la ficha respetando el ciclo de vida (Socio::TRANSICIONES). */
     public function update(Request $request, Socio $socio)
     {
+        abort_if($socio->user_id === $request->user()->id, 403, 'Otro presidente o secretario debe resolver tu ficha.');
+
         $destino = $request->validate([
             'estado' => ['required', Rule::in(array_keys(Socio::ETIQUETAS))],
         ])['estado'];

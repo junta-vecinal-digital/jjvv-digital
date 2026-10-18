@@ -1,5 +1,5 @@
 <x-app-layout>
-    <x-slot name="header"><h2 class="text-2xl font-semibold">Arriendos y garantías · Finanzas</h2></x-slot>
+    <x-slot name="header"><h2 class="text-2xl font-semibold">Reservas de sede · Finanzas</h2></x-slot>
     <div class="max-w-7xl mx-auto px-4 py-6 space-y-4">
         <p>Reservas confirmadas: los aportes mayores que $0 se registran como ingreso. Las garantías históricas de sede se conservan separadas hasta su devolución o retención.</p>
         <section class="ui-panel overflow-x-auto">

@@ -63,14 +63,18 @@ test('socio solicita varios insumos sin reservar stock ni suplantar autor import
     $this->assertDatabaseCount('prestamos', 0);
 });
 
-test('dirigentes solicitan para sí sin ficha activa', function (string $rol) {
+test('dirigentes solicitan para sí con ficha activa y conservan sus permisos de cargo', function (string $rol) {
     $usuario = User::factory()->create(['role' => $rol]);
+    $ficha = Socio::create([
+        'user_id' => $usuario->id, 'nombre_completo' => $usuario->name, 'rut' => '11111111-1',
+        'direccion' => 'Calle 456', 'telefono' => '912345678', 'residente_desde' => '2020-01-01', 'estado' => 'activo',
+    ]);
     $this->actingAs($usuario)->get(route('insumos.index'))->assertOk();
     $this->post(route('insumos.store'), datosSolicitudInsumos($this->sillasInsumos, $this->mesasInsumos, [
-        'solicitante' => 'usuario:'.$usuario->id,
+        'solicitante' => 'socio:'.$ficha->id,
     ]))->assertSessionHasNoErrors();
     expect(SolicitudInsumo::sole()->solicitante_id)->toBe($usuario->id)->and(SolicitudInsumo::sole()->canal)->toBe('en_linea');
-    $this->assertDatabaseCount('socios', 1);
+    $this->assertDatabaseCount('socios', 2);
 })->with(['presidente', 'secretario', 'tesorero']);
 
 test('vecino sin ficha activa no solicita y no obtiene acceso por representar un grupo', function (string $estado) {
@@ -81,7 +85,7 @@ test('vecino sin ficha activa no solicita y no obtiene acceso por representar un
 })->with(['inactivo', 'pendiente', 'por_firmar']);
 
 test('ventanilla exige representante vigente y conserva sus datos sin crear ficha ni cuenta', function () {
-    $grupo = Grupo::create(['nombre' => 'Grupo externo', 'representante_nombre' => 'Representante externo']);
+    $grupo = Grupo::create(['nombre' => 'Grupo externo', 'representante_nombre' => 'Representante externo', 'representante_rut' => '11111111-1']);
     $usuarios = User::count();
     $this->actingAs($this->directivaInsumos)->post(route('insumos.store'), datosSolicitudInsumos($this->sillasInsumos, $this->mesasInsumos, [
         'solicitante' => 'grupo:'.$grupo->id,
@@ -142,7 +146,7 @@ test('solo directiva gestiona y solo el titular consulta sus solicitudes', funct
     $tesorero = User::factory()->create(['role' => 'tesorero']);
     $this->actingAs($tesorero)->get(route('insumos.show', $solicitud))->assertForbidden();
     $this->get(route('inventario.index'))->assertForbidden();
-    $this->get(route('insumos.index'))->assertOk()->assertViewHas('solicitudes', fn ($lista) => $lista->isEmpty());
+    $this->get(route('insumos.index'))->assertForbidden();
     $this->actingAs(User::factory()->create(['role' => 'admin']))->get(route('insumos.show', $solicitud))->assertForbidden();
 });
 

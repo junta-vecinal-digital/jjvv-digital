@@ -87,3 +87,9 @@
         @apply max-w-full pr-10;
     }
 }
+
+/* Mantiene la separación incluso cuando utilidades px-* reemplazan el padding del componente. */
+select:not([multiple]):not([size]), select:not([multiple])[size='1'] {
+    padding-right: 2.75rem;
+    background-position: right 0.75rem center;
+}

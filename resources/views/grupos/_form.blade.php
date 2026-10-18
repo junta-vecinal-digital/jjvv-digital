@@ -1,12 +1,12 @@
 @php
     $esEdicion = $grupo !== null;
-    $representante = $grupo?->datosRepresentante() ?? ['nombre' => '', 'correo' => '', 'telefono' => '', 'direccion' => ''];
+    $representante = $grupo?->datosRepresentante() ?? ['nombre' => '', 'rut' => '', 'correo' => '', 'telefono' => '', 'direccion' => ''];
     $origen = $grupo?->representante_id ? 'socio:'.$grupo->representante_id : ($grupo?->representante_usuario_id ? 'usuario:'.$grupo->representante_usuario_id : 'manual');
     if (! isset($personas[$origen])) $origen = 'manual';
     if (! $grupo?->tieneRepresentanteVigente()) $origen = 'sin_representante';
-    $contactoDelRepresentante = ! $grupo || collect($representante)->every(fn ($valor, $campo) => $grupo->{'contacto_'.$campo} === $valor);
+    $contactoDelRepresentante = ! $grupo || collect($representante)->except('rut')->every(fn ($valor, $campo) => $grupo->{'contacto_'.$campo} === $valor);
     $paso = $errors->hasAny(['contacto_nombre', 'contacto_correo', 'contacto_telefono', 'contacto_direccion'])
-        ? 2 : ($errors->hasAny(['origen_representante', 'representante_nombre', 'representante_correo', 'representante_telefono', 'representante_direccion']) ? 1 : 0);
+        ? 2 : ($errors->hasAny(['origen_representante', 'representante_nombre', 'representante_rut', 'representante_correo', 'representante_telefono', 'representante_direccion']) ? 1 : 0);
     $estado = [
         'paso' => $paso,
         'nombre' => old('nombre', $grupo?->nombre ?? ''),
@@ -73,11 +73,11 @@
                 </div>
                 <p class="text-sm text-gray-500 dark:text-gray-400">Selecciona una persona para autocompletar o registra a cualquier persona sin crearle una ficha ni cuenta.</p>
                 <div x-show="origen !== 'sin_representante'" class="grid gap-4 sm:grid-cols-2">
-                    @foreach (['nombre' => ['Nombre', 'text', 255], 'correo' => ['Correo', 'email', 255], 'telefono' => ['Teléfono', 'tel', 20], 'direccion' => ['Dirección', 'text', 255]] as $campo => [$etiqueta, $tipo, $maximo])
+                    @foreach (['nombre' => ['Nombre', 'text', 255], 'rut' => ['RUT', 'text', 12], 'correo' => ['Correo', 'email', 255], 'telefono' => ['Teléfono', 'tel', 20], 'direccion' => ['Dirección', 'text', 255]] as $campo => [$etiqueta, $tipo, $maximo])
                         <div>
                             <x-input-label :for="'representante_'.$campo" :value="$etiqueta.' del representante'" />
                             <x-text-input :id="'representante_'.$campo" :name="'representante_'.$campo" :type="$tipo" :maxlength="$maximo"
-                                x-model="representante.{{ $campo }}" x-bind:disabled="origen === 'sin_representante'" x-bind:required="origen !== 'sin_representante' && @js($campo === 'nombre')" @input="if (usarContacto) copiarContacto()" class="mt-1 block w-full" />
+                                x-model="representante.{{ $campo }}" x-bind:disabled="origen === 'sin_representante'" x-bind:required="origen !== 'sin_representante' && @js(in_array($campo, ['nombre', 'rut']))" @input="if (usarContacto) copiarContacto()" class="mt-1 block w-full" />
                             <x-input-error :messages="$errors->get('representante_'.$campo)" class="mt-2" />
                         </div>
                     @endforeach

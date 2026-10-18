@@ -4,7 +4,7 @@
         @if ($volverReservas)
             <a class="underline" href="{{ route('reservas.index', ['semana' => $reserva->inicio->copy()->startOfWeek()->toDateString()]) }}">Volver a reservas</a>
         @else
-            <a class="underline" href="{{ route($volverFinanzas ? 'finanzas.arriendos.index' : 'arriendos.index') }}">{{ $volverFinanzas ? 'Volver a arriendos y garantías' : 'Volver a arriendos' }}</a>
+            <a class="underline" href="{{ route($volverFinanzas ? 'finanzas.arriendos.index' : 'arriendos.index') }}">{{ $volverFinanzas ? 'Volver a finanzas de sede' : 'Volver a reservas' }}</a>
         @endif
         @if (session('status'))
             <p class="ui-panel p-4">{{ match(session('status')) { 'arriendo-solicitado' => 'Solicitud registrada. El horario quedó reservado dentro del plazo de confirmación.', 'aporte-definido' => 'Aporte definido. El plazo de confirmación se mantiene.', 'comprobante-adjuntado' => 'Comprobante adjuntado para revisión.', 'arriendo-confirmado' => $reserva->aporte_variable ? 'Reserva confirmada.' : 'Arriendo confirmado y garantía registrada como recibida.', 'reserva-cancelada' => 'Reserva cancelada y horario liberado.', 'arriendo-registrado' => $reserva->aporte_variable ? 'Aporte registrado en ingresos.' : 'Pago del arriendo registrado en ingresos y garantía registrada por separado.', 'garantia-por-devolver' => 'Garantía marcada como por devolver.', 'garantia-resuelta' => 'Resolución de garantía registrada.', 'retencion-registrada' => 'Ingreso por retención registrado nuevamente.', default => '' } }}</p>
@@ -50,10 +50,10 @@
                 <x-primary-button>Definir aporte</x-primary-button>
             </form>
         @endif
-        @if ($reserva->aporte_variable && $reserva->estado === 'pendiente' && $reserva->valor_arriendo > 0 && ! $reserva->comprobante_arriendo_path)
+        @if ($reserva->aporte_variable && $reserva->estado === 'pendiente' && $reserva->valor_arriendo > 0 && ! $reserva->comprobante_arriendo_path && ($reserva->canal === 'ventanilla' ? $esDirigente : (auth()->user()->esSocioActivo() && $reserva->socio_id === auth()->user()->socio->id)))
             <form class="ui-panel p-6 space-y-4" method="POST" enctype="multipart/form-data" action="{{ route('arriendos.comprobante.store', $reserva) }}">
                 @csrf
-                <h3 class="text-lg font-semibold">Adjuntar comprobante del aporte</h3>
+                <h3 class="text-lg font-semibold">{{ $reserva->canal === 'ventanilla' ? 'Registrar comprobante recibido en ventanilla' : 'Adjuntar comprobante del aporte' }}</h3>
                 <x-input-label for="comprobante" value="Comprobante del aporte recibido" />
                 <x-file-input id="comprobante" name="comprobante" accept="application/pdf,image/jpeg,image/png" required />
                 <p>PDF, JPG o PNG, máximo 5 MB. El plazo de confirmación se mantiene.</p>

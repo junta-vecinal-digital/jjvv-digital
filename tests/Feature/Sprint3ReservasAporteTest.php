@@ -147,6 +147,7 @@ test('otro vecino no consulta ni adjunta comprobante a una reserva ajena', funct
 
 test('no admite comprobantes sin importe gratuitos vencidos cancelados confirmados o duplicados', function (string $caso) {
     $reserva = pendienteSedeAporte($this->socioAporte, ['valor_arriendo' => 5000]);
+    $this->actingAs($this->socioAporte->user);
     if ($caso === 'sin definir') $reserva->update(['valor_arriendo' => null]);
     if ($caso === 'gratuita') $reserva->update(['valor_arriendo' => 0]);
     if ($caso === 'vencida') $this->travel(48)->hours();
@@ -200,6 +201,7 @@ test('no permite redefinir importes ni reemplazar comprobantes históricos', fun
         'aporte_variable' => false, 'valor_arriendo' => 40000, 'valor_garantia' => 40000,
     ]);
     $this->post(route('arriendos.aporte', $reserva), ['valor_arriendo' => 0])->assertSessionHasErrors('arriendo');
+    $this->actingAs($this->socioAporte->user);
     $this->post(route('arriendos.comprobante.store', $reserva), [
         'comprobante' => UploadedFile::fake()->create('nuevo.pdf', 10, 'application/pdf'),
     ])->assertSessionHasErrors('arriendo');

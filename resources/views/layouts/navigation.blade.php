@@ -4,9 +4,8 @@
     $socioActivo = Auth::user()->esSocioActivo();
     $enFinanzas = request()->routeIs('ingresos.*', 'egresos.*', 'finanzas.*')
         || (request()->routeIs('arriendos.show') && request('desde') === 'finanzas' && Auth::user()->hasRole('presidente', 'tesorero'));
-    $enReservas = request()->routeIs('reservas.*', 'inventario.*')
+    $enReservas = request()->routeIs('reservas.*', 'inventario.*', 'insumos.*')
         || (request()->routeIs('arriendos.*') && ! $enFinanzas);
-    $desdeGestion = request()->routeIs('arriendos.show') && request('desde') === 'reservas' && $directiva;
 @endphp
 <div x-cloak x-show="sidebarOpen" class="fixed inset-0 z-30 bg-gray-900/50 xl:hidden" @click="sidebarOpen = false" aria-hidden="true"></div>
 <aside x-cloak id="sidebar" aria-label="Menú principal"
@@ -23,26 +22,25 @@
     <nav class="flex-1 space-y-1 overflow-y-auto px-5 pb-6">
         <p class="px-3 pb-3 pt-5 text-xs font-medium uppercase tracking-wider text-gray-400">Menú principal</p>
         <x-sidebar-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">Panel</x-sidebar-link>
-        @if (Auth::user()->hasRole('vecino'))
-            <x-sidebar-link :href="route('socios.create')" :active="request()->routeIs('socios.create')">Mi solicitud de socio</x-sidebar-link>
-        @endif
         @if ($directiva)
-            <x-sidebar-link :href="route('socios.index')" :active="request()->routeIs('socios.*')">
-                Socios
+            <x-sidebar-link :href="route('socios.index')" :active="request()->routeIs('socios.*') && ! request()->routeIs('socios.create')">
+                Gestión de socios
                 @if ($pendientesMenu['socios'])<x-pendiente-dot data-pendiente="socios" />@endif
             </x-sidebar-link>
-            <x-sidebar-link :href="route('grupos.index')" :active="request()->routeIs('grupos.*')">Grupos</x-sidebar-link>
+            <x-sidebar-link :href="route('admin.certificados.index')" :active="request()->routeIs('admin.certificados.*')">Gestión de certificados @if ($pendientesMenu['certificados'])<x-pendiente-dot data-pendiente="certificados" />@endif</x-sidebar-link>
+            <x-sidebar-link :href="route('grupos.index')" :active="request()->routeIs('grupos.*')">Gestión de agrupaciones</x-sidebar-link>
+        @endif
+        @if (Auth::user()->hasRole('vecino'))
+            <x-sidebar-link :href="route('socios.create')" :active="request()->routeIs('socios.create')">Mi ficha de socio</x-sidebar-link>
         @endif
         @if ($directiva || $socioActivo)
             <x-sidebar-link :href="route('calendario.index')" :active="request()->routeIs('calendario.*')">Calendario</x-sidebar-link>
-            <x-sidebar-group label="Reservas de sede" :active="$enReservas" :pending="$pendientesMenu['arriendos'] || $pendientesMenu['prestamos']">
+            <x-sidebar-group label="Reservas" :active="$enReservas" :pending="$pendientesMenu['arriendos'] || $pendientesMenu['prestamos'] || $pendientesMenu['insumos']">
+                <x-sidebar-link :href="route($directiva ? 'reservas.index' : 'arriendos.index')" :active="request()->routeIs('reservas.*') || (request()->routeIs('arriendos.*') && ! $enFinanzas)">Sede @if ($pendientesMenu['arriendos'])<x-pendiente-dot data-pendiente="arriendos" />@endif</x-sidebar-link>
+                <x-sidebar-link :href="route('insumos.index')" :active="request()->routeIs('insumos.*')">{{ $directiva ? 'Solicitudes de insumos' : 'Mis solicitudes de insumos' }} @if ($pendientesMenu['insumos'])<x-pendiente-dot data-pendiente="insumos" />@endif</x-sidebar-link>
                 @if ($directiva)
-                    <x-sidebar-link :href="route('reservas.index')" :active="request()->routeIs('reservas.*', 'inventario.*') || $desdeGestion">Reservas @if ($pendientesMenu['prestamos'])<x-pendiente-dot data-pendiente="prestamos" />@endif</x-sidebar-link>
+                    <x-sidebar-link :href="route('inventario.index')" :active="request()->routeIs('inventario.*')">Inventario y préstamos @if ($pendientesMenu['prestamos'])<x-pendiente-dot data-pendiente="prestamos" />@endif</x-sidebar-link>
                 @endif
-                <x-sidebar-link :href="route('arriendos.index')" :active="request()->routeIs('arriendos.*') && ! $enFinanzas && ! $desdeGestion">
-                    {{ $directiva ? 'Solicitudes de arriendo' : 'Mis arriendos' }}
-                    @if ($pendientesMenu['arriendos'])<x-pendiente-dot data-pendiente="arriendos" />@endif
-                </x-sidebar-link>
             </x-sidebar-group>
         @endif
         @if ($directiva)
@@ -51,29 +49,15 @@
                 <x-sidebar-link :href="route('agenda.index')" :active="request()->routeIs('agenda.*')">Agenda de firmas</x-sidebar-link>
             </x-sidebar-group>
         @endif
-        @if ($directiva || $socioActivo || Auth::user()->esDirigente())
-            <x-sidebar-group label="Solicitudes" :active="request()->routeIs('admin.certificados.*', 'certificados.*', 'insumos.*')" :pending="$pendientesMenu['certificados'] || $pendientesMenu['insumos']">
-                @if ($directiva)
-                    <x-sidebar-link :href="route('admin.certificados.index')" :active="request()->routeIs('admin.certificados.*')">
-                        Certificados
-                        @if ($pendientesMenu['certificados'])<x-pendiente-dot data-pendiente="certificados" />@endif
-                    </x-sidebar-link>
-                @endif
-                @if ($socioActivo)
-                    <x-sidebar-link :href="route('certificados.index')" :active="request()->routeIs('certificados.*')">Mis certificados</x-sidebar-link>
-                @endif
-                <x-sidebar-link :href="route('insumos.index')" :active="request()->routeIs('insumos.*')">
-                    {{ $directiva ? 'Solicitudes de insumos' : 'Mis solicitudes de insumos' }}
-                    @if ($pendientesMenu['insumos'])<x-pendiente-dot data-pendiente="insumos" />@endif
-                </x-sidebar-link>
-            </x-sidebar-group>
+        @if ($socioActivo && ! Auth::user()->esDirigente())
+            <x-sidebar-link :href="route('certificados.index')" :active="request()->routeIs('certificados.*')">Mis certificados</x-sidebar-link>
         @endif
         @if (Auth::user()->hasRole('presidente', 'tesorero'))
             <x-sidebar-group label="Finanzas" :active="$enFinanzas">
                 <x-sidebar-link :href="route('ingresos.index')" :active="request()->routeIs('ingresos.*')">Ingresos</x-sidebar-link>
                 <x-sidebar-link :href="route('egresos.index')" :active="request()->routeIs('egresos.*')">Egresos</x-sidebar-link>
-                <x-sidebar-link :href="route('finanzas.arriendos.index')" :active="$enFinanzas && ! request()->routeIs('ingresos.*', 'egresos.*', 'finanzas.insumos.*')">Arriendos y garantías</x-sidebar-link>
-                <x-sidebar-link :href="route('finanzas.insumos.index')" :active="request()->routeIs('finanzas.insumos.*')">Préstamos y garantías</x-sidebar-link>
+                <x-sidebar-link :href="route('finanzas.arriendos.index')" :active="$enFinanzas && ! request()->routeIs('ingresos.*', 'egresos.*', 'finanzas.insumos.*')">Reservas de sede</x-sidebar-link>
+                <x-sidebar-link :href="route('finanzas.insumos.index')" :active="request()->routeIs('finanzas.insumos.*')">Préstamo de insumos</x-sidebar-link>
             </x-sidebar-group>
         @endif
         @if (Auth::user()->esDirigente() || $socioActivo)

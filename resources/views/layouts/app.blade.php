@@ -38,6 +38,12 @@
                             </x-slot>
                             <x-slot name="content">
                                 <x-dropdown-link :href="route('profile.edit')">Mi perfil</x-dropdown-link>
+                                @if (Auth::user()->esDirigente())
+                                    <x-dropdown-link :href="route('socios.create')">Mi ficha de socio</x-dropdown-link>
+                                    @if (Auth::user()->esSocioActivo())
+                                        <x-dropdown-link :href="route('certificados.index')">Mis certificados</x-dropdown-link>
+                                    @endif
+                                @endif
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf
                                     <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800">Cerrar sesión</button>
@@ -49,7 +55,14 @@
                 @isset($header)
                     <div class="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">{{ $header }}</div>
                 @endisset
-                <main id="main-content" class="app-content">{{ $slot }}</main>
+                <main id="main-content" class="app-content">
+                    @if (Auth::user()->esDirigente() && ! Auth::user()->esSocioActivo())
+                        <div role="status" class="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
+                            <div class="ui-panel p-4">Completa y valida tu ficha de socio para realizar trámites personales. Conservas los permisos de tu cargo. <a class="font-semibold underline" href="{{ route('socios.create') }}">Revisar mi inscripción</a>. Otro presidente o secretario deberá aprobarla.</div>
+                        </div>
+                    @endif
+                    {{ $slot }}
+                </main>
             </div>
         </div>
     </body>

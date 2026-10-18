@@ -129,7 +129,7 @@
                     @csrf
                     <div>
                         <x-input-label for="mes" value="Generar reservas del mes" />
-                        <select id="mes" name="mes" class="ui-input mt-1 block" required>
+                        <select id="mes" name="mes" class="ui-input mt-1 block w-full sm:w-64" required>
                             @for ($adelanto = 0; $adelanto <= 6; $adelanto++)
                                 @php($mesReserva = now()->startOfMonth()->addMonths($adelanto))
                                 <option value="{{ $mesReserva->format('Y-m') }}" @selected(old('mes', now()->startOfMonth()->addMonth()->format('Y-m')) === $mesReserva->format('Y-m'))>{{ ucfirst($mesReserva->translatedFormat('F Y')) }}</option>

@@ -11,7 +11,7 @@ El detalle de entregas, correcciones, revisiones y confirmaciones anteriores se 
 | 1 — Base del sistema | Completado | Usuarios y roles, inscripción y fichas de socios, citas de firma, certificados, parámetros, ingresos base y auditoría. Mejoras posteriores: formularios por pasos, idioma español, horarios públicos, certificados autónomos/de ventanilla y avisos de pendientes. |
 | 2 — Grupos, reservas y finanzas | Revisión de cierre documentada; ampliación financiera comprobada | Grupos, calendario, reservas, finanzas y auditoría comprobados. Cobros y garantías de insumos con tests y funcionamiento confirmados por el usuario. Recorrido integral final pendiente. |
 | 3 — Actas, proyectos, insumos y reportes | Completado; integración comprobada | Actas, Proyectos, catálogo, préstamos, finanzas y Reportes comprobados por el usuario, incluido el test del recorrido conjunto. |
-| 4 — Pruebas y correcciones finales | En curso | Guía de regresión preparada; pendientes la suite completa y el recorrido manual final. |
+| 4 — Pruebas y correcciones finales | En curso | Suite completa aprobada por el usuario antes de las observaciones finales. Ajustes de cierre implementados; pendiente comprobar su regresión y presentación. |
 
 ## Reglas vigentes que deben conservarse
 
@@ -33,7 +33,7 @@ El detalle de entregas, correcciones, revisiones y confirmaciones anteriores se 
 | 5 | Reportes | Tests y presentación confirmados: finanzas por período/grupo y PDF para presidente/tesorero; socios activos en Excel/PDF para presidente/secretario, sin datos de contacto (RFS-79/80 y aclaraciones del usuario). |
 | 6 | Cierre | Revisión de cumplimiento documentada y `Sprint3CierreIntegracionTest.php` aprobado por el usuario: solicitud, stock, cobro/garantía, devolución con daños, retención, reporte por grupo y anulación/reingreso. |
 
-**Siguiente paso — sprint 4:** seguir [docs/PRUEBAS_FINALES.md](docs/PRUEBAS_FINALES.md): ejecutar la suite completa y confirmar el recorrido manual final. El agente no ejecuta tests; Ubuntu y concurrencia real permanecen como comprobaciones separadas.
+**Siguiente paso — sprint 4:** aplicar la migración 000013 y comprobar `Sprint4MejorasCierreTest.php` y la suite completa. Revisar fechas/año, menús, reservas unificadas y regularización de dirigentes según [docs/PRUEBAS_FINALES.md](docs/PRUEBAS_FINALES.md). El agente no ejecuta tests; Ubuntu y concurrencia real permanecen pendientes.
 
 ## Evidencia reciente de comprobación
 
@@ -47,7 +47,7 @@ Tests ejecutados satisfactoriamente por el usuario:
 - Solicitudes, inventario e históricos: `Sprint3SolicitudesInsumosTest.php`, `Sprint3BloqueInventarioTest.php`, `Sprint3CatalogoInventarioTest.php`; también confirmación manual del flujo nuevo.
 - Reportes: `Sprint3ReportesTest.php`; tests y presentación confirmados por el usuario.
 
-El usuario confirmó también catálogo/inventario y los bloques anteriores; los detalles están en el historial. No se afirma una ejecución conjunta de toda la suite, concurrencia real ni comprobación de despliegue en Ubuntu por estos resultados. La composición visual de impresión requiere revisión manual.
+El usuario confirmó también catálogo/inventario y los bloques anteriores; los detalles están en el historial. El usuario confirmó una ejecución conjunta de toda la suite antes de los últimos ajustes de cierre. Estos ajustes requieren nueva regresión; no se acredita concurrencia real ni despliegue actualizado en Ubuntu. La composición visual de impresión requiere revisión manual.
 
 ## Límites y pendientes transversales
 
@@ -55,4 +55,5 @@ El usuario confirmó también catálogo/inventario y los bloques anteriores; los
 - Mantener historial y condiciones de operaciones anteriores; no reinterpretarlas automáticamente con las reglas nuevas.
 - Permisos por aclarar: RFS-81 formula acceso general del presidente, mientras RFS-83 y las rutas reservan usuarios/roles al administrador. No ampliar permisos ni modificar requisitos sin autorización específica. Auditoría sigue exclusiva del presidente (RFS-87).
 - Las migraciones y los assets correspondientes deben estar aplicados al comprobar cambios; no se presume que se hayan desplegado en AWS. El vencimiento en segundo plano requiere scheduler; la consulta de ocupación también excluye pendientes vencidas.
+- Ajustes finales autorizados: ficha activa para trámites personales de dirigentes, revisión por otra persona, RUT de representantes/solicitudes, reservas unificadas y mejoras visuales. Requisitos actualizados con autorización específica del usuario; futuros cambios requieren nueva confirmación.
 - En futuras entregas, actualizar aquí el estado y los pendientes. Reservar el historial para detalles de implementación, correcciones y evidencia, evitando duplicarlos en este resumen.

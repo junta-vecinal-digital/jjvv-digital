@@ -5,6 +5,7 @@
         'grupo' => (string) old('grupo_id', count($personaInicial['grupos'] ?? []) === 1 ? $personaInicial['grupos'][0]['id'] : ''),
         'telefono' => old('telefono_contacto', $personaInicial['telefono'] ?? ''),
         'direccion' => old('direccion_contacto', $personaInicial['direccion'] ?? ''),
+        'rut' => old('solicitante_rut', $personaInicial['rut'] ?? ''),
         'lineas' => array_values(old('lineas', [['item_inventario_id' => '', 'cantidad' => 1]])),
     ];
 @endphp
@@ -18,13 +19,13 @@
         <details class="ui-panel p-6" @if ($errors->any()) open @endif>
             <summary class="cursor-pointer font-semibold">{{ $gestion ? 'Registrar solicitud propia o en ventanilla' : 'Solicitar insumos' }}</summary>
             <p class="my-4">La solicitud no reserva unidades. La directiva comprobará las existencias y definirá el monto y la garantía del préstamo al aprobar.</p>
-            <x-form-wizard :steps="['Solicitante', 'Insumos']" :fields="[['solicitante', 'grupo_id', 'telefono_contacto', 'direccion_contacto', 'fecha_comprometida'], ['lineas']]">
+            <x-form-wizard :steps="['Solicitante', 'Insumos']" :fields="[['solicitante', 'solicitante_rut', 'grupo_id', 'telefono_contacto', 'direccion_contacto', 'fecha_comprometida'], ['lineas']]">
                 <form method="POST" action="{{ route('insumos.store') }}" class="space-y-4" novalidate
-                    x-data="{ ...@js($estado), seleccionada() { return this.personas.find(p => p.clave === this.persona); }, elegir() { const p = this.seleccionada(); this.grupo = p?.grupos.length === 1 ? String(p.grupos[0].id) : ''; this.telefono = p?.telefono ?? ''; this.direccion = p?.direccion ?? ''; } }">
+                    x-data="{ ...@js($estado), seleccionada() { return this.personas.find(p => p.clave === this.persona); }, elegir() { const p = this.seleccionada(); this.grupo = p?.grupos.length === 1 ? String(p.grupos[0].id) : ''; this.telefono = p?.telefono ?? ''; this.direccion = p?.direccion ?? ''; this.rut = p?.rut ?? ''; } }">
                     @csrf
                     <x-form-step number="0">
                         @if ($gestion)
-                            <x-input-label for="solicitante" value="Socio activo, dirigente o representante externo de grupo" />
+                            <x-input-label for="solicitante" value="Socio activo (incluido dirigente) o representante externo de grupo" />
                             <select id="solicitante" name="solicitante" x-model="persona" @change="elegir()" class="ui-input w-full" required>
                                 @foreach ($personas as $persona)<option value="{{ $persona['clave'] }}">{{ $persona['nombre'] }}{{ str_starts_with($persona['clave'], 'grupo:') ? ' · '.$persona['grupos'][0]['nombre'] : '' }}</option>@endforeach
                             </select>
@@ -39,6 +40,7 @@
                             </select>
                         </div>
                         <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                            <div><x-input-label for="solicitante_rut" value="RUT del solicitante" /><x-text-input id="solicitante_rut" name="solicitante_rut" x-model="rut" x-bind:readonly="!!seleccionada()?.rut" maxlength="12" required class="w-full" /></div>
                             <div><x-input-label for="telefono_contacto" value="Teléfono de contacto" /><x-text-input id="telefono_contacto" name="telefono_contacto" x-model="telefono" maxlength="20" required class="w-full" /></div>
                             <div><x-input-label for="direccion_contacto" value="Dirección de contacto" /><x-text-input id="direccion_contacto" name="direccion_contacto" x-model="direccion" maxlength="255" class="w-full" /></div>
                             <div><x-input-label for="fecha_comprometida" value="Fecha comprometida de devolución" /><x-date-input id="fecha_comprometida" name="fecha_comprometida" :value="old('fecha_comprometida', now()->addWeek()->toDateString())" :min="now()->toDateString()" required /></div>

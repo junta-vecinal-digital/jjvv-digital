@@ -19,7 +19,7 @@ function socioActivoConCuenta(): Socio
     return Socio::create([
         'user_id' => $cuenta->id,
         'nombre_completo' => 'Juan Pérez',
-        'rut' => uniqid().'-K',
+        'rut' => '12345678-5',
         'email' => $cuenta->email,
         'direccion' => 'Calle 1',
         'telefono' => '+56911111111',

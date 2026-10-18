@@ -6,6 +6,7 @@ use App\Models\Grupo;
 use App\Models\HorarioFijo;
 use App\Models\Reserva;
 use App\Models\TipoActividad;
+use App\Rules\RutChileno;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -87,6 +88,9 @@ class HorarioFijoController extends Controller
             if (! $grupo->tieneRepresentanteVigente()) {
                 return $this->rechazar('El grupo no tiene representante vigente: no se pueden generar reservas.');
             }
+            if (! RutChileno::esValido($grupo->datosRepresentante()['rut'])) {
+                return $this->rechazar('Completa un RUT válido del representante antes de generar reservas nuevas.');
+            }
 
             $horarios = $grupo->horariosFijos;
 
@@ -136,6 +140,7 @@ class HorarioFijoController extends Controller
                         'motivo' => 'Horario fijo',
                         'tipo_nombre' => $nombreTipoGrupo,
                         'responsable_nombre' => $grupo->datosRepresentante()['nombre'],
+                        'responsable_rut' => $grupo->datosRepresentante()['rut'],
                         'grupo_id' => $grupo->id,
                         'socio_id' => $grupo->representante_id,
                         'horario_fijo_id' => $horario->id,

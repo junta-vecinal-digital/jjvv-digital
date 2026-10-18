@@ -1,5 +1,18 @@
 # Historial de sprints
 
+## Ajustes finales del sprint 4 autorizados
+
+- El usuario confirmó que toda la suite funcionó y, tras la revisión manual, solicitó ajustes. Autorizó expresamente actualizar requisitos y confirmó las propuestas: dirigentes también socios con ficha activa para trámites personales, validación por otro presidente/secretario y ventanilla exclusiva para personas sin ficha. Se actualizaron RFS-39/50/71/82/92, RFU-67 y se incorporaron RFS-102/103. No se modifica la discrepancia RFS-81/83.
+- Regularización mediante la inscripción existente, disponible también a dirigentes y con cita de firma. Aviso y enlace a la ficha personal; el cargo conserva sus permisos operativos. Bloqueo en servidor de resolución de la ficha propia, incluidos aprobación y activación, y controles correspondientes ocultos. Certificados de residencia ya se autorizaban por ficha; el tesorero activo dispone de solicitudes propias de sede.
+- Reservas y arriendos comparten pantalla, formulario por pasos y bandeja. Se conservan rutas y registros históricos; las actividades gratuitas del catálogo reutilizan su validación y las solicitudes de sede admiten aporte cero o positivo. Las personas sin ficha se registran por ventanilla. Se retiró la vista de gestión sustituida. Calendario conserva su función de consulta separada.
+- El comprobante en línea solo lo adjunta el titular, también protegido por servidor. En ventanilla la directiva puede registrar el respaldo recibido, identificado como tal. No se cambian montos, estados, ingresos ni garantías históricas automáticamente.
+- Migración 000013: RUT opcional en base para históricos, obligatorio y validado en nuevas designaciones de representantes y solicitudes de insumos. Autocompletado desde la ficha, copia del RUT en la operación y comprobación al reservar/generar reservas de grupo. Los dirigentes sin ficha activa ya no solicitan insumos propios por la excepción anterior; el responsable operativo sigue seleccionándose por su cargo.
+- Fechas: elección directa de mes/año y valor visible dd/mm/aaaa; separación de flecha/texto en selectores y ancho de agrupación/mes. Menú Reservas incluye sede e insumos; Mis certificados es directo. Finanzas identifica Préstamo de insumos; navegación de sede usa Reservas de sede. Identidad JJVV Digital sustituye el SVG de Laravel en las pantallas públicas de autenticación. Botón público de verificación destacado; filtro de proyectos retirado de la vista.
+- Verificación estática completada: sintaxis PHP de controladores/modelo/migración/tests, compilación Blade y sintaxis de vistas afectadas, rutas de inscripción con sus roles y compilación de assets mediante npm run build. Diferencias sin errores de formato.
+- Preparado Sprint4MejorasCierreTest.php y adaptados los casos anteriores afectados por las reglas nuevas. No se ejecutaron tests ni migraciones ni se instalaron paquetes. Requiere migración, comprobación de regresión por el usuario y revisión visual de fechas, selectores y navegación antes del cierre local. No se han realizado acciones sobre AWS.
+
+---
+
 ## Inicio del sprint 4 y cierre integrado del sprint 3
 
 - El usuario confirmó que `Sprint3CierreIntegracionTest.php` terminó correctamente. Se registra el cierre integrado del sprint 3; esta confirmación no equivale a ejecutar toda la suite ni a comprobar Ubuntu o concurrencia real.

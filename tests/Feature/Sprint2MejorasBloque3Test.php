@@ -10,7 +10,7 @@ test('un representante manual puede reservar sin ficha ni cuenta y se conserva s
     $this->actingAs($presidente);
     $datos = [
         'nombre' => 'Taller vecinal', 'origen_representante' => 'manual',
-        'representante_nombre' => 'Ana Representante', 'representante_telefono' => '912345678',
+        'representante_nombre' => 'Ana Representante', 'representante_rut' => '12345678-5', 'representante_telefono' => '912345678',
         'usar_contacto_representante' => 1,
     ];
     $this->post(route('grupos.store'), $datos)->assertSessionHasNoErrors()->assertRedirect();
@@ -43,6 +43,7 @@ test('un dirigente sin ficha puede autocompletar el representante y copiar su co
     $this->post(route('grupos.store'), [
         'nombre' => 'Grupo dirigido', 'origen_representante' => 'usuario:'.$presidente->id,
         'representante_nombre' => $presidente->name, 'representante_correo' => $presidente->email,
+        'representante_rut' => '12345678-5',
         'usar_contacto_representante' => 1,
     ])->assertSessionHasNoErrors();
     expect(Grupo::sole()->representante_usuario_id)->toBe($presidente->id)
