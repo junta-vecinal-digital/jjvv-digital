@@ -16,7 +16,7 @@
 
                     @foreach ($parametros as $parametro)
                         <div>
-                            <x-input-label for="valores_{{ $parametro->clave }}" :value="$parametro->etiqueta" />
+                            <x-input-label for="valores_{{ $parametro->clave }}" :value="$parametro->clave === 'certificado_residencia_valor' ? 'Aporte voluntario sugerido para certificado de residencia (CLP)' : $parametro->etiqueta" />
                             <x-text-input
                                 id="valores_{{ $parametro->clave }}"
                                 name="valores[{{ $parametro->clave }}]"

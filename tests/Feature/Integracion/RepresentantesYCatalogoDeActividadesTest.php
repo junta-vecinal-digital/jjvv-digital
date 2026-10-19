@@ -47,6 +47,7 @@ test('un dirigente sin ficha puede autocompletar el representante y copiar su co
         'usar_contacto_representante' => 1,
     ])->assertSessionHasNoErrors();
     expect(Grupo::sole()->representante_usuario_id)->toBe($presidente->id)
+        ->and(Grupo::sole()->representante_rut)->toBe('12345678-5')
         ->and(Grupo::sole()->contacto_correo)->toBe($presidente->email);
     $this->assertDatabaseCount('socios', 0);
 });

@@ -6,9 +6,10 @@
     <div class="py-6">
         <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="ui-panel p-6 ">
-                <x-form-wizard :steps="['Movimiento', 'Pago']" :fields="[['concepto','tipo_cuota','fecha_pago','monto'],['medio_pago','talonario','numero_transaccion','observaciones']]">
-                    <form novalidate method="POST" action="{{ route('ingresos.store') }}" class="space-y-4"
-                          x-data="{ concepto: @js(old('concepto', '')), medio: @js(old('medio_pago', 'efectivo')) }">
+                <p class="mb-4">Los ingresos corresponden a aportes voluntarios destinados a mejorar la comunidad.</p>
+                <x-form-wizard :steps="['Movimiento', 'Respaldo del aporte']" :fields="[['concepto','tipo_cuota','fecha_pago','monto'],['medio_pago','talonario','numero_transaccion','comprobante','observaciones']]">
+                    <form novalidate method="POST" action="{{ route('ingresos.store') }}" enctype="multipart/form-data" class="space-y-4"
+                          x-data="{ concepto: @js(old('concepto', '')), medio: @js(old('medio_pago', 'efectivo')), archivo: false }" @change="if ($event.target.name === 'comprobante') archivo = $event.target.files.length > 0">
                         @csrf
 
                         <x-form-step number="0">
@@ -35,13 +36,13 @@
                             </div>
 
                             <div>
-                                <x-input-label for="fecha_pago" value="Fecha de pago" />
+                                <x-input-label for="fecha_pago" value="Fecha del aporte" />
                                 <x-date-input id="fecha_pago" name="fecha_pago" class="mt-1 block w-full" :value="old('fecha_pago', now()->toDateString())" max="{{ now()->toDateString() }}" required />
                                 <x-input-error :messages="$errors->get('fecha_pago')" class="mt-2" />
                             </div>
 
                             <div>
-                                <x-input-label for="monto" value="Monto (CLP)" />
+                                <x-input-label for="monto" value="Aporte voluntario (CLP)" />
                                 <x-text-input id="monto" name="monto" type="number" min="1" max="100000000" step="1" required class="mt-1 block w-full" :value="old('monto')" />
                                 <x-input-error :messages="$errors->get('monto')" class="mt-2" />
                             </div>
@@ -49,7 +50,7 @@
                         </x-form-step>
                         <x-form-step number="1">
                             <div>
-                                <x-input-label for="medio_pago" value="Medio de pago" />
+                                <x-input-label for="medio_pago" value="Medio del aporte" />
                                 <select id="medio_pago" name="medio_pago" x-model="medio" required class="mt-1 block w-full rounded-md border-gray-300">
                                     @foreach ($medios as $valor => $etiqueta)
                                         <option value="{{ $valor }}" @selected(old('medio_pago') === $valor)>{{ $etiqueta }}</option>
@@ -66,10 +67,16 @@
 
                             <div x-show="medio === 'transferencia'" x-cloak>
                                 <x-input-label for="numero_transaccion" value="Número de transacción (si es transferencia)" />
-                                <x-text-input id="numero_transaccion" name="numero_transaccion" type="text" x-bind:disabled="medio !== 'transferencia'" x-bind:required="medio === 'transferencia'" class="mt-1 block w-full" :value="old('numero_transaccion')" />
+                                <x-text-input id="numero_transaccion" name="numero_transaccion" type="text" x-bind:disabled="medio !== 'transferencia'" x-bind:required="medio === 'transferencia' && !archivo" class="mt-1 block w-full" :value="old('numero_transaccion')" />
                                 <x-input-error :messages="$errors->get('numero_transaccion')" class="mt-2" />
                             </div>
 
+                            <div>
+                                <x-input-label for="comprobante" value="Adjuntar comprobante (opcional)" />
+                                <x-file-input id="comprobante" name="comprobante" accept=".pdf,.jpg,.jpeg,.png" />
+                                <p class="text-sm">PDF, JPG o PNG, máximo 5 MB. En transferencias, indica el número de transacción o adjunta el archivo.</p>
+                                <x-input-error :messages="$errors->get('comprobante')" />
+                            </div>
                             <div>
                                 <x-input-label for="observaciones" value="Observaciones (obligatorias si el concepto es Otros)" />
                                 <textarea id="observaciones" name="observaciones" x-bind:required="concepto === 'otros'" rows="3" maxlength="500" class="mt-1 block w-full rounded-md border-gray-300">{{ old('observaciones') }}</textarea>

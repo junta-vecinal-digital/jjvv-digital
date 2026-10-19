@@ -145,9 +145,10 @@ test('el comprobante posterior es obligatorio privado y limitado a PDF o imágen
         'tipo inválido' => UploadedFile::fake()->create('archivo.txt', 1, 'text/plain'),
         'demasiado grande' => UploadedFile::fake()->create('total.pdf', 5121, 'application/pdf'),
     };
-    $reserva = reservaBloque3b($this->socio3b, ['aporte_variable' => true, 'valor_garantia' => null, 'comprobante_arriendo_path' => null]);
+    $reserva = reservaBloque3b($this->socio3b, ['aporte_variable' => true, 'canal' => 'en_linea', 'valor_garantia' => null, 'comprobante_arriendo_path' => null]);
     Storage::disk('local')->delete('comprobantes/arriendos/total.pdf');
-    $this->post(route('arriendos.comprobante.store', $reserva), ['comprobante' => $archivo])->assertSessionHasErrors('comprobante');
+    $this->actingAs($this->socio3b->user)->post(route('arriendos.comprobante.store', $reserva), ['comprobante' => $archivo])
+        ->assertRedirect()->assertSessionHasErrors('comprobante');
     expect($reserva->fresh()->comprobante_arriendo_path)->toBeNull();
     expect(Storage::disk('local')->allFiles())->toBe([]);
 })->with(['ausente', 'tipo inválido', 'demasiado grande']);

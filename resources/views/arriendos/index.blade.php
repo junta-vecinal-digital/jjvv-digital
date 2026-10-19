@@ -26,7 +26,7 @@
         <a class="underline" href="{{ route('calendario.index') }}">Consultar calendario</a>
         <details class="ui-panel p-6 space-y-4" @if ($errors->any()) open @endif>
             <summary class="cursor-pointer text-lg font-semibold">{{ $esDirigente ? 'Registrar reserva' : 'Solicitar reserva' }}</summary>
-            <p>El horario se reserva durante {{ $plazoHoras }} horas para su confirmación. Presidente o secretario define el aporte voluntario de cada reserva; $0 corresponde a una reserva gratuita.</p>
+            <p>El horario se reserva durante {{ $plazoHoras }} horas para su confirmación. Los aportes voluntarios se destinan a mejorar la comunidad. Presidente o secretario registra el aporte acordado de cada reserva; $0 corresponde a una reserva gratuita.</p>
             <x-input-error :messages="$errors->get('arriendo')" />
             <x-input-error :messages="$errors->get('reserva')" />
             <x-form-wizard :steps="['Solicitante', 'Horario', 'Aporte']" :fields="[['tipo', 'tipo_actividad', 'socio_id', 'grupo_id', 'modalidad_solicitante', 'responsable_nombre', 'responsable_rut', 'responsable_direccion', 'responsable_telefono'], ['fecha', 'hora_inicio', 'hora_fin', 'arriendo', 'reserva'], ['comprobante', 'valor_arriendo']]">
@@ -126,7 +126,7 @@
                                 <div x-show="Number(aporte) > 0" x-cloak>
                                     <x-input-label for="comprobante" value="Comprobante del aporte (si ya fue recibido)" />
                                     <x-file-input id="comprobante" name="comprobante" accept="application/pdf,image/jpeg,image/png" x-bind:disabled="Number(aporte) <= 0" />
-                                    <p class="text-sm text-gray-500">PDF, JPG o PNG, máximo 5 MB. Puedes adjuntarlo después desde el detalle; será necesario para confirmar una reserva pagada.</p>
+                                    <p class="text-sm text-gray-500">PDF, JPG o PNG, máximo 5 MB. Puedes adjuntarlo después desde el detalle; será necesario para confirmar una reserva con aporte.</p>
                                     <x-input-error :messages="$errors->get('comprobante')" />
                                 </div>
                             </div>
@@ -148,7 +148,7 @@
                             <tr>
                                 <td>{{ $arriendo->inicio->format('d/m/Y H:i') }} a {{ $arriendo->fin->format('H:i') }}</td>
                                 <td>{{ $arriendo->responsable_nombre ?? $arriendo->socio?->nombre_completo }}@if ($arriendo->grupo)<br>{{ $arriendo->grupo->nombre }}@endif</td>
-                                <td>{{ $arriendo->tipo !== 'arriendo' || ($arriendo->aporte_variable && $arriendo->valor_arriendo !== null && $arriendo->valor_arriendo == 0) ? 'Gratuita' : ($arriendo->aporte_variable && $arriendo->valor_arriendo === null ? 'Aporte por definir' : 'Con aporte') }}<br>{{ $arriendo->etiquetaTipo() }}</td>
+                                <td>{{ $arriendo->tipo !== 'arriendo' || ($arriendo->aporte_variable && $arriendo->valor_arriendo !== null && $arriendo->valor_arriendo == 0) ? 'Gratuita' : ($arriendo->aporte_variable && $arriendo->valor_arriendo === null ? 'Aporte por definir' : 'Con aporte voluntario') }}<br>{{ $arriendo->etiquetaTipo() }}</td>
                                 <td>{{ \App\Models\Reserva::ESTADOS[$arriendo->estado] ?? $arriendo->estado }}</td>
                                 <td>
                                     @if ($arriendo->tipo === 'arriendo')<a class="underline" href="{{ route('arriendos.show', $arriendo) }}">Ver detalle</a>@endif

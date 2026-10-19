@@ -5,7 +5,7 @@
         @if (session('status'))<p class="ui-panel p-4">{{ session('status') }}</p>@endif
         @if ($errors->any())<div class="ui-panel p-4 text-red-600">@foreach ($errors->all() as $error)<p>{{ $error }}</p>@endforeach</div>@endif
         @if (auth()->user()->hasRole('presidente', 'tesorero') && $solicitud->estado !== 'pendiente')
-            <a class="underline" href="{{ route('finanzas.insumos.show', $solicitud) }}">Ver cobro y garantía en Finanzas</a>
+            <a class="underline" href="{{ route('finanzas.insumos.show', $solicitud) }}">Ver aporte y garantía en Finanzas</a>
         @endif
         <section class="ui-panel p-6 space-y-3">
             <p>Estado: <strong>{{ \App\Models\SolicitudInsumo::ESTADOS[$solicitud->estado] }}</strong>@if ($solicitud->atrasado()) <strong class="text-red-600">· Atrasado</strong>@endif</p>
@@ -16,7 +16,7 @@
             @if ($solicitud->direccion_contacto)<p>Dirección: {{ $solicitud->direccion_contacto }}</p>@endif
             <p>Solicitud: {{ $solicitud->created_at->format('d/m/Y') }} · Devolución comprometida: {{ $solicitud->fecha_comprometida->format('d/m/Y') }}</p>
             @if ($solicitud->responsable_nombre)<p>Dirigente responsable: {{ $solicitud->responsable_nombre }}</p>@endif
-            @if ($solicitud->monto !== null)<p>Monto total del préstamo: ${{ number_format($solicitud->monto, 0, ',', '.') }} · Garantía acordada: ${{ number_format($solicitud->garantia, 0, ',', '.') }}</p>@endif
+            @if ($solicitud->monto !== null)<p>Aporte voluntario del préstamo: ${{ number_format($solicitud->monto, 0, ',', '.') }} · Garantía acordada: ${{ number_format($solicitud->garantia, 0, ',', '.') }}</p>@endif
             @if ($solicitud->fecha_entrega)<p>Entrega: {{ $solicitud->fecha_entrega->format('d/m/Y') }}</p>@endif
             @if ($solicitud->fecha_devolucion)<p>Devolución completa: {{ $solicitud->fecha_devolucion->format('d/m/Y') }}</p>@endif
             <div class="overflow-x-auto"><table class="ui-table"><thead><tr><th>Insumo</th><th>Unidades</th><th>Salida</th><th>Regreso</th><th>Dañadas</th></tr></thead><tbody>
@@ -35,7 +35,7 @@
                         <x-form-step number="0">
                             <div><x-input-label for="responsable_id" value="Dirigente responsable del préstamo" /><select id="responsable_id" name="responsable_id" class="ui-input w-full" required><option value="">Seleccionar dirigente</option>@foreach ($dirigentes as $dirigente)<option value="{{ $dirigente->id }}" @selected((string) old('responsable_id') === (string) $dirigente->id)>{{ $dirigente->name }} · {{ $dirigente->nombreRol() }}</option>@endforeach</select></div>
                             <div class="grid gap-4 sm:grid-cols-2 mt-4">
-                                <div><x-input-label for="monto" value="Monto total del préstamo (CLP, $0 gratuito)" /><x-text-input id="monto" name="monto" type="number" min="0" max="4294967295" step="1" :value="old('monto', 0)" required class="w-full" /></div>
+                                <div><x-input-label for="monto" value="Aporte voluntario del préstamo (CLP, $0 sin aporte)" /><x-text-input id="monto" name="monto" type="number" min="0" max="4294967295" step="1" :value="old('monto', 0)" required class="w-full" /></div>
                                 <div><x-input-label for="garantia" value="Garantía total acordada (CLP)" /><x-text-input id="garantia" name="garantia" type="number" min="0" max="4294967295" step="1" :value="old('garantia', 0)" required class="w-full" /></div>
                                 <div><x-input-label for="fecha_comprometida" value="Devolución comprometida" /><x-date-input id="fecha_comprometida" name="fecha_comprometida" :value="old('fecha_comprometida', $solicitud->fecha_comprometida->toDateString())" :min="now()->toDateString()" required /></div>
                             </div>

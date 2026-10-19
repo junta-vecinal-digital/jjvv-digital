@@ -14,7 +14,7 @@
 
 | Rol | Acceso |
 | --- | --- |
-| Presidente | Todos los módulos, incluida la auditoría, excepto parámetros. |
+| Presidente | Módulos de gestión vecinal, finanzas, actas, proyectos, reportes y auditoría. Sin acceso a la administración de usuarios, roles, parámetros ni catálogos, reservada al administrador. |
 | Secretario | Socios, citas, atención al público, certificados, grupos, calendario, reservas, inventario, gestión de solicitudes y préstamos de insumos, y actas. |
 | Tesorero | Finanzas, actas y reportes financieros. Puede solicitar insumos para sí, como dirigente, sin obtener permisos de gestión del inventario o de las solicitudes ajenas. |
 | Administrador | Usuarios, roles y parámetros, incluidos los catálogos de actividades gratuitas y de insumos. Ve los datos de cuenta de cada usuario (nombre, correo y rol). No ve fichas de socios, finanzas ni actas de directiva. |
@@ -22,7 +22,7 @@
 
 Todo usuario con sesión iniciada ve los proyectos en modo solo lectura. En los requisitos, "el presidente o el secretario" indica que basta con uno de los dos.
 
-Los socios activos y los dirigentes pueden solicitar insumos en línea. Los dirigentes conservan ese permiso aunque no tengan ficha activa; solicitar insumos no concede acceso a gestionar el inventario. Los representantes no socios solicitan en ventanilla, identificando su agrupación. La etiqueta de representante en una ficha existente es únicamente informativa y no concede roles ni permisos.
+Los socios activos, incluidos los dirigentes con ficha activa, pueden solicitar insumos en línea. Los dirigentes sin ficha activa conservan los permisos operativos de su cargo, pero no pueden iniciar solicitudes personales de insumos; solicitar insumos no concede acceso a gestionar el inventario. Los representantes no socios solicitan en ventanilla, identificando su agrupación. La etiqueta de representante en una ficha existente es únicamente informativa y no concede roles ni permisos.
 
 ## Requisitos funcionales de usuario (RFU)
 
@@ -49,13 +49,13 @@ Los RFU describen qué puede hacer cada actor, agrupados por módulo.
 
 ### 2. Certificados
 
-- **RFU-17** El socio puede solicitar en línea un certificado de residencia, indicando el destinatario y adjuntando el comprobante de transferencia de $1.000.
+- **RFU-17** El socio puede solicitar en línea un certificado de residencia, indicando el destinatario y un aporte voluntario, que puede ser $0. Solo un aporte positivo requiere respaldo de transferencia.
 - **RFU-18** El socio puede descargar su certificado de residencia desde su perfil durante los 5 días siguientes a su emisión. Vencido el plazo, el enlace desaparece.
-- **RFU-19** El socio que no descargó el certificado dentro del plazo puede retirarlo presencialmente en la sede. Si el sistema registra una descarga, debe pagar de nuevo para obtener otro.
+- **RFU-19** El socio que no descargó el certificado dentro del plazo puede retirarlo presencialmente en la sede. Si el sistema registra una descarga, debe iniciar una nueva solicitud para obtener otro; el aporte seguirá siendo voluntario.
 - **RFU-20** [Eliminado]
-- **RFU-21** El vecino no socio puede solicitar el certificado de residencia presencialmente en la sede, acreditando al menos 6 meses de residencia y pagando $1.000 en efectivo o por transferencia.
+- **RFU-21** El vecino no socio puede solicitar el certificado de residencia presencialmente en la sede, acreditando al menos 6 meses de residencia. Podrá aportar voluntariamente en efectivo o por transferencia, o continuar con aporte $0.
 - **RFU-22** El presidente o el secretario puede revisar el carnet, la boleta de servicio básico y los 6 meses de residencia del vecino no socio, y dejar constancia de la verificación.
-- **RFU-23** El presidente o el secretario puede comprobar el pago y emitir el certificado de residencia.
+- **RFU-23** El presidente o el secretario puede comprobar el aporte cuando sea positivo y emitir el certificado de residencia, también con aporte $0.
 - **RFU-24** El presidente o el secretario puede rechazar una solicitud de certificado indicando un motivo.
 - **RFU-25** El presidente o el secretario puede anular un certificado emitido indicando un motivo.
 - **RFU-26** El presidente o el secretario puede registrar la fecha en que el vecino retira el certificado.
@@ -151,30 +151,30 @@ Los RFS traducen los RFU en comportamiento verificable del sistema y fijan las r
 - **RFS-14** El sistema deberá permitir al presidente o al secretario buscar socios por nombre o RUT, filtrarlos por estado y editar sus datos. Al editar, la regla de 6 meses de residencia solo se exige si cambia la fecha de residencia.
 - **RFS-15** El sistema deberá permitir al presidente o al secretario asignar correo y contraseña a un socio registrado en ventanilla, generando su cuenta con rol vecino y vinculándola a su ficha.
 - **RFS-16** El sistema deberá permitir dar de baja a un socio (estado "inactivo") con motivo y fecha obligatorios, y reactivarlo.
-- **RFS-17** El sistema deberá retirar de inmediato a un socio dado de baja los accesos propios de socio, como las actas de asamblea y las solicitudes en línea de certificado, sede e insumos. Se conservan los permisos que le correspondan por su rol; un dirigente podrá solicitar insumos aunque no tenga ficha activa.
+- **RFS-17** El sistema deberá retirar de inmediato a un socio dado de baja los accesos propios de socio, como las actas de asamblea y las solicitudes en línea de certificado, sede e insumos. Se conservan los permisos operativos que le correspondan por su rol; un dirigente también necesitará ficha activa para solicitar insumos para sí.
 - **RFS-18** El sistema deberá registrar en cada cambio sobre socios su autor, fecha y el dato modificado.
 
 ### 2. Certificados
 
-- **RFS-19** El sistema deberá permitir a un socio activo solicitar un certificado de residencia en línea, con destinatario y comprobante de transferencia adjunto, y exigir el pago obligatorio de $1.000.
+- **RFS-19** El sistema deberá permitir a un socio activo solicitar un certificado de residencia en línea, con destinatario y aporte voluntario mayor o igual que $0. El valor configurable de Parámetros será únicamente una sugerencia. Guardará el importe elegido en la solicitud; si es positivo exigirá comprobante y número de transferencia; con $0 no exigirá respaldo ni creará ingreso.
 - **RFS-20** El sistema deberá limitar a 3 las solicitudes de certificado pendientes por usuario.
-- **RFS-21** El sistema deberá permitir al presidente o al secretario validar el pago y emitir el certificado.
+- **RFS-21** El sistema deberá permitir al presidente o al secretario emitir el certificado tras revisar los documentos y verificar el aporte solo cuando sea positivo. La ausencia de aporte no impedirá emitirlo.
 - **RFS-22** El sistema deberá permitir al presidente o al secretario rechazar una solicitud de certificado con motivo obligatorio.
 - **RFS-23** El sistema deberá permitir al presidente o al secretario anular un certificado emitido con motivo obligatorio.
 - **RFS-24** El sistema deberá habilitar la descarga del certificado en el perfil del socio durante 5 días desde su emisión (plazo configurable) y retirar el enlace al vencer ese plazo.
-- **RFS-25** El sistema deberá registrar la fecha y hora de cada descarga del certificado y mostrarlas al presidente o al secretario.
-- **RFS-26** El sistema deberá permitir retirar presencialmente un certificado emitido que el socio no descargó dentro del plazo, sin extender su vigencia. Si existe una descarga registrada, deberá exigir una nueva solicitud con nuevo pago.
-- **RFS-27** El sistema deberá permitir al presidente o al secretario emitir un certificado de residencia a un vecino no socio, tras verificar su carnet, boleta de servicio básico y 6 meses de residencia, registrando sus datos, el destinatario y el pago (talonario o número de transacción).
+- **RFS-25** El sistema deberá registrar fecha y hora de cada descarga de certificado de residencia y mostrarlas al presidente o al secretario. Las descargas del certificado de socio no se incorporarán a auditoría ni a este registro.
+- **RFS-26** El sistema deberá permitir retirar presencialmente un certificado emitido que el socio no descargó dentro del plazo, sin extender su vigencia. Si existe una descarga registrada, deberá exigir una nueva solicitud, manteniendo el carácter voluntario del aporte.
+- **RFS-27** El sistema deberá permitir al presidente o al secretario emitir un certificado de residencia a un vecino no socio, tras verificar su carnet, boleta de servicio básico y 6 meses de residencia, registrando sus datos, destinatario y aporte voluntario, incluido $0. Solo un aporte positivo requiere verificar su recepción y registrar talonario o número de transacción.
 - **RFS-28** El sistema deberá asignar a cada certificado un folio único y correlativo por año (formato AAAA-NNNN) al emitirlo, sin consumir folios en las solicitudes rechazadas.
 - **RFS-29** El sistema deberá asignar a cada certificado un código de verificación aleatorio, distinto del folio, para su validación pública.
-- **RFS-30** El sistema deberá guardar en cada certificado los datos del solicitante, las fechas de emisión y caducidad, el folio, el código de verificación, el nombre de quien lo otorga y el destinatario.
+- **RFS-30** El sistema deberá guardar en cada certificado los datos del solicitante, las fechas de emisión y caducidad, el folio, el código de verificación, el destinatario y una copia del nombre y cargo del otorgante al emitirlo. Las modificaciones o eliminación posteriores de su cuenta no cambiarán esa copia ni el PDF regenerado. Los certificados históricos sin esa copia se conservarán, indicando la ausencia de identidad histórica registrada sin inventarla.
 - **RFS-31** El sistema deberá fijar las fechas de emisión y de caducidad al emitirse el certificado, con una vigencia de 90 días configurable. La descarga o el retiro no modifican la vigencia.
 - **RFS-32** El sistema deberá permitir registrar la fecha de retiro del certificado.
 - **RFS-33** [Eliminado]
 - **RFS-34** [Eliminado]
 - **RFS-35** El sistema deberá ofrecer una página pública de validación donde, con el código de verificación, cualquiera pueda comprobar la autenticidad y el estado de un certificado (vigente, vencido o anulado), sin iniciar sesión, mostrando solo los datos necesarios con el RUT enmascarado y limitando la cantidad de consultas por minuto.
 - **RFS-36** El sistema deberá generar el certificado en PDF y marcarlo con una marca de agua de borrador mientras no esté emitido.
-- **RFS-37** El sistema deberá registrar automáticamente el pago de $1.000 como ingreso con concepto "certificados" al emitirse el certificado, sin requerir que quien lo emite tenga acceso al módulo de finanzas.
+- **RFS-37** El sistema deberá registrar automáticamente como ingreso con concepto certificados el aporte voluntario positivo guardado en el certificado de residencia, al emitirlo, sin requerir acceso del emisor a finanzas. No tomará un precio nuevo de Parámetros para cambiar una solicitud que ya tiene importe definido; con aporte $0 no generará ingreso.
 
 ### 3. Grupos y organizaciones
 
@@ -205,7 +205,7 @@ Los RFS traducen los RFU en comportamiento verificable del sistema y fijan las r
 ### 5. Ingresos y egresos
 
 - **RFS-58** El sistema deberá registrar cada ingreso con concepto (aporte voluntario por reserva de sede, préstamo de insumos, cuota de socios, aporte de grupos, certificados, otros), fecha de pago, monto, medio de pago (efectivo o transferencia), quién lo ingresa y comprobante. Los conceptos anteriores se conservarán en los movimientos históricos, sin reclasificarlos automáticamente.
-- **RFS-59** El sistema deberá exigir, para pagos en efectivo, el número de talonario y, para transferencias, la copia o el número de transacción.
+- **RFS-59** El sistema deberá exigir número de talonario para aportes en efectivo y, para transferencias, archivo de comprobante o número de transacción. Los ingresos manuales ofrecerán adjuntar PDF, JPG o PNG de hasta 5 MB en almacenamiento privado, consultable solo por presidente o tesorero. Se conservará el archivo al anular el ingreso.
 - **RFS-60** El sistema deberá exigir clasificar las cuotas de socios y los aportes de grupos como ordinarios o extraordinarios, sin asociarlos a proyectos. Los aportes por reservas de sede y cobros por préstamos se registrarán con sus conceptos propios, sin esa clasificación.
 - **RFS-61** El sistema deberá permitir al presidente o al secretario ingresar manualmente un aporte voluntario por cada reserva de sede. Un aporte de $0 corresponderá a una reserva gratuita; un monto mayor que $0 identificará una reserva pagada o arriendo. Se eliminan las tarifas fijas de sede y la garantía para reservas nuevas; los acuerdos sobre garantías de sede se resolverán fuera del sistema.
 - **RFS-62** El sistema deberá gestionar la garantía de insumos por préstamo, separada de los ingresos, con estados: recibida, devuelta, por devolver y retenida por daños. Las garantías históricas de sede conservarán sus montos y estados y podrán resolverse con las reglas existentes.
@@ -242,17 +242,17 @@ Los RFS traducen los RFU en comportamiento verificable del sistema y fijan las r
 
 ### 10. Roles, permisos, auditoría, parámetros y cuenta
 
-- **RFS-81** El sistema deberá restringir el acceso según el rol: presidente a todos los módulos excepto parámetros; secretario a socios, citas, atención al público, certificados, grupos, calendario, reservas, gestión de inventario y préstamos, y actas; tesorero a finanzas, actas y reportes financieros. Los parámetros y los catálogos serán exclusivos del administrador. Todos los dirigentes podrán solicitar insumos para sí, sin que ese permiso conceda al tesorero gestión de inventario, aprobación de solicitudes o acceso a préstamos ajenos.
+- **RFS-81** El sistema deberá restringir el acceso según el rol: presidente a los módulos de gestión vecinal, finanzas, actas, proyectos, reportes y auditoría, sin acceso a la administración de usuarios, roles, parámetros ni catálogos; secretario a socios, citas, atención al público, certificados, grupos, calendario, reservas, gestión de inventario y préstamos, y actas; tesorero a finanzas, actas y reportes financieros. La administración de usuarios, roles, parámetros y catálogos será exclusiva del administrador. Todos los dirigentes podrán solicitar insumos para sí, sin que ese permiso conceda al tesorero gestión de inventario, aprobación de solicitudes o acceso a préstamos ajenos.
 - **RFS-82** El sistema deberá autorizar las acciones propias de un socio (certificado de residencia en línea, actas de asamblea y solicitudes de sede e insumos) según el estado activo de su ficha y no según su rol. Los dirigentes también deberán tener ficha activa para sus trámites personales, incluidos certificados de residencia y solicitudes de sede e insumos; conservarán los permisos operativos de su cargo durante la regularización.
-- **RFS-83** El sistema deberá permitir al administrador gestionar usuarios, roles y parámetros, y ver el nombre, correo y rol de cada usuario, sin acceso a fichas de socios, finanzas ni actas de directiva.
+- **RFS-83** El sistema deberá permitir exclusivamente al administrador gestionar usuarios, roles y parámetros, y ver el nombre, correo y rol de cada usuario, sin acceso a fichas de socios, finanzas ni actas de directiva.
 - **RFS-84** El sistema no deberá permitir que un administrador cambie su propio rol.
-- **RFS-85** El sistema deberá registrar fecha, autor, cambios y dirección IP en socios, certificados (incluidas las descargas), usuarios, finanzas y cuotas devueltas.
+- **RFS-85** El sistema deberá registrar fecha, autor, cambios y dirección IP en socios, certificados, usuarios, finanzas y cuotas devueltas. Auditará las descargas de certificados de residencia, excluyendo las descargas del certificado de socio.
 - **RFS-86** El sistema no deberá permitir editar ni eliminar los registros de trazabilidad.
 - **RFS-87** El sistema deberá permitir solo al presidente consultar la auditoría, con filtros por fecha, autor y tipo de registro (socio, certificado, usuario o finanzas).
 - **RFS-88** El sistema deberá permitir exclusivamente al administrador configurar el horario de la sede, la duración de los bloques, la vigencia del certificado, el plazo de descarga, el plazo de confirmación de solicitudes de sede y los catálogos de actividades gratuitas e insumos. No se definirán tarifas fijas de sede ni precios por insumo en Parámetros: presidente o secretario definirá el aporte de cada reserva y el monto y garantía de cada préstamo.
 - **RFS-89** El sistema deberá permitir a cada usuario eliminar su propia cuenta desde su perfil, conservando la ficha de socio y los registros de trazabilidad sin vínculo al usuario.
 
-- **RFS-90** El sistema deberá emitir inmediatamente el certificado de socio solicitado desde una cuenta con ficha activa, sin revisión de presidente o secretario, usando al presidente vigente como otorgante. Si lo emite presidente o secretario en ventanilla, quedará disponible solo para impresión y no se incorporará a las descargas del socio. El certificado de residencia mantendrá su flujo de pago y revisión.
+- **RFS-90** El sistema deberá emitir inmediatamente el certificado de socio solicitado desde una cuenta con ficha activa, sin revisión de presidente o secretario, usando al presidente vigente como otorgante. Si lo emite presidente o secretario en ventanilla, quedará disponible solo para impresión y no se incorporará a las descargas del socio. El certificado de residencia mantendrá revisión de documentos y verificación del aporte únicamente si es positivo; admite aporte $0.
 - **RFS-91** El sistema deberá permitir a presidente y secretario establecer horarios semanales de atención al público con varios tramos por día y mostrarlos en la portada pública. Las citas de firma serán independientes y podrán generarse en cualquier horario permitido para citas; al aprobar la documentación de un vecino, se mostrará un recordatorio para liberar citas, sin crearlas automáticamente ni restringirlas al horario de atención.
 
 ### 11. Navegación, reservas e insumos — ampliación acordada
@@ -272,3 +272,5 @@ Los RFS traducen los RFU en comportamiento verificable del sistema y fijan las r
 
 - **RFS-102** Los dirigentes deberán disponer de ficha de socio con los mismos antecedentes y validación que los demás socios: nombre, RUT validado, dirección, teléfono, residencia y documentos. El sistema reutilizará la ficha existente. Quien no tenga ficha activa podrá completar o consultar su inscripción y reservar su cita de firma, conservando sus permisos de cargo. Sus trámites personales requerirán ficha activa. Otro presidente o secretario deberá resolver su inscripción; nadie podrá aprobar su propia ficha. No se activarán fichas automáticamente ni se duplicarán registros existentes.
 - **RFS-103** Los selectores de fecha deberán permitir elegir directamente mes y año y mostrar la fecha como dd/mm/aaaa, con independencia del idioma del navegador. Los desplegables mantendrán separación entre texto y flecha. La interfaz de acceso utilizará la identidad de JJVV Digital en lugar del logo de Laravel; la portada destacará Verificar un certificado. El listado de proyectos no mostrará el formulario de filtros.
+
+- **RFS-104** Los montos recibidos para certificados, uso de sede, préstamos y aportes de socios o agrupaciones se presentarán como aportes voluntarios destinados a mejorar la comunidad. Las garantías se identificarán separadamente como montos sujetos a devolución; los egresos conservarán su identificación como gastos. Se conservarán las claves y operaciones históricas, sin reclasificar ni recalcular sus importes.

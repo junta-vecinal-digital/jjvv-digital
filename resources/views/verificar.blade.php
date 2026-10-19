@@ -45,8 +45,8 @@
                     <div><dt class="text-gray-500 dark:text-gray-400">Presentado ante</dt><dd>{{ $certificado->dirigido_a }}</dd></div>
                     <div><dt class="text-gray-500 dark:text-gray-400">Emitido el</dt><dd>{{ $certificado->fecha_emision->format('d/m/Y') }}</dd></div>
                     <div><dt class="text-gray-500 dark:text-gray-400">Válido hasta</dt><dd>{{ $certificado->fecha_vencimiento->format('d/m/Y') }}</dd></div>
-                    @if ($certificado->otorgante)
-                        <div><dt class="text-gray-500 dark:text-gray-400">Otorgado por</dt><dd>{{ $certificado->otorgante->name }}</dd></div>
+                    @if ($certificado->otorgante_nombre)
+                        <div><dt class="text-gray-500 dark:text-gray-400">Otorgado por</dt><dd>{{ $certificado->otorgante_nombre }}</dd></div>
                     @endif
                 </dl>
             @endif

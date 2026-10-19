@@ -21,7 +21,7 @@
             @endif
             <section class="ui-panel p-6 space-y-4">
                 <h3 class="text-lg font-semibold">Emitir mi certificado de socio</h3>
-                <p>Para socios activos. Se emite inmediatamente, sin pago ni revisión de la directiva, con los datos de tu ficha.</p>
+                <p>Para socios activos. Se emite inmediatamente, sin aporte ni revisión de la directiva, con los datos de tu ficha.</p>
                 <p>{{ $socio->nombre_completo }} · {{ $socio->rut }} · {{ $socio->direccion }}</p>
                 <x-input-error :messages="$errors->getBag('certificadoSocio')->get('otorgante')" />
                 <form method="POST" action="{{ route('certificados.store') }}" class="space-y-3" x-data="{ enviando: false }" @submit="if (enviando) $event.preventDefault(); else enviando = true">
@@ -38,11 +38,11 @@
                 <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Solicitar certificado de residencia</h3>
                 <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
                     Para el certificado de residencia debes presentar en la sede tu carnet de identidad y una boleta de luz o agua.
-                    El aporte voluntario es de ${{ number_format(\App\Models\Parametro::entero('certificado_residencia_valor'), 0, ',', '.') }}.
+                    Puedes aportar voluntariamente para mejorar la comunidad. El monto sugerido es ${{ number_format(\App\Models\Parametro::entero('certificado_residencia_valor'), 0, ',', '.') }}; puedes elegir $0 y continuar sin comprobante.
                 </p>
 
-                <x-form-wizard :steps="['Datos', 'Destino', 'Comprobante']" :fields="[['tipo','nombre_solicitante','rut_solicitante','direccion'],['dirigido_a'],['numero_transaccion','comprobante']]">
-                    <form novalidate method="POST" action="{{ route('certificados.store') }}" enctype="multipart/form-data" class="mt-6 space-y-6">
+                <x-form-wizard :steps="['Datos', 'Destino', 'Aporte voluntario']" :fields="[['tipo','nombre_solicitante','rut_solicitante','direccion'],['dirigido_a'],['aporte','numero_transaccion','comprobante']]">
+                    <form novalidate method="POST" action="{{ route('certificados.store') }}" enctype="multipart/form-data" class="mt-6 space-y-6" x-data="{ aporte: @js(old('aporte', \App\Models\Parametro::entero('certificado_residencia_valor'))) }">
                         @csrf
                         <input type="hidden" name="tipo" value="residencia">
 
@@ -82,15 +82,16 @@
 
                         </x-form-step>
                         <x-form-step number="2">
-                            <div>
-                                <x-input-label for="numero_transaccion" :value="'Número de transacción (transferencia de $'.number_format(\App\Models\Parametro::entero('certificado_residencia_valor'), 0, ',', '.').')'" />
-                                <x-text-input id="numero_transaccion" name="numero_transaccion" type="text" required maxlength="50" class="mt-1 block w-full" :value="old('numero_transaccion')" />
+                            <div><x-input-label for="aporte" value="Aporte voluntario (CLP)" /><x-text-input id="aporte" name="aporte" type="number" x-model="aporte" min="0" max="100000000" step="1" required /><x-input-error :messages="$errors->get('aporte')" /></div>
+                            <div x-show="Number(aporte) > 0">
+                                <x-input-label for="numero_transaccion" value="Número de transacción del aporte" />
+                                <x-text-input id="numero_transaccion" name="numero_transaccion" type="text" x-bind:required="Number(aporte) > 0" x-bind:disabled="Number(aporte) <= 0" maxlength="50" class="mt-1 block w-full" :value="old('numero_transaccion')" />
                                 <x-input-error :messages="$errors->get('numero_transaccion')" class="mt-2" />
                             </div>
 
-                            <div class="mt-4">
+                            <div class="mt-4" x-show="Number(aporte) > 0">
                                 <x-input-label for="comprobante" value="Comprobante de transferencia (PDF, JPG o PNG, máx. 5 MB)" />
-                                <x-file-input id="comprobante" name="comprobante" required accept=".pdf,.jpg,.jpeg,.png" />
+                                <x-file-input id="comprobante" name="comprobante" x-bind:required="Number(aporte) > 0" x-bind:disabled="Number(aporte) <= 0" accept=".pdf,.jpg,.jpeg,.png" />
                                 <x-input-error :messages="$errors->get('comprobante')" class="mt-2" />
                             </div>
 

@@ -63,7 +63,7 @@ class PrestamoFinancieroController extends Controller
                     'talonario' => $solicitud->talonario,
                 ]);
             }
-            return back()->with('status', 'Recepción registrada: el cobro es ingreso y la garantía se conserva separada.');
+            return back()->with('status', 'Recepción registrada: el aporte voluntario es ingreso y la garantía se conserva separada.');
         });
     }
 
@@ -72,10 +72,10 @@ class PrestamoFinancieroController extends Controller
         return DB::transaction(function () use ($request, $solicitud) {
             $this->bloquear($solicitud);
             if (! $solicitud->pago_registrado_en || $solicitud->monto <= 0 || $solicitud->ingresos()->vigentes()->exists()) {
-                throw ValidationException::withMessages(['finanzas' => 'Solo puedes volver a registrar un cobro positivo recibido cuyo ingreso esté anulado.']);
+                throw ValidationException::withMessages(['finanzas' => 'Solo puedes volver a registrar un aporte voluntario positivo recibido cuyo ingreso esté anulado.']);
             }
             $this->crearIngreso($solicitud, $request->user()->id);
-            return back()->with('status', 'Cobro registrado nuevamente. La recepción original y la garantía se conservan.');
+            return back()->with('status', 'Aporte registrado nuevamente. La recepción original y la garantía se conservan.');
         });
     }
 
@@ -104,7 +104,7 @@ class PrestamoFinancieroController extends Controller
             'monto' => $solicitud->monto, 'fecha_pago' => $solicitud->fecha_pago,
             'medio_pago' => $solicitud->medio_pago, 'talonario' => $solicitud->talonario,
             'numero_transaccion' => $solicitud->numero_transaccion,
-            'observaciones' => 'Cobro por préstamo de insumos #'.$solicitud->id.'. Garantía separada de los ingresos.',
+            'observaciones' => 'Aporte voluntario por préstamo de insumos #'.$solicitud->id.'. Garantía separada de los ingresos.',
             'registrado_por' => $autor,
         ]);
     }

@@ -1,6 +1,8 @@
 # Sprint 4: comprobación final del MVP
 
-Estado: en curso. Los bloques y el recorrido integrado del sprint 3 fueron confirmados por el usuario. El usuario confirmó la suite completa antes de las observaciones finales. Los ajustes posteriores requieren nueva regresión; Ubuntu actualizado sigue pendiente.
+Estado: cerrado en entorno local el 18/10/2026 por instrucción del usuario, quien confirmó migración, tests posteriores a los últimos cambios y revisión manual del aporte $0. Los bloques anteriores y el recorrido integrado ya contaban con confirmaciones previas. El agente no ejecutó pruebas ni migraciones. Evidencias de entrega no producidas, concurrencia real sin acreditar y despliegue aplazado.
+
+La guía siguiente queda como referencia para futuras regresiones; no indica repetir pruebas ahora ni acredita escenarios adicionales a los confirmados.
 
 ## 1. Regresión automática local
 
@@ -9,7 +11,7 @@ Desde CMD, en la carpeta del proyecto:
 ```cmd
 php artisan config:clear
 php artisan migrate
-php artisan test tests/Feature/Sprint4MejorasCierreTest.php
+php artisan test tests/Feature/Integracion/AportesCertificadosYComprobantesTest.php
 php artisan test
 ```
 
@@ -17,7 +19,7 @@ php artisan test
 
 Registrar el resultado completo: pruebas aprobadas, fallidas y omitidas. Si falla, conservar el nombre del test y el mensaje; corregir primero el caso antes de repetir la regresión. El agente no ejecuta tests.
 
-La migración 000013 agrega RUT a representantes y solicitudes de insumos, conservando los históricos sin inventar identificaciones. En cada dirigente, revisar Mi ficha de socio: completar inscripción, revisión y activación por otra persona. Comprobar que tesorero activo pueda solicitar sede y certificado de residencia; sin ficha activa conserva su cargo, pero no sus trámites personales.
+La migración 000014 agrega identidad histórica del otorgante y respaldo privado a ingresos; comprobar residencia con aporte cero/positivo, importe conservado y descarga de socio sin auditoría. La migración 000013 agrega RUT a representantes y solicitudes de insumos, conservando los históricos sin inventar identificaciones. En cada dirigente, revisar Mi ficha de socio: completar inscripción, revisión y activación por otra persona. Comprobar que tesorero activo pueda solicitar sede y certificado de residencia; sin ficha activa conserva su cargo, pero no sus trámites personales.
 
 ## 2. Recorrido manual final
 
@@ -37,11 +39,11 @@ Usar datos de demostración y sesiones separadas para cada rol. Los escenarios y
 
 ## 3. Comprobaciones separadas de entorno
 
-- Ubuntu/AWS: pendiente de preparar y comprobar el despliegue actualizado. Esta guía no autoriza cambios en el servidor. Revisar después compatibilidad de PHP/extensiones con Composer, ZIP para Excel, permisos de almacenamiento privado, assets compilados, migraciones y configuración de español/zona horaria.
+- Ubuntu/AWS: aplazado por instrucción del usuario; pendiente de preparar y comprobar en otro momento. Esta guía no autoriza cambios en el servidor. Revisar después compatibilidad de PHP/extensiones con Composer, ZIP para Excel, permisos de almacenamiento privado, assets compilados, migraciones y configuración de español/zona horaria.
 - Scheduler: el vencimiento automático de solicitudes usa `arriendos:liberar-vencidos` cada minuto. En desarrollo puede mantenerse `php artisan schedule:work` en otra consola; en Ubuntu requiere la configuración correspondiente. No ejecutar deliberadamente vencimientos sobre datos reales para una demostración.
 - Concurrencia real: SQLite en memoria no acredita dos operadores aprobando/cobrando simultáneamente. Comprobarlo por separado en una base de prueba del motor del despliegue antes de afirmar esa validación.
-- Pendiente documental: RFS-81/83 mantienen una discrepancia sobre acceso del presidente a usuarios/roles. Se conserva el acceso actual exclusivo del administrador, sin modificar requisitos ni permisos durante estas pruebas.
+- RFS-81/83 precisados con autorización: administración de usuarios, roles, parámetros y catálogos exclusiva del administrador. Otros hallazgos de cierre están en [REVISION_REQUISITOS.md](REVISION_REQUISITOS.md).
 
-## Criterio de cierre
+## Registro de cierre
 
-Cerrar la regresión local cuando el usuario confirme la suite completa y el recorrido manual, y se hayan resuelto los fallos encontrados. Registrar explícitamente cualquier comprobación de servidor o concurrencia que siga pendiente; los resultados locales no la sustituyen.
+Cierre local registrado el 18/10/2026 a partir de la confirmación del usuario sobre migración, tests posteriores y revisión manual del aporte $0, junto con la aceptación previa de los bloques. No se registran cantidades de tests ni resultados de escenarios adicionales que el usuario no haya comunicado. Las comprobaciones de servidor y concurrencia permanecen fuera de este cierre.

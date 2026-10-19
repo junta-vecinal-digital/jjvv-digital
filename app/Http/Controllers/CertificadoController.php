@@ -68,20 +68,23 @@ class CertificadoController extends Controller
 
             return redirect()->route('certificados.index')->with('status', 'certificado-socio-emitido');
         } else {
-            // Residencia: pago obligatorio por transferencia con comprobante (RFS-19).
+            // El aporte es voluntario; solo un aporte positivo necesita respaldo.
             $request->merge(['rut_solicitante' => RutChileno::normalizar($request->rut_solicitante)]);
+            $request->merge(['aporte' => $request->input('aporte', \App\Models\Parametro::entero('certificado_residencia_valor'))]);
+            $conAporte = $request->integer('aporte') > 0;
 
             $datos = $request->validate([
                 'nombre_solicitante' => ['required', 'string', 'max:255'],
                 'rut_solicitante' => ['required', 'string', 'max:12', new RutChileno],
                 'direccion' => ['required', 'string', 'max:255'],
                 'dirigido_a' => ['required', 'string', 'max:255'],
-                'numero_transaccion' => ['required', 'string', 'max:50'],
-                'comprobante' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+                'aporte' => ['required', 'integer', 'min:0', 'max:100000000'],
+                'numero_transaccion' => $conAporte ? ['required', 'string', 'max:50'] : ['exclude'],
+                'comprobante' => $conAporte ? ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'] : ['exclude'],
             ]);
 
-            $datos['comprobante_path'] = $request->file('comprobante')->store('comprobantes', 'local');
-            $datos['medio_pago'] = 'transferencia';
+            $datos['comprobante_path'] = $conAporte ? $request->file('comprobante')->store('comprobantes', 'local') : null;
+            $datos['medio_pago'] = $conAporte ? 'transferencia' : null;
             unset($datos['comprobante']);
             $datos['socio_id'] = $socio?->id;
         }

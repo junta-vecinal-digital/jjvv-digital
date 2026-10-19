@@ -45,9 +45,10 @@
                     @if ($c->socio)
                         <div><dt class="text-gray-500 dark:text-gray-400">Ficha de socio</dt><dd><a class="underline text-brand-600 dark:text-brand-400" href="{{ route('socios.show', $c->socio) }}">{{ $c->socio->nombre_completo }}</a></dd></div>
                     @endif
+                    @if ($c->tipo === 'residencia')<div><dt class="text-gray-500 dark:text-gray-400">Aporte voluntario</dt><dd>{{ $c->aporte === null ? 'No registrado en la solicitud histórica' : '$'.number_format($c->aporte, 0, ',', '.') }}</dd></div>@endif
                     @if ($c->medio_pago || $c->numero_transaccion)
                         <div>
-                            <dt class="text-gray-500 dark:text-gray-400">Pago</dt>
+                            <dt class="text-gray-500 dark:text-gray-400">Respaldo del aporte</dt>
                             <dd class="text-gray-900 dark:text-gray-100">
                                 {{ \App\Models\Ingreso::MEDIOS[$c->medio_pago] ?? '—' }}
                                 @if ($c->talonario) · talonario {{ $c->talonario }} @endif
@@ -58,7 +59,7 @@
                     @if ($c->estado !== 'solicitado' && $c->estado !== 'rechazado')
                         <div><dt class="text-gray-500 dark:text-gray-400">Emitido el</dt><dd class="text-gray-900 dark:text-gray-100">{{ $c->fecha_emision?->format('d/m/Y') }}</dd></div>
                         <div><dt class="text-gray-500 dark:text-gray-400">Vence el</dt><dd class="text-gray-900 dark:text-gray-100">{{ $c->fecha_vencimiento?->format('d/m/Y') }}</dd></div>
-                        <div><dt class="text-gray-500 dark:text-gray-400">Otorgado por</dt><dd class="text-gray-900 dark:text-gray-100">{{ $c->otorgante?->name }} ({{ $c->otorgante?->nombreRol() }})</dd></div>
+                        <div><dt class="text-gray-500 dark:text-gray-400">Otorgado por</dt><dd class="text-gray-900 dark:text-gray-100">{{ $c->otorgante_nombre ?? 'Identidad histórica no registrada' }} @if ($c->otorgante_cargo) ({{ $c->otorgante_cargo }}) @endif</dd></div>
                         <div><dt class="text-gray-500 dark:text-gray-400">Código de verificación</dt><dd class="text-gray-900 dark:text-gray-100 font-mono">{{ $c->codigoFormateado() }}</dd></div>
                     @endif
                     @if ($c->observaciones)
@@ -112,9 +113,9 @@
                         @if ($c->tipo === 'residencia')
                             <div>
                                 <label class="inline-flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
-                                    <input type="checkbox" name="pago_verificado" value="1" @checked(old('pago_verificado'))
+                                    <input type="checkbox" name="pago_verificado" value="1" @disabled(($c->aporte ?? \App\Models\Parametro::entero('certificado_residencia_valor')) <= 0) @checked(old('pago_verificado'))
                                            class="mt-0.5 rounded border-gray-300 dark:border-gray-700 dark:bg-gray-900 text-brand-600 shadow-sm focus:ring-brand-500">
-                                    <span>Verifiqué en el comprobante que la transferencia de $1.000 figura en la cuenta.</span>
+                                    <span>Verifiqué el aporte voluntario de ${{ number_format($c->aporte ?? \App\Models\Parametro::entero('certificado_residencia_valor'), 0, ',', '.') }}. Con $0 no se requiere esta verificación.</span>
                                 </label>
                                 <x-input-error class="mt-2" :messages="$errors->get('pago_verificado')" />
                             </div>
@@ -152,7 +153,7 @@
                     @elseif ($c->descargas->isNotEmpty())
                         <p class="text-sm text-gray-700 dark:text-gray-300">
                             El socio descargó este certificado el {{ $c->descargas->first()->descargado_en->format('d/m/Y H:i') }}.
-                            No puede retirarlo en sede; debe solicitar uno nuevo y pagarlo nuevamente.
+                            No puede retirarlo en sede; debe solicitar uno nuevo. Cualquier aporte sigue siendo voluntario.
                         </p>
                     @else
                         <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">

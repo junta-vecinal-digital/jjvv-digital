@@ -45,12 +45,13 @@ class CertificadoAdminController extends Controller
     public function store(Request $request)
     {
         $request->merge(['rut_solicitante' => RutChileno::normalizar($request->rut_solicitante)]);
+        $request->merge(['aporte' => $request->input('aporte', \App\Models\Parametro::entero('certificado_residencia_valor'))]);
 
         $datos = $request->validate([
             'tipo' => ['required', Rule::in(array_keys(Certificado::TIPOS))],
             'socio_id' => ['nullable', 'exists:socios,id'],
             ...$this->reglasComunes($request->tipo),
-            ...$this->reglasPagoVentanilla($request->tipo),
+            ...$this->reglasPagoVentanilla($request),
         ]);
 
         $socio = isset($datos['socio_id']) ? Socio::find($datos['socio_id']) : null;
@@ -94,7 +95,7 @@ class CertificadoAdminController extends Controller
 
         $datos = $request->validate($this->reglasComunes($certificado->tipo));
 
-        if ($certificado->tipo === 'residencia') {
+        if ($certificado->tipo === 'residencia' && ($certificado->aporte ?? \App\Models\Parametro::entero('certificado_residencia_valor')) > 0) {
             $request->validate(['pago_verificado' => ['accepted']]);
         }
 
@@ -125,7 +126,7 @@ class CertificadoAdminController extends Controller
         abort_if(
             $certificado->descargas()->exists(),
             422,
-            'El socio descargó este certificado. Debe solicitar uno nuevo y pagarlo nuevamente.'
+            'El socio descargó este certificado. Debe iniciar una nueva solicitud; el aporte sigue siendo voluntario.'
         );
 
         $datos = $request->validate([
@@ -190,18 +191,20 @@ class CertificadoAdminController extends Controller
     }
 
     /** Solo en ventanilla: el pago se registra en el momento y se confirman los 6 meses (RFS-27). */
-    private function reglasPagoVentanilla(?string $tipo): array
+    private function reglasPagoVentanilla(Request $request): array
     {
-        if ($tipo !== 'residencia') {
+        if ($request->tipo !== 'residencia') {
             return [];
         }
+        $conAporte = $request->integer('aporte') > 0;
 
         return [
             'residencia_6_meses' => ['accepted'],
-            'pago_verificado' => ['accepted'],
-            'medio_pago' => ['required', Rule::in(array_keys(Ingreso::MEDIOS))],
-            'talonario' => ['nullable', 'required_if:medio_pago,efectivo', 'string', 'max:30'],
-            'numero_transaccion' => ['nullable', 'required_if:medio_pago,transferencia', 'string', 'max:50'],
+            'aporte' => ['required', 'integer', 'min:0', 'max:100000000'],
+            'pago_verificado' => $conAporte ? ['accepted'] : ['exclude'],
+            'medio_pago' => $conAporte ? ['required', Rule::in(array_keys(Ingreso::MEDIOS))] : ['exclude'],
+            'talonario' => $conAporte ? ['nullable', 'required_if:medio_pago,efectivo', 'string', 'max:30'] : ['exclude'],
+            'numero_transaccion' => $conAporte ? ['nullable', 'required_if:medio_pago,transferencia', 'string', 'max:50'] : ['exclude'],
         ];
     }
 }

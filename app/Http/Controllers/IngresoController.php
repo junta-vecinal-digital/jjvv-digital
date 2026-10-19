@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Ingreso;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 /** Presidente y tesorero: ingresos, cuotas y anulaciones (RFS-58, 59, 60, 64, 67, 68). */
@@ -36,7 +37,8 @@ class IngresoController extends Controller
             'monto' => ['required', 'integer', 'min:1', 'max:100000000'],
             'medio_pago' => ['required', Rule::in(array_keys(Ingreso::MEDIOS))],
             'talonario' => ['nullable', 'required_if:medio_pago,efectivo', 'string', 'max:30'],
-            'numero_transaccion' => ['nullable', 'required_if:medio_pago,transferencia', 'string', 'max:50'],
+            'numero_transaccion' => ['nullable', Rule::requiredIf($request->medio_pago === 'transferencia' && ! $request->hasFile('comprobante')), 'string', 'max:50'],
+            'comprobante' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
             'observaciones' => ['nullable', 'required_if:concepto,otros', 'string', 'max:500'],
         ]);
 
@@ -46,10 +48,18 @@ class IngresoController extends Controller
         }
 
         $datos['registrado_por'] = $request->user()->id;
+        $datos['comprobante_path'] = $request->file('comprobante')?->store('comprobantes/ingresos', 'local');
+        unset($datos['comprobante']);
 
         Ingreso::create($datos);
 
         return redirect()->route('ingresos.index')->with('status', 'ingreso-registrado');
+    }
+
+    public function comprobante(Ingreso $ingreso)
+    {
+        abort_unless($ingreso->comprobante_path && Storage::disk('local')->exists($ingreso->comprobante_path), 404);
+        return Storage::disk('local')->response($ingreso->comprobante_path, null, ['Cache-Control' => 'private, no-store']);
     }
 
     public function anular(Request $request, Ingreso $ingreso)

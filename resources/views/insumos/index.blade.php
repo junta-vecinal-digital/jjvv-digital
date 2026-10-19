@@ -18,7 +18,7 @@
         @include('insumos._horarios')
         <details class="ui-panel p-6" @if ($errors->any()) open @endif>
             <summary class="cursor-pointer font-semibold">{{ $gestion ? 'Registrar solicitud propia o en ventanilla' : 'Solicitar insumos' }}</summary>
-            <p class="my-4">La solicitud no reserva unidades. La directiva comprobará las existencias y definirá el monto y la garantía del préstamo al aprobar.</p>
+            <p class="my-4">Los aportes voluntarios se destinan a mejorar la comunidad. La solicitud no reserva unidades. La directiva comprobará las existencias y definirá el aporte voluntario y la garantía del préstamo al aprobar.</p>
             <x-form-wizard :steps="['Solicitante', 'Insumos']" :fields="[['solicitante', 'solicitante_rut', 'grupo_id', 'telefono_contacto', 'direccion_contacto', 'fecha_comprometida'], ['lineas']]">
                 <form method="POST" action="{{ route('insumos.store') }}" class="space-y-4" novalidate
                     x-data="{ ...@js($estado), seleccionada() { return this.personas.find(p => p.clave === this.persona); }, elegir() { const p = this.seleccionada(); this.grupo = p?.grupos.length === 1 ? String(p.grupos[0].id) : ''; this.telefono = p?.telefono ?? ''; this.direccion = p?.direccion ?? ''; this.rut = p?.rut ?? ''; } }">

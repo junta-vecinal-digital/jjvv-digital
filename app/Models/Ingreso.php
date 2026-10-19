@@ -14,13 +14,13 @@ class Ingreso extends Model
 
     /** Conceptos de ingreso (RFS-58). */
     public const CONCEPTOS = [
-        'arriendo' => 'Arriendo de sede',
+        'arriendo' => 'Aporte por uso de sede (histórico)',
         'aporte_reserva' => 'Aporte voluntario por reserva de sede',
-        'prestamo_insumos' => 'Préstamo de insumos',
-        'cuota_socios' => 'Cuota de socios',
-        'aporte_grupos' => 'Aporte de grupos',
-        'certificados' => 'Certificados',
-        'otros' => 'Otros',
+        'prestamo_insumos' => 'Aporte voluntario por préstamo de insumos',
+        'cuota_socios' => 'Aporte voluntario de socios',
+        'aporte_grupos' => 'Aporte voluntario de agrupaciones',
+        'certificados' => 'Aportes voluntarios por certificados',
+        'otros' => 'Otros aportes voluntarios',
     ];
 
     public const TIPOS_CUOTA = [
@@ -37,7 +37,7 @@ class Ingreso extends Model
         'concepto', 'fecha_pago', 'monto', 'medio_pago',
         'talonario', 'numero_transaccion', 'observaciones',
         'tipo_cuota', 'certificado_id', 'registrado_por', 'reserva_id', 'garantia_id',
-        'solicitud_insumo_id',
+        'solicitud_insumo_id', 'comprobante_path',
     ];
 
     protected function casts(): array

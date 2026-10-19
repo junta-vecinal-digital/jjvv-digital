@@ -62,6 +62,7 @@
                                 <td>{{ \App\Models\Ingreso::MEDIOS[$ingreso->medio_pago] }}</td>
                                 <td>
                                     {{ $ingreso->talonario ?? $ingreso->numero_transaccion }}
+                                    @if ($ingreso->comprobante_path)<a class="underline" href="{{ route('ingresos.comprobante', $ingreso) }}" target="_blank" rel="noopener">Ver comprobante</a>@endif
                                     @php($solicitudInsumoId = $ingreso->solicitud_insumo_id ?? $ingreso->garantia?->solicitud_insumo_id)
                                     @if ($solicitudInsumoId)
                                         <a class="underline" href="{{ route('finanzas.insumos.show', $solicitudInsumoId) }}">Préstamo y comprobante</a>

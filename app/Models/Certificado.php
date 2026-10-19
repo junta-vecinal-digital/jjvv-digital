@@ -127,14 +127,15 @@ class Certificado extends Model
     /** Registra el pago de la solicitud como ingreso, sin requerir acceso a finanzas (RFS-37). */
     public function registrarIngreso(User $por): void
     {
-        if ($this->tipo !== 'residencia' || $this->ingresos()->exists()) {
+        $aporte = $this->aporte ?? Parametro::entero('certificado_residencia_valor');
+        if ($this->tipo !== 'residencia' || $aporte <= 0 || $this->ingresos()->exists()) {
             return;
         }
 
         Ingreso::create([
             'concepto' => 'certificados',
             'fecha_pago' => now()->toDateString(),
-            'monto' => Parametro::entero('certificado_residencia_valor'),
+            'monto' => $aporte,
             'medio_pago' => $this->medio_pago ?? 'transferencia',
             'talonario' => $this->talonario,
             'numero_transaccion' => $this->numero_transaccion,
@@ -197,6 +198,9 @@ class Certificado extends Model
                         'fecha_vencimiento' => now()->addDays(Parametro::entero('certificado_vigencia_dias'))->toDateString(),
                         'descarga_disponible_hasta' => now()->addDays(Parametro::entero('certificado_plazo_descarga_dias')),
                         'otorgado_por' => $por->id,
+                        'otorgante_nombre' => $por->name,
+                        'otorgante_cargo' => $por->nombreRol(),
+                        'aporte' => $this->tipo === 'socio' ? 0 : ($this->aporte ?? Parametro::entero('certificado_residencia_valor')),
                     ])->save();
                 });
 

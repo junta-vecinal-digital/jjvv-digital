@@ -48,7 +48,7 @@ class ArriendoFinancieroController extends Controller
                 'medio_pago' => $datos['medio_pago'],
                 'talonario' => $datos['medio_pago'] === 'efectivo' ? $datos['talonario'] : null,
                 'observaciones' => $reserva->aporte_variable ? 'Aporte voluntario por reserva de sede #'.$reserva->id.'.'
-                    : 'Pago de arriendo #'.$reserva->id.'. Comprobante compartido con la garantía.',
+                    : 'Aporte por uso de sede #'.$reserva->id.'. Comprobante compartido con la garantía.',
                 'registrado_por' => $request->user()->id,
             ]);
             $garantia = $reserva->garantia;

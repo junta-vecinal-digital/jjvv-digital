@@ -8,7 +8,7 @@
     </tbody>
 </table>
 <h2 class="text-lg font-semibold mt-6 mb-3">Solicitudes de sede y arriendos del período</h2>
-<p>Se usa la fecha de inicio de la reserva, incluyendo solicitudes de uso de sede y arriendos históricos pendientes, confirmados, cancelados y vencidos. Los importes acordados no se suman nuevamente a los pagos recibidos.</p>
+<p>Se usa la fecha de inicio de la reserva, incluyendo solicitudes de uso de sede y arriendos históricos pendientes, confirmados, cancelados y vencidos. Los importes acordados no se suman nuevamente a los aportes voluntarios recibidos.</p>
 <table class="ui-table">
     <thead><tr><th>Reserva</th><th>Fecha y horario</th><th>Solicitante</th><th>Agrupación</th><th>Estado</th><th>Aporte / arriendo (CLP)</th></tr></thead>
     <tbody>

@@ -76,11 +76,12 @@
 
     <div class="firma">
         <div class="linea"></div>
-        @if ($c->otorgante)
-            <strong>{{ $c->otorgante->name }}</strong><br>
-            {{ $c->otorgante->nombreRol() }} - {{ $junta }}
+        @if ($c->otorgante_nombre)
+            <strong>{{ $c->otorgante_nombre }}</strong><br>
+            {{ $c->otorgante_cargo }} - {{ $junta }}
         @else
             Firma y timbre de la directiva
+            @if ($c->fecha_emision)<br><small>Identidad histórica del otorgante no registrada.</small>@endif
         @endif
     </div>
 

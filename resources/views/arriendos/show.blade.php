@@ -7,7 +7,7 @@
             <a class="underline" href="{{ route($volverFinanzas ? 'finanzas.arriendos.index' : 'arriendos.index') }}">{{ $volverFinanzas ? 'Volver a finanzas de sede' : 'Volver a reservas' }}</a>
         @endif
         @if (session('status'))
-            <p class="ui-panel p-4">{{ match(session('status')) { 'arriendo-solicitado' => 'Solicitud registrada. El horario quedó reservado dentro del plazo de confirmación.', 'aporte-definido' => 'Aporte definido. El plazo de confirmación se mantiene.', 'comprobante-adjuntado' => 'Comprobante adjuntado para revisión.', 'arriendo-confirmado' => $reserva->aporte_variable ? 'Reserva confirmada.' : 'Arriendo confirmado y garantía registrada como recibida.', 'reserva-cancelada' => 'Reserva cancelada y horario liberado.', 'arriendo-registrado' => $reserva->aporte_variable ? 'Aporte registrado en ingresos.' : 'Pago del arriendo registrado en ingresos y garantía registrada por separado.', 'garantia-por-devolver' => 'Garantía marcada como por devolver.', 'garantia-resuelta' => 'Resolución de garantía registrada.', 'retencion-registrada' => 'Ingreso por retención registrado nuevamente.', default => '' } }}</p>
+            <p class="ui-panel p-4">{{ match(session('status')) { 'arriendo-solicitado' => 'Solicitud registrada. El horario quedó reservado dentro del plazo de confirmación.', 'aporte-definido' => 'Aporte definido. El plazo de confirmación se mantiene.', 'comprobante-adjuntado' => 'Comprobante adjuntado para revisión.', 'arriendo-confirmado' => $reserva->aporte_variable ? 'Reserva confirmada.' : 'Arriendo confirmado y garantía registrada como recibida.', 'reserva-cancelada' => 'Reserva cancelada y horario liberado.', 'arriendo-registrado' => $reserva->aporte_variable ? 'Aporte registrado en ingresos.' : 'Aporte de sede registrado en ingresos y garantía registrada por separado.', 'garantia-por-devolver' => 'Garantía marcada como por devolver.', 'garantia-resuelta' => 'Resolución de garantía registrada.', 'retencion-registrada' => 'Ingreso por retención registrado nuevamente.', default => '' } }}</p>
         @endif
         <x-input-error :messages="$errors->get('arriendo')" />
         <x-input-error :messages="$errors->get('reserva')" />
@@ -67,7 +67,7 @@
                 @if ($reserva->aporte_variable && $reserva->valor_arriendo == 0)
                     <p>Reserva gratuita: no corresponde registrar un ingreso.</p>
                 @elseif ($reserva->ingresos->contains(fn ($ingreso) => ! $ingreso->estaAnulado()))
-                    <p>El pago del arriendo ya tiene un ingreso vigente.</p>
+                    <p>El aporte de la reserva ya tiene un ingreso vigente.</p>
                 @else
                     @if ($reserva->aporte_variable)
                         <p>Registrar ${{ number_format($reserva->valor_arriendo, 0, ',', '.') }} como aporte voluntario por reserva de sede. Se reutiliza el comprobante del aporte.</p>
@@ -77,12 +77,12 @@
                     <form method="POST" action="{{ route('finanzas.arriendos.registrar', $reserva) }}" class="space-y-4" x-data="{ medio: @js(old('medio_pago', 'transferencia')) }">
                         @csrf
                         <div>
-                            <x-input-label for="fecha_pago" value="Fecha del pago recibido" />
+                            <x-input-label for="fecha_pago" value="Fecha del aporte recibido" />
                             <x-date-input id="fecha_pago" name="fecha_pago" :value="old('fecha_pago', $reserva->validado_en->toDateString())" max="{{ now()->toDateString() }}" required />
                             <x-input-error :messages="$errors->get('fecha_pago')" />
                         </div>
                         <div>
-                            <x-input-label for="medio_pago" value="Medio de pago" />
+                            <x-input-label for="medio_pago" value="Medio del aporte" />
                             <select id="medio_pago" name="medio_pago" x-model="medio" class="ui-input w-full" required>
                                 @foreach (\App\Models\Ingreso::MEDIOS as $valor => $etiqueta)<option value="{{ $valor }}">{{ $etiqueta }}</option>@endforeach
                             </select>
@@ -93,7 +93,7 @@
                             <x-text-input id="talonario" name="talonario" :value="old('talonario')" maxlength="30" x-bind:disabled="medio !== 'efectivo'" x-bind:required="medio === 'efectivo'" />
                             <x-input-error :messages="$errors->get('talonario')" />
                         </div>
-                        <x-primary-button>{{ $reserva->aporte_variable ? 'Registrar aporte' : 'Registrar pago y garantía' }}</x-primary-button>
+                        <x-primary-button>{{ $reserva->aporte_variable ? 'Registrar aporte' : 'Registrar aporte y garantía' }}</x-primary-button>
                     </form>
                 @endif
                 @foreach ($reserva->ingresos as $ingreso)
@@ -107,11 +107,11 @@
                 @csrf
                 <h3 class="text-lg font-semibold">Confirmar reserva</h3>
                 @if (! $reserva->aporte_variable || $reserva->valor_arriendo > 0)
-                    <p>Revisa el comprobante y verifica el pago antes de confirmar.</p>
-                    <label class="flex gap-2"><input type="checkbox" name="pago_verificado" value="1" required @checked(old('pago_verificado'))> Pago verificado</label>
+                    <p>Revisa el comprobante y verifica el aporte recibido antes de confirmar.</p>
+                    <label class="flex gap-2"><input type="checkbox" name="pago_verificado" value="1" required @checked(old('pago_verificado'))> Aporte verificado</label>
                     <x-input-error :messages="$errors->get('pago_verificado')" />
                 @else
-                    <p>La reserva es gratuita y puede confirmarse sin pago.</p>
+                    <p>La reserva es gratuita y puede confirmarse sin aporte.</p>
                 @endif
                 @if (! $reserva->aporte_variable)
                     <label class="flex gap-2"><input type="checkbox" name="garantia_verificada" value="1" required @checked(old('garantia_verificada'))> Pago de la garantía verificado</label>

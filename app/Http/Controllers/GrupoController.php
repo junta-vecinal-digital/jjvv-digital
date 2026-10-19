@@ -145,9 +145,9 @@ class GrupoController extends Controller
         ]);
 
         $origen = $datos['origen_representante'];
-        // Un nombre o RUT distinto identifica a una persona ingresada manualmente.
+        // Completar un RUT ausente no cambia la persona seleccionada.
         if (isset($personas[$origen]) && (trim($datos['representante_nombre']) !== $personas[$origen]['nombre']
-            || $datos['representante_rut'] !== $personas[$origen]['rut'])) {
+            || (filled($personas[$origen]['rut']) && $datos['representante_rut'] !== RutChileno::normalizar($personas[$origen]['rut'])))) {
             $origen = 'manual';
         }
         $datos['representante_id'] = $personas[$origen]['socio_id'] ?? null;

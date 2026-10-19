@@ -1,9 +1,9 @@
 <x-app-layout>
     <x-slot name="header"><h1 class="text-2xl font-semibold">Préstamo de insumos · Finanzas</h1></x-slot>
     <div class="max-w-7xl mx-auto px-4 py-6 space-y-4">
-        <p>Préstamos aprobados, entregados o devueltos. El cobro se registra como ingreso; la garantía se mantiene separada.</p>
+        <p>Préstamos aprobados, entregados o devueltos. El aporte voluntario se registra como ingreso; la garantía se mantiene separada.</p>
         <section class="ui-panel overflow-x-auto">
-            <table class="ui-table"><thead><tr><th>Préstamo</th><th>Solicitante / agrupación</th><th>Cobro</th><th>Garantía</th><th></th></tr></thead><tbody>
+            <table class="ui-table"><thead><tr><th>Préstamo</th><th>Solicitante / agrupación</th><th>Aporte voluntario</th><th>Garantía</th><th></th></tr></thead><tbody>
                 @forelse ($solicitudes as $solicitud)
                     <tr>
                         <td>#{{ $solicitud->id }} · {{ \App\Models\SolicitudInsumo::ESTADOS[$solicitud->estado] }}</td>

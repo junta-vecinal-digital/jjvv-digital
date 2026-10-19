@@ -128,6 +128,7 @@ Route::middleware(['auth', 'role:presidente,tesorero'])->group(function () {
     Route::get('/ingresos', [IngresoController::class, 'index'])->name('ingresos.index');
     Route::get('/ingresos/crear', [IngresoController::class, 'create'])->name('ingresos.create');
     Route::post('/ingresos', [IngresoController::class, 'store'])->name('ingresos.store');
+    Route::get('/ingresos/{ingreso}/comprobante', [IngresoController::class, 'comprobante'])->whereNumber('ingreso')->name('ingresos.comprobante');
     Route::post('/ingresos/{ingreso}/anular', [IngresoController::class, 'anular'])
         ->whereNumber('ingreso')->name('ingresos.anular');
     Route::get('/egresos', [EgresoController::class, 'index'])->name('egresos.index');
