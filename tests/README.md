@@ -88,3 +88,5 @@ Todos los destinos de esta tabla son relativos a `tests/Feature`. Los seis archi
 | `Sprint3SolicitudesInsumosTest.php` | [Inventario/SolicitudesDeInsumosTest.php](Feature/Inventario/SolicitudesDeInsumosTest.php) |
 | `Sprint4MejorasCierreTest.php` | [Integracion/FichasDeDirigentesYSolicitudesTest.php](Feature/Integracion/FichasDeDirigentesYSolicitudesTest.php) |
 | `Sprint4AportesYCertificadosTest.php` | [Integracion/AportesCertificadosYComprobantesTest.php](Feature/Integracion/AportesCertificadosYComprobantesTest.php) |
+
+Correcciones del 19/10/2026: Integracion/VentanillaInventarioYProteccionDeDirigentesTest.php cubre restricciones de bajas/cuentas, ventanilla sin ficha, historial de consulta y actividad privada. Aplicar las migraciones antes de comprobar manualmente el catálogo.

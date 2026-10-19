@@ -156,7 +156,7 @@
                 </div>
             @endif
 
-            @if ($socio->user_id !== auth()->id() && $socio->estado === 'activo')
+            @if ($socio->user_id !== auth()->id() && ! $socio->user?->esDirigente() && $socio->estado === 'activo')
                 <div class="p-6 ui-panel">
                     <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">Dar de baja</h3>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">

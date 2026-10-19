@@ -157,7 +157,7 @@ test('entrega no descuenta dos veces y devolución completa libera solo unidades
     entregarSolicitudInsumos($this, $solicitud);
     expect($this->sillasInsumos->fresh()->disponibles())->toBe(2)->and($this->mesasInsumos->fresh()->disponibles())->toBe(0);
     $this->assertDatabaseCount('prestamos', 2);
-    $this->get(route('insumos.index'))->assertViewHas('solicitudes', fn ($lista) => $lista->isEmpty());
+    $this->get(route('insumos.index'))->assertViewHas('solicitudes', fn ($lista) => $lista->count() === 1);
     $this->get(route('inventario.prestamos.index'))->assertOk()->assertViewHas('solicitudes', fn ($lista) => $lista->count() === 1);
     $this->post(route('inventario.prestamos.devolver', Prestamo::first()), [])->assertStatus(422);
     $lineas = $solicitud->lineas->mapWithKeys(fn ($l) => [$l->id => ['estado_regreso' => 'bueno', 'cantidad_danada' => 0]])->all();

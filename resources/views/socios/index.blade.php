@@ -1,12 +1,9 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-            <h2 class="text-2xl font-semibold text-gray-900 dark:text-white leading-tight">Socios</h2>
-            <div class="flex flex-wrap gap-3">
-                <a href="{{ route('reportes.socios') }}" class="ui-button ui-button-secondary">Exportar socios activos</a>
-                <a href="{{ route('socios.crear') }}" class="ui-button ui-button-primary">Registrar socio</a>
-            </div>
-        </div>
+        <x-page-heading title="Gestión de socios" description="Consulta fichas, revisa inscripciones y registra socios en ventanilla.">
+            <a href="{{ route('reportes.socios') }}" class="ui-button ui-button-secondary">Exportar socios activos</a>
+            <a href="{{ route('socios.crear') }}" class="ui-button ui-button-primary">Registrar socio</a>
+        </x-page-heading>
     </x-slot>
 
     @php

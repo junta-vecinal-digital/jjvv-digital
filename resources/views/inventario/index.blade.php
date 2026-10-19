@@ -1,15 +1,7 @@
 <x-app-layout>
-    <x-slot name="header">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-            <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Inventario</h1>
-            <div class="flex flex-wrap gap-3">
-                <a href="{{ route('inventario.prestamos.index') }}" class="ui-button ui-button-secondary">Ver préstamos</a>
-                <a href="{{ route('insumos.index') }}" class="ui-button ui-button-primary">Solicitudes de insumos</a>
-            </div>
-        </div>
-    </x-slot>
+    <x-slot name="header"><x-page-heading title="Inventario" description="Consulta existencias, registra insumos y revisa el historial de préstamos." /></x-slot>
     <div class="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-        <x-reservas-tabs active="insumos" />
+
         @if (session('status'))
             <p role="status" class="rounded-lg bg-green-100 p-4 text-sm text-green-800 dark:bg-green-900/40 dark:text-green-200">{{ session('status') }}</p>
         @endif
@@ -74,5 +66,14 @@
             </table>
         </div>
         {{ $items->links() }}
+        <section class="ui-panel" id="historial">
+            <details @if (request()->routeIs('inventario.prestamos.index') || request()->hasAny(['entregas', 'historicos'])) open @endif>
+                <summary class="cursor-pointer p-5 text-lg font-semibold">Historial de préstamos</summary>
+                <div class="space-y-4 p-4 pt-0">
+                    <p class="text-sm text-gray-500">Consulta de entregas y devoluciones. Las operaciones se registran desde Solicitudes de insumos.</p>
+                    @include('inventario._historial')
+                </div>
+            </details>
+        </section>
     </div>
 </x-app-layout>

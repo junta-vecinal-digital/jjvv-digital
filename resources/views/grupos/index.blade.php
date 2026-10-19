@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="text-2xl font-semibold text-gray-900 dark:text-white leading-tight">Grupos y organizaciones</h2>
+        <x-page-heading title="Gestión de agrupaciones" description="Consulta agrupaciones, representantes y horarios fijos de uso de la sede." />
     </x-slot>
 
     <div class="py-6">

@@ -60,3 +60,11 @@ Actividad de pruebas generales del sprint 4: archivos organizados por módulos, 
 - Las migraciones y los assets correspondientes deben estar aplicados al comprobar cambios; no se presume que se hayan desplegado en AWS. El vencimiento en segundo plano requiere scheduler; la consulta de ocupación también excluye pendientes vencidas.
 - Ajustes finales autorizados: ficha activa para trámites personales de dirigentes, revisión por otra persona, RUT de representantes/solicitudes, reservas unificadas y mejoras visuales. Requisitos actualizados con autorización específica del usuario; futuros cambios requieren nueva confirmación.
 - En futuras entregas, actualizar aquí el estado y los pendientes. Reservar el historial para detalles de implementación, correcciones y evidencia, evitando duplicarlos en este resumen.
+
+Ajuste posterior solicitado — 18/10/2026: navegación contextual y nombres más claros en Reservas, registro en ventanilla y autocompletado del representante por vínculo o RUT válido. Tests confirmados por el usuario; requisitos sin cambios.
+
+Optimización visual, etapas 1 a 3 — 18/10/2026: accesos por cargo en el panel, navegación destacada y encabezados uniformes en gestiones frecuentes. Compilación comprobada; el usuario da conformidad inicial y autoriza continuar. Se mantienen módulos y permisos.
+
+Optimización visual, continuación — 18/10/2026: estados destacados en reservas e insumos, orientación del siguiente paso en detalles, avance numérico y botones adaptables en formularios, mejoras de tablas, foco y avisos accesibles. Pendiente de tests y revisión visual del usuario, incluidos zoom y ventanas pequeñas.
+
+Correcciones autorizadas — 19/10/2026: Inventario independiente con existencias editables e historial de consulta; actividades y campo En representación de ajustados; solicitudes de insumos de cualquier vecino en ventanilla; bajas de dirigentes y eliminación de cuentas restringidas; horarios de retiro ocultos para presidente/secretario. REQUIREMENTS.md actualizado con autorización específica. Migración 000015 y pruebas de regresión preparadas; aplicación de migración, tests y comprobación manual pendientes del usuario.

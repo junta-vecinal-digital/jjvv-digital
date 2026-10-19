@@ -12,6 +12,7 @@
     <div class="py-6">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
 
+            @if (session('status') === 'usuario-eliminado')<p role="status" class="ui-panel p-4">Cuenta eliminada. La ficha y los registros históricos se conservan.</p>@endif
             @if (session('status') === 'usuario-creado')
                 <div class="p-4 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 rounded-lg text-sm">
                     El usuario fue creado. Entrégale su contraseña temporal de forma segura.

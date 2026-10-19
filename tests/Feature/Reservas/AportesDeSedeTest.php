@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Ingreso;
+use App\Models\Grupo;
 use App\Models\Parametro;
 use App\Models\Reserva;
 use App\Models\Socio;
@@ -208,3 +209,22 @@ test('no permite redefinir importes ni reemplazar comprobantes históricos', fun
     expect($reserva->fresh()->valor_arriendo)->toBe(40000)->and($reserva->valor_garantia)->toBe(40000);
     expect(Storage::disk('local')->allFiles())->toBe([]);
 });
+
+test('ventanilla vincula al socio por el RUT del representante manual sin aceptar otro RUT', function (string $rut, bool $valido) {
+    $grupo = Grupo::create([
+        'nombre' => 'Agrupación del barrio', 'representante_nombre' => 'Representante manual',
+        'representante_rut' => $rut,
+    ]);
+    $respuesta = $this->post(route('arriendos.store'), solicitudSedeAporte([
+        'grupo_id' => $grupo->id, 'socio_id' => $this->socioAporte->id,
+        'modalidad_solicitante' => 'socio', 'valor_arriendo' => 0,
+    ]));
+    if (! $valido) {
+        $respuesta->assertSessionHasErrors('grupo_id');
+        $this->assertDatabaseCount('reservas', 0);
+        return;
+    }
+    $respuesta->assertSessionHasNoErrors();
+    expect(Reserva::sole()->socio_id)->toBe($this->socioAporte->id)
+        ->and(Reserva::sole()->grupo_id)->toBe($grupo->id);
+})->with([['12.345.678-5', true], ['11.111.111-1', false]]);

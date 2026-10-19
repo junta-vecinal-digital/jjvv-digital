@@ -1,6 +1,8 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="text-2xl font-semibold text-gray-900 dark:text-white leading-tight">Ingresos</h2>
+        <x-page-heading title="Ingresos" description="Consulta los aportes recibidos y sus respaldos.">
+            <a href="{{ route('ingresos.create') }}" class="ui-button ui-button-primary">Registrar ingreso</a>
+        </x-page-heading>
     </x-slot>
 
     <div class="py-6">
@@ -22,7 +24,7 @@
 
             <div class="flex flex-wrap justify-between items-center gap-3">
                 <p class="text-gray-700 dark:text-gray-300">Saldo de caja: <strong>${{ number_format($saldo, 0, ',', '.') }}</strong></p>
-                <a href="{{ route('ingresos.create') }}" class="ui-button ui-button-primary">Registrar ingreso</a>
+
             </div>
 
             <div class="ui-panel p-6 overflow-x-auto">

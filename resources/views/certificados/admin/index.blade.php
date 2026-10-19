@@ -1,9 +1,8 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-            <h2 class="text-2xl font-semibold text-gray-900 dark:text-white leading-tight">Certificados</h2>
+        <x-page-heading title="Gestión de certificados" description="Revisa solicitudes o emite un certificado para imprimir en ventanilla.">
             <a href="{{ route('admin.certificados.create') }}" class="ui-button ui-button-primary">Emitir en ventanilla</a>
-        </div>
+        </x-page-heading>
     </x-slot>
 
     @php $cls = 'border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 rounded-md shadow-sm text-sm'; @endphp

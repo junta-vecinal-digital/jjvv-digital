@@ -20,7 +20,7 @@
         </div>
     </x-slot>
     <div class="mx-auto max-w-3xl px-4 py-6 sm:px-6 lg:px-8">
-        <div class="mb-4"><x-reservas-tabs active="insumos" /></div>
+        <div class="mb-4"><x-reservas-tabs active="prestamos" /></div>
         <div class="ui-panel p-6">
             @if ($items->every(fn ($item) => $item->disponibles() === 0))
                 <p>No hay unidades disponibles para prestar. Revisa el <a href="{{ route('inventario.index') }}" class="text-brand-500 underline">inventario</a>.</p>

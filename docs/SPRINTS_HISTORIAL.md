@@ -1,5 +1,45 @@
 # Historial de sprints
 
+## Sprint 4: correcciones de navegación, ventanilla y protección de dirigentes — 19/10/2026
+
+- Autorización específica del usuario para actualizar requisitos: Inventario conserva registro/edición y reúne historial de consulta fuera de Reservas; se retiran accesos cruzados del formulario de sede. Operaciones de insumos en su bandeja, incluidos entregados pendientes de devolución. Préstamos anteriores abiertos siguen operándose desde esa bandeja; historial y detalles abiertos desde él son de consulta.
+- Actividades iniciales: junta, comunitaria, agrupación, privada y taller. Migración 000015 actualiza catálogo sin modificar nombres guardados en reservas existentes. El selector En representación de se habilita solo para agrupaciones y se limpia al cambiar de actividad. Se conserva validación del representante; particulares en ventanilla no exigen ficha. Actividades adicionales mantienen aporte cero.
+- Préstamos de insumos en ventanilla para cualquier vecino con nombre, RUT validado, domicilio y teléfono, sin crear ficha/cuenta ni exigir agrupación. Solicitudes en línea conservan ficha activa. Se ocultan horarios de retiro a presidente/secretario y el texto indicado sobre aportes en sede.
+- Solo administrador puede dar de baja ficha de dirigente desde Usuarios con motivo/fecha. Dirigentes y administradores no eliminan su propia cuenta desde perfil; administrador puede eliminar otras cuentas con confirmación. Se conservan fichas y registros. Restricciones también en servidor, sin acceso administrativo general a fichas.
+- Regresión preparada en Integracion/VentanillaInventarioYProteccionDeDirigentesTest.php. Caso existente ajustado para mantener entregados visibles en la bandeja operativa. No se ejecutan tests ni migraciones desde el agente; sintaxis, rutas y compilación se revisan. Migración, tests y revisión manual pendientes del usuario. Sin despliegue ni instalaciones.
+
+---
+
+## Sprint 4: continuación de optimización visual — 18/10/2026
+
+- El usuario da conformidad inicial a las etapas 1 a 3 y autoriza continuar. Se mejoran presentación y orientación, conservando los flujos y permisos existentes.
+- Etiquetas de estado compartidas en listados y detalles de reservas, solicitudes de insumos y préstamos entregados. El texto del estado se conserva, sin depender solo del color.
+- Detalles de sede e insumos con encabezados uniformes y orientación del siguiente paso según estado y permisos operativos; no se añaden acciones ni validaciones nuevas.
+- Formularios por pasos con avance numérico, botones que se adaptan al ancho disponible y sin recortar los selectores de fecha. Errores y confirmaciones de detalle con roles accesibles.
+- Tablas con encabezados más legibles, alineación superior, enlaces reconocibles y resaltado de fila; foco de teclado visible y contención del ancho en zonas de tablas.
+- Sin tests ejecutados por el agente, requisitos, migraciones, instalaciones ni despliegue. Sintaxis de vistas y compilación revisadas. Tests y comprobación manual de estados, formularios, modo oscuro, zoom y ventanas pequeñas pendientes del usuario. No se acredita revisión visual automatizada.
+
+---
+
+## Sprint 4: optimización visual, etapas 1 a 3 — 18/10/2026
+
+- El usuario confirma los tests del ajuste anterior de reservas y navegación. Autoriza continuar con el plan visual; se implementan sus primeras tres etapas para revisión.
+- Panel con bienvenida compacta y accesos por cargo: gestión vecinal para presidente/secretario y accesos financieros para presidente/tesorero. Se conservan las listas existentes de pendientes y sus permisos.
+- Apartado activo más visible, foco de teclado en menú y flechas de desplegables que indican apertura. Se mantienen el orden y los módulos acordados.
+- Encabezado compartido con título, orientación breve y acciones en socios, certificados, agrupaciones, ingresos, egresos, reservas e insumos. Acciones de ingresos/egresos trasladadas al encabezado sin duplicarlas.
+- Sin cambios de requisitos, permisos, datos o dependencias. No se ejecutan tests. Compilación y sintaxis se revisan; presentación y funcionamiento quedan pendientes de revisión del usuario. Las etapas 4 a 7 se reservan para la siguiente entrega.
+
+---
+
+## Sprint 4: ajustes de navegación y reservas — 18/10/2026
+
+- Se aclaran nombres y accesos entre reservas, solicitudes de insumos, inventario y préstamos entregados. Se incorpora ubicación con regreso al panel y al listado. Finanzas distingue Aportes de sede. Se conservan módulos y permisos.
+- Presidente/secretario ven Reserva en ventanilla. El formulario no describe las actividades como gratuitas; se usa Sin aporte cuando corresponde.
+- Al seleccionar una agrupación se completa su representante vinculado o el socio activo con el mismo RUT válido; sin ficha, se completan datos de ventanilla. Se añade prueba de coincidencia y rechazo por RUT.
+- Sintaxis y compilación comprobadas; tests y revisión manual pendientes del usuario. Requisitos y despliegue sin cambios.
+
+---
+
 ## Sprint 4: organización de pruebas generales y regresión — 18/10/2026
 
 - A petición del usuario, la organización de las pruebas generales y su regresión se registran como parte del sprint 4, complementando el cierre funcional local ya aceptado. El usuario autorizó reorganizar las pruebas por módulos. Se movieron/renombraron 33 archivos y se conservaron los seis de Auth, manteniendo 39 archivos en Feature y el ejemplo existente en Unit.

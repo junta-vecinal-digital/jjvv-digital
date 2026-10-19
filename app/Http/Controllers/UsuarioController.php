@@ -10,6 +10,27 @@ use Illuminate\Validation\Rules\Password;
 
 class UsuarioController extends Controller
 {
+    public function destroy(Request $request, User $usuario)
+    {
+        abort_if($usuario->is($request->user()), 403, 'No puedes eliminar tu propia cuenta de administrador.');
+        $request->validate(['confirmar_eliminacion' => ['required', 'accepted']]);
+        $usuario->delete();
+
+        return redirect()->route('usuarios.index')->with('status', 'usuario-eliminado');
+    }
+
+    public function bajaDirigente(Request $request, User $usuario)
+    {
+        abort_unless($usuario->esDirigente() && $usuario->socio?->estado === 'activo', 422);
+        $datos = $request->validate([
+            'motivo_baja' => ['required', 'string', 'max:500'],
+            'fecha_baja' => ['required', 'date', 'before_or_equal:today'],
+        ]);
+        $usuario->socio->update($datos + ['estado' => 'inactivo', 'revisado_por' => $request->user()->id]);
+
+        return back()->with('status', 'dirigente-dado-de-baja');
+    }
+
     public function index(Request $request)
     {
         $usuarios = User::query()

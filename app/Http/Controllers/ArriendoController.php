@@ -47,6 +47,15 @@ class ArriendoController extends Controller
         $usuario = $request->user();
         $esDirigente = $usuario->hasRole('presidente', 'secretario');
         abort_unless($esDirigente || $usuario->esSocioActivo(), 403);
+        if ($esDirigente && $request->filled('actividad_reserva') && $request->actividad_reserva !== 'particular') {
+            $request->validate([
+                'actividad_reserva' => ['required', 'string', Rule::exists('tipos_actividad', 'clave')->where('activo', true)],
+                'valor_arriendo' => ['required', 'integer', 'in:0'],
+                'grupo_id' => $request->actividad_reserva === 'grupo' ? ['required', 'integer', 'exists:grupos,id'] : ['prohibited'],
+            ]);
+            $request->merge(['tipo' => $request->actividad_reserva]);
+            return app(ReservaController::class)->store($request);
+        }
         if ($esDirigente && $request->filled('tipo_actividad') && $request->tipo_actividad !== 'sede') {
             $request->validate(['valor_arriendo' => ['required', 'integer', 'in:0']]);
             $request->merge(['tipo' => $request->input('tipo_actividad')]);
@@ -58,6 +67,7 @@ class ArriendoController extends Controller
         }
 
         $datos = $request->validate([
+            'actividad_reserva' => ['sometimes', 'required', 'string', Rule::exists('tipos_actividad', 'clave')->where('activo', true)],
             'modalidad_solicitante' => $esDirigente ? ['sometimes', 'string', 'in:socio,manual'] : ['exclude'],
             'socio_id' => $esDirigente && ! $manual ? ['required', 'integer', Rule::exists('socios', 'id')->where('estado', 'activo')] : ['exclude'],
             'responsable_nombre' => $manual ? ['required', 'string', 'max:255'] : ['exclude'],
@@ -73,7 +83,16 @@ class ArriendoController extends Controller
                 ? ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'] : ['exclude'],
         ]);
 
-        return DB::transaction(function () use ($request, $usuario, $esDirigente, $manual, $datos) {
+        $actividad = isset($datos['actividad_reserva']) ? TipoActividad::where('clave', $datos['actividad_reserva'])->firstOrFail() : null;
+        if ($actividad) {
+            abort_unless($esDirigente || in_array($actividad->clave, ['particular', 'grupo'], true), 403);
+            $request->validate([
+                'grupo_id' => $actividad->clave === 'grupo' ? ['required', 'integer', 'exists:grupos,id'] : ['prohibited'],
+                'valor_arriendo' => $esDirigente && $actividad->clave !== 'particular' ? ['required', 'integer', 'in:0'] : ['nullable'],
+            ]);
+        }
+
+        return DB::transaction(function () use ($request, $usuario, $esDirigente, $manual, $datos, $actividad) {
             DB::table('parametros')->where('clave', 'sede_hora_inicio')->update(['valor' => DB::raw('valor')]);
             Reserva::liberarVencidos();
             $socio = $manual ? null : ($esDirigente ? Socio::findOrFail($datos['socio_id']) : $usuario->socio->fresh());
@@ -84,7 +103,9 @@ class ArriendoController extends Controller
                 $esRepresentante = $manual
                     ? mb_strtolower(trim($datos['responsable_nombre'])) === mb_strtolower($grupo->datosRepresentante()['nombre'] ?? '')
                         && (! $grupo->datosRepresentante()['rut'] || $datos['responsable_rut'] === RutChileno::normalizar($grupo->datosRepresentante()['rut']))
-                    : ((int) $grupo->representante_id === $socio->id || (int) $grupo->representante_usuario_id === $socio->user_id);
+                    : ((int) $grupo->representante_id === $socio->id || ($socio->user_id && (int) $grupo->representante_usuario_id === $socio->user_id)
+                        || (RutChileno::esValido($grupo->datosRepresentante()['rut'])
+                            && RutChileno::normalizar($grupo->datosRepresentante()['rut']) === RutChileno::normalizar($socio->rut)));
                 if (! $grupo->tieneRepresentanteVigente() || ! $esRepresentante) {
                     throw ValidationException::withMessages(['grupo_id' => 'El responsable debe ser el representante vigente del grupo.']);
                 }
@@ -102,8 +123,8 @@ class ArriendoController extends Controller
                 'estado' => 'pendiente',
                 'inicio' => $inicio,
                 'fin' => $fin,
-                'motivo' => 'Reserva de sede',
-                'tipo_nombre' => 'Reserva de sede',
+                'motivo' => $actividad?->nombre ?? 'Reserva de sede',
+                'tipo_nombre' => $actividad?->nombre ?? 'Reserva de sede',
                 'responsable_nombre' => $manual ? $datos['responsable_nombre'] : $socio->nombre_completo,
                 'responsable_rut' => $manual ? $datos['responsable_rut'] : $socio->rut,
                 'responsable_direccion' => $manual ? $datos['responsable_direccion'] : $socio->direccion,

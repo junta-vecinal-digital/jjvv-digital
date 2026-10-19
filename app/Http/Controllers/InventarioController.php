@@ -4,17 +4,28 @@ namespace App\Http\Controllers;
 
 use App\Models\ItemInventario;
 use App\Models\TipoInsumo;
+use App\Models\Prestamo;
+use App\Models\SolicitudInsumo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class InventarioController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $filtros = $request->validate(['estado' => ['nullable', 'in:prestado,devuelto']]);
         return view('inventario.index', [
             'items' => ItemInventario::with('tipoInsumo')->conExistencias()->orderBy('nombre')->paginate(20),
             'tiposInsumo' => TipoInsumo::whereDoesntHave('existencias')->orderBy('categoria')->orderBy('nombre')->get(),
+            'prestamos' => Prestamo::with('item')->whereNull('solicitud_insumo_id')
+                ->when(($filtros['estado'] ?? null) === 'prestado', fn ($q) => $q->whereNull('fecha_devolucion'))
+                ->when(($filtros['estado'] ?? null) === 'devuelto', fn ($q) => $q->whereNotNull('fecha_devolucion'))
+                ->latest('fecha_prestamo')->paginate(20, ['*'], 'historicos')->withQueryString(),
+            'solicitudes' => SolicitudInsumo::whereIn('estado', ['entregado', 'devuelto'])
+                ->when(($filtros['estado'] ?? null) === 'prestado', fn ($q) => $q->where('estado', 'entregado'))
+                ->when(($filtros['estado'] ?? null) === 'devuelto', fn ($q) => $q->where('estado', 'devuelto'))
+                ->latest('id')->paginate(20, ['*'], 'entregas')->withQueryString(),
         ]);
     }
 

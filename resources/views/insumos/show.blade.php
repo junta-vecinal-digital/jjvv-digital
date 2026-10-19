@@ -1,14 +1,24 @@
 <x-app-layout>
-    <x-slot name="header"><h1 class="text-2xl font-semibold">Solicitud de insumos #{{ $solicitud->id }}</h1></x-slot>
+    <x-slot name="header"><x-page-heading :title="'Solicitud de insumos #'.$solicitud->id" description="Revisa el estado, las unidades solicitadas y las condiciones del préstamo." /></x-slot>
     <div class="max-w-4xl mx-auto px-4 py-6 space-y-6">
+        @if (request('consulta') === 'historial' && auth()->user()->hasRole('presidente', 'secretario'))
+            <a class="underline" href="{{ route('inventario.index') }}#historial">Volver al historial de inventario</a>
+        @else
         <a class="underline" href="{{ route($gestion && in_array($solicitud->estado, ['entregado', 'devuelto']) ? 'inventario.prestamos.index' : 'insumos.index') }}">Volver a {{ $gestion && in_array($solicitud->estado, ['entregado', 'devuelto']) ? 'préstamos entregados' : 'solicitudes' }}</a>
-        @if (session('status'))<p class="ui-panel p-4">{{ session('status') }}</p>@endif
+        @endif
+        @if (session('status'))<p role="status" class="ui-panel p-4">{{ session('status') }}</p>@endif
         @if ($errors->any())<div class="ui-panel p-4 text-red-600">@foreach ($errors->all() as $error)<p>{{ $error }}</p>@endforeach</div>@endif
         @if (auth()->user()->hasRole('presidente', 'tesorero') && $solicitud->estado !== 'pendiente')
             <a class="underline" href="{{ route('finanzas.insumos.show', $solicitud) }}">Ver aporte y garantía en Finanzas</a>
         @endif
+        @if ($gestion && in_array($solicitud->estado, ['pendiente', 'aprobado', 'entregado']))
+            <aside class="rounded-xl border border-brand-400/40 bg-brand-50 p-4 text-sm text-brand-600 dark:bg-brand-500/10 dark:text-brand-400" aria-label="Siguiente paso">
+                <h2 class="font-semibold">Siguiente paso</h2>
+                <p class="mt-1">{{ match ($solicitud->estado) { 'pendiente' => 'Revisa los datos y las unidades. Más abajo puedes definir las condiciones y aprobar el préstamo.', 'aprobado' => 'Las unidades están reservadas. Registra su entrega cuando el solicitante las retire.', 'entregado' => 'Al recibir todos los insumos, registra la devolución y las unidades dañadas, si corresponde.' } }}</p>
+            </aside>
+        @endif
         <section class="ui-panel p-6 space-y-3">
-            <p>Estado: <strong>{{ \App\Models\SolicitudInsumo::ESTADOS[$solicitud->estado] }}</strong>@if ($solicitud->atrasado()) <strong class="text-red-600">· Atrasado</strong>@endif</p>
+            <p>Estado: <x-status-badge :state="$solicitud->estado" :label="\App\Models\SolicitudInsumo::ESTADOS[$solicitud->estado]" />@if ($solicitud->atrasado()) <strong class="text-red-600">· Atrasado</strong>@endif</p>
             <p>Solicitante: {{ $solicitud->solicitante_nombre }} · {{ $solicitud->canal === 'ventanilla' ? 'Ventanilla' : 'En línea' }}</p>
             <p>Agrupación: {{ $solicitud->grupo_nombre ?? 'Particular' }}</p>
             @if ($solicitud->solicitante_rut)<p>RUT: {{ $solicitud->solicitante_rut }}</p>@endif
@@ -25,7 +35,7 @@
                 @endforeach
             </tbody></table></div>
         </section>
-        @if (in_array($solicitud->estado, ['pendiente', 'aprobado'])) @include('insumos._horarios') @endif
+        @if (! auth()->user()->hasRole('presidente', 'secretario') && in_array($solicitud->estado, ['pendiente', 'aprobado'])) @include('insumos._horarios') @endif
         @if ($gestion && $solicitud->estado === 'pendiente')
             <section class="ui-panel p-6">
                 <h2 class="font-semibold mb-4">Aprobar y reservar todas las unidades</h2>

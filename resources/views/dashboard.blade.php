@@ -3,11 +3,41 @@
         <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Panel de inicio</h1>
     </x-slot>
     <div class="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-        <section class="rounded-2xl border border-gray-200 bg-white p-6 sm:p-8 dark:border-gray-800 dark:bg-gray-900">
+        <section class="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 dark:border-gray-800 dark:bg-gray-900">
             <span class="inline-flex rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-600 dark:bg-brand-500/15 dark:text-brand-400">{{ Auth::user()->nombreRol() }}</span>
-            <h2 class="mt-4 text-2xl font-semibold text-gray-900 dark:text-white">Bienvenido, {{ Auth::user()->name }}</h2>
-            <p class="mt-2 text-sm leading-6 text-gray-500 dark:text-gray-400">Accede a las gestiones de tu junta de vecinos desde el menú lateral.</p>
+            <h2 class="mt-2 text-xl font-semibold text-gray-900 dark:text-white">Bienvenido, {{ Auth::user()->name }}</h2>
+            <p class="mt-2 text-sm leading-6 text-gray-500 dark:text-gray-400">Elige una gestión para comenzar. También puedes acceder a todos los apartados desde el menú lateral.</p>
         </section>
+        @if (Auth::user()->esDirigente())
+            @php
+                $accesos = Auth::user()->hasRole('presidente', 'secretario') ? [
+                    ['socios.index', 'Gestión de socios', 'Inscripciones, fichas y revisión de antecedentes.'],
+                    ['admin.certificados.index', 'Gestión de certificados', 'Revisar solicitudes y emitir en ventanilla.'],
+                    ['reservas.index', 'Reserva en ventanilla', 'Registrar y revisar el uso de la sede.'],
+                    ['insumos.index', 'Solicitudes de insumos', 'Revisar solicitudes y gestionar su entrega.'],
+                ] : [];
+                if (Auth::user()->hasRole('presidente', 'tesorero')) {
+                    $accesos = array_merge($accesos, [
+                        ['ingresos.create', 'Registrar ingreso', 'Registrar un aporte recibido y su respaldo.'],
+                        ['egresos.create', 'Registrar egreso', 'Registrar una salida de caja y su comprobante.'],
+                        ['finanzas.arriendos.index', 'Aportes de sede', 'Consultar y registrar aportes de las reservas.'],
+                        ['reportes.index', 'Reportes', 'Consultar y exportar información de gestión.'],
+                    ]);
+                }
+            @endphp
+            <section aria-labelledby="gestiones-frecuentes">
+                <h2 id="gestiones-frecuentes" class="mb-3 text-lg font-semibold text-gray-900 dark:text-white">¿Qué necesitas hacer?</h2>
+                <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    @foreach ($accesos as [$ruta, $titulo, $descripcion])
+                        <a href="{{ route($ruta) }}" class="ui-panel flex flex-col p-5 transition-colors hover:border-brand-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500">
+                            <h3 class="font-semibold text-gray-900 dark:text-white">{{ $titulo }}</h3>
+                            <p class="mb-4 mt-2 text-sm leading-6 text-gray-500 dark:text-gray-400">{{ $descripcion }}</p>
+                            <span class="mt-auto text-sm font-medium text-brand-600 dark:text-brand-400">Abrir &rarr;</span>
+                        </a>
+                    @endforeach
+                </div>
+            </section>
+        @endif
         @if (Auth::user()->hasRole('presidente'))
             <div class="grid gap-6 md:grid-cols-2">
                 <section class="ui-panel p-6">

@@ -274,6 +274,8 @@ Route::middleware(['auth', 'role:admin'])
         Route::post('/', [UsuarioController::class, 'store'])->name('store');
         Route::get('/{usuario}/editar', [UsuarioController::class, 'edit'])->name('edit');
         Route::patch('/{usuario}', [UsuarioController::class, 'update'])->name('update');
+        Route::delete('/{usuario}', [UsuarioController::class, 'destroy'])->name('destroy');
+        Route::post('/{usuario}/baja', [UsuarioController::class, 'bajaDirigente'])->name('baja');
     });
 
 require __DIR__.'/auth.php';

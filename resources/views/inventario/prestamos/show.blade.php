@@ -6,7 +6,7 @@
         </div>
     </x-slot>
     <div class="mx-auto max-w-4xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-        <x-reservas-tabs active="insumos" />
+
         @if (session('status'))
             <p role="status" class="rounded-lg bg-green-100 p-4 text-sm text-green-800 dark:bg-green-900/40 dark:text-green-200">{{ session('status') }}</p>
         @endif
@@ -30,7 +30,7 @@
                 <p>Disponibles nuevamente: {{ $prestamo->cantidad - $prestamo->cantidad_danada }}. Fuera de servicio: {{ $prestamo->cantidad_danada }}.</p>
                 <p class="text-sm text-gray-500 dark:text-gray-400">Recibió: {{ $prestamo->receptor?->name ?? 'Cuenta eliminada' }}.</p>
             </section>
-        @else
+        @elseif (request('consulta') !== 'historial')
             <details class="ui-panel p-6" @if ($errors->any()) open @endif>
                 <summary class="cursor-pointer text-lg font-semibold">Registrar devolución completa</summary>
                 <p class="my-4 text-sm text-gray-500 dark:text-gray-400">Se devolverán las {{ $prestamo->cantidad }} unidades del préstamo. Indica cuántas vuelven dañadas: quedarán fuera de servicio y no podrán prestarse nuevamente.</p>

@@ -27,9 +27,10 @@ class SolicitudInsumoController extends Controller
             'items' => ItemInventario::with('tipoInsumo')->conExistencias()->whereNotNull('tipo_insumo_id')->orderBy('nombre')->get(),
             'horarios' => HorarioAtencion::orderBy('dia_semana')->orderBy('hora_inicio')->get(),
             'solicitudes' => SolicitudInsumo::query()
-                ->when($gestion, fn ($q) => $q->whereIn('estado', ['pendiente', 'aprobado']))
+                ->when($gestion, fn ($q) => $q->whereIn('estado', ['pendiente', 'aprobado', 'entregado']))
                 ->when(! $gestion, fn ($q) => $q->where('solicitante_id', $request->user()->id))
                 ->latest('id')->paginate(20),
+            'prestamosHistoricos' => $gestion ? Prestamo::with('item')->whereNull('solicitud_insumo_id')->whereNull('fecha_devolucion')->orderBy('fecha_prestamo')->get() : collect(),
         ]);
     }
 
@@ -38,25 +39,31 @@ class SolicitudInsumoController extends Controller
         $this->autorizarSolicitud($request);
         $gestion = $request->user()->hasRole('presidente', 'secretario');
         if (is_string($request->solicitante_rut)) $request->merge(['solicitante_rut' => RutChileno::normalizar($request->solicitante_rut)]);
+        $manual = $gestion && $request->solicitante === 'manual';
         $datos = $request->validate([
+            'solicitante_nombre' => $manual ? ['required', 'string', 'max:255'] : ['exclude'],
             'solicitante' => $gestion ? ['required', 'string'] : ['exclude'],
             'solicitante_rut' => ['nullable', 'string', 'max:12', new RutChileno],
             'grupo_id' => ['nullable', 'integer'],
             'telefono_contacto' => ['required', 'string', 'max:20'],
-            'direccion_contacto' => ['nullable', 'string', 'max:255'],
+            'direccion_contacto' => [$manual ? 'required' : 'nullable', 'string', 'max:255'],
             'fecha_comprometida' => ['required', 'date_format:Y-m-d', 'after_or_equal:today'],
             'lineas' => ['required', 'array', 'min:1', 'max:100'],
             'lineas.*.item_inventario_id' => ['required', 'integer', 'distinct', Rule::exists('items_inventario', 'id')->whereNotNull('tipo_insumo_id')],
             'lineas.*.cantidad' => ['required', 'integer', 'min:1', 'max:4294967295'],
         ]);
 
-        return DB::transaction(function () use ($request, $gestion, $datos) {
+        return DB::transaction(function () use ($request, $gestion, $datos, $manual) {
             $personas = $this->personas($request);
             $persona = $gestion ? $personas->firstWhere('clave', $datos['solicitante']) : $personas->first();
+            if ($manual) $persona = [
+                'usuario_id' => null, 'socio_id' => null, 'nombre' => $datos['solicitante_nombre'],
+                'rut' => $datos['solicitante_rut'] ?? null, 'correo' => null, 'grupos' => [],
+            ];
             if (! $persona) throw ValidationException::withMessages(['solicitante' => 'Selecciona un socio activo, dirigente o representante de grupo vigente.']);
             $rut = $persona['rut'] ?: ($datos['solicitante_rut'] ?? null);
             if (! RutChileno::esValido($rut)) {
-                throw ValidationException::withMessages(['solicitante_rut' => 'Completa un RUT válido para el representante antes de solicitar insumos.']);
+                throw ValidationException::withMessages(['solicitante_rut' => 'Completa un RUT válido para el solicitante antes de solicitar insumos.']);
             }
             $grupos = collect($persona['grupos']);
             $grupoId = $datos['grupo_id'] ?? ($grupos->count() === 1 ? $grupos->first()['id'] : null);
@@ -87,7 +94,7 @@ class SolicitudInsumoController extends Controller
         $this->autorizarConsulta($request, $solicitud);
         return view('insumos.show', [
             'solicitud' => $solicitud->load('lineas.prestamo'),
-            'gestion' => $request->user()->hasRole('presidente', 'secretario'),
+            'gestion' => $request->user()->hasRole('presidente', 'secretario') && $request->query('consulta') !== 'historial',
             'dirigentes' => User::whereIn('role', ['presidente', 'secretario', 'tesorero'])->orderBy('name')->get(),
             'horarios' => HorarioAtencion::orderBy('dia_semana')->orderBy('hora_inicio')->get(),
         ]);
@@ -113,7 +120,7 @@ class SolicitudInsumoController extends Controller
                 : (($socio && $grupo->representante_id === $socio->id)
                     || ($usuario && $grupo->representante_usuario_id === $usuario->id)
                     || ($usuario?->socio && $grupo->representante_id === $usuario->socio->id)));
-            if (($externo && ! $representa)
+            if (($externo && $solicitud->canal !== 'ventanilla')
                 || (! $externo && $socio?->estado !== 'activo')
                 || ($solicitud->grupo_id && ! $representa)) {
                 throw ValidationException::withMessages(['operacion' => 'El solicitante o la representación ya no cumple las condiciones para aprobar el préstamo.']);

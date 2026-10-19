@@ -191,7 +191,7 @@ Alpine.data('arriendoFormulario', (estado, representantes) => ({
     elegirGrupo() {
         const persona = this.representantes[this.grupoId];
         if (!persona) return;
-        this.socioId = persona.socioId;
+        this.socioId = String(persona.socioId ?? '');
         this.modalidad = persona.socioId ? 'socio' : 'manual';
         this.persona = { nombre: persona.nombre, rut: persona.rut, direccion: persona.direccion, telefono: persona.telefono };
     },

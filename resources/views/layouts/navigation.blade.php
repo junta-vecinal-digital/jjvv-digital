@@ -4,7 +4,7 @@
     $socioActivo = Auth::user()->esSocioActivo();
     $enFinanzas = request()->routeIs('ingresos.*', 'egresos.*', 'finanzas.*')
         || (request()->routeIs('arriendos.show') && request('desde') === 'finanzas' && Auth::user()->hasRole('presidente', 'tesorero'));
-    $enReservas = request()->routeIs('reservas.*', 'inventario.*', 'insumos.*')
+    $enReservas = request()->routeIs('reservas.*', 'insumos.*')
         || (request()->routeIs('arriendos.*') && ! $enFinanzas);
 @endphp
 <div x-cloak x-show="sidebarOpen" class="fixed inset-0 z-30 bg-gray-900/50 xl:hidden" @click="sidebarOpen = false" aria-hidden="true"></div>
@@ -35,15 +35,13 @@
         @endif
         @if ($directiva || $socioActivo)
             <x-sidebar-link :href="route('calendario.index')" :active="request()->routeIs('calendario.*')">Calendario</x-sidebar-link>
-            <x-sidebar-group label="Reservas" :active="$enReservas" :pending="$pendientesMenu['arriendos'] || $pendientesMenu['prestamos'] || $pendientesMenu['insumos']">
-                <x-sidebar-link :href="route($directiva ? 'reservas.index' : 'arriendos.index')" :active="request()->routeIs('reservas.*') || (request()->routeIs('arriendos.*') && ! $enFinanzas)">Sede @if ($pendientesMenu['arriendos'])<x-pendiente-dot data-pendiente="arriendos" />@endif</x-sidebar-link>
+            <x-sidebar-group label="Reservas" :active="$enReservas" :pending="$pendientesMenu['arriendos'] || $pendientesMenu['insumos']">
+                <x-sidebar-link :href="route($directiva ? 'reservas.index' : 'arriendos.index')" :active="request()->routeIs('reservas.*') || (request()->routeIs('arriendos.*') && ! $enFinanzas)">Reservas de sede @if ($pendientesMenu['arriendos'])<x-pendiente-dot data-pendiente="arriendos" />@endif</x-sidebar-link>
                 <x-sidebar-link :href="route('insumos.index')" :active="request()->routeIs('insumos.*')">{{ $directiva ? 'Solicitudes de insumos' : 'Mis solicitudes de insumos' }} @if ($pendientesMenu['insumos'])<x-pendiente-dot data-pendiente="insumos" />@endif</x-sidebar-link>
-                @if ($directiva)
-                    <x-sidebar-link :href="route('inventario.index')" :active="request()->routeIs('inventario.*')">Inventario y préstamos @if ($pendientesMenu['prestamos'])<x-pendiente-dot data-pendiente="prestamos" />@endif</x-sidebar-link>
-                @endif
             </x-sidebar-group>
         @endif
         @if ($directiva)
+            <x-sidebar-link :href="route('inventario.index')" :active="request()->routeIs('inventario.*')">Inventario @if ($pendientesMenu['prestamos'])<x-pendiente-dot data-pendiente="prestamos" />@endif</x-sidebar-link>
             <x-sidebar-group label="Horarios de atención" :active="request()->routeIs('atencion.*', 'agenda.*')">
                 <x-sidebar-link :href="route('atencion.index')" :active="request()->routeIs('atencion.*')">Atención al público</x-sidebar-link>
                 <x-sidebar-link :href="route('agenda.index')" :active="request()->routeIs('agenda.*')">Agenda de firmas</x-sidebar-link>
@@ -56,7 +54,7 @@
             <x-sidebar-group label="Finanzas" :active="$enFinanzas">
                 <x-sidebar-link :href="route('ingresos.index')" :active="request()->routeIs('ingresos.*')">Ingresos</x-sidebar-link>
                 <x-sidebar-link :href="route('egresos.index')" :active="request()->routeIs('egresos.*')">Egresos</x-sidebar-link>
-                <x-sidebar-link :href="route('finanzas.arriendos.index')" :active="$enFinanzas && ! request()->routeIs('ingresos.*', 'egresos.*', 'finanzas.insumos.*')">Reservas de sede</x-sidebar-link>
+                <x-sidebar-link :href="route('finanzas.arriendos.index')" :active="$enFinanzas && ! request()->routeIs('ingresos.*', 'egresos.*', 'finanzas.insumos.*')">Aportes de sede</x-sidebar-link>
                 <x-sidebar-link :href="route('finanzas.insumos.index')" :active="request()->routeIs('finanzas.insumos.*')">Préstamo de insumos</x-sidebar-link>
             </x-sidebar-group>
         @endif

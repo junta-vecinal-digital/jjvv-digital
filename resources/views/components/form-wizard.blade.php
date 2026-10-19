@@ -11,11 +11,12 @@
     }
 @endphp
 
-<div x-data="formWizard(@js($steps), @js($primerPaso))" @submit="confirmar($event)" class="overflow-hidden">
+<div x-data="formWizard(@js($steps), @js($primerPaso))" @submit="confirmar($event)" class="min-w-0">
+    <p class="mb-3 text-sm text-gray-500 dark:text-gray-400" x-text="'Paso ' + (paso + 1) + ' de ' + pasos.length"></p>
     <ol class="mb-4 flex flex-wrap gap-3 text-sm" aria-label="Pasos del formulario">
         @foreach ($steps as $numero => $etiqueta)
             <li class="flex items-center gap-2" :aria-current="paso === {{ $numero }} ? 'step' : null">
-                <span class="flex h-7 w-7 items-center justify-center rounded-full"
+                <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
                     :class="paso === {{ $numero }} ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'">{{ $numero + 1 }}</span>
                 {{ $etiqueta }}
             </li>

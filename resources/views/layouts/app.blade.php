@@ -52,6 +52,7 @@
                         </x-dropdown>
                     </div>
                 </header>
+                @include('layouts.ubicacion')
                 @isset($header)
                     <div class="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">{{ $header }}</div>
                 @endisset

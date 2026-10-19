@@ -140,6 +140,8 @@ class SocioController extends Controller
             'estado' => ['required', Rule::in(array_keys(Socio::ETIQUETAS))],
         ])['estado'];
 
+        abort_if($destino === 'inactivo' && $socio->user?->esDirigente(), 403, 'Solo el administrador puede dar de baja la ficha de un dirigente.');
+
         if (! $socio->puedePasarA($destino)) {
             return back()->withErrors([
                 'estado' => 'No se puede pasar la ficha de «'.Socio::ETIQUETAS[$socio->estado].'» a «'.Socio::ETIQUETAS[$destino].'».',
