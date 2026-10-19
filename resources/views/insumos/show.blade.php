@@ -2,16 +2,13 @@
     <x-slot name="header"><x-page-heading :title="'Solicitud de insumos #'.$solicitud->id" description="Revisa el estado, las unidades solicitadas y las condiciones del préstamo." /></x-slot>
     <div class="max-w-4xl mx-auto px-4 py-6 space-y-6">
         @if (request('consulta') === 'historial' && auth()->user()->hasRole('presidente', 'secretario'))
-            <a class="underline" href="{{ route('inventario.index') }}#historial">Volver al historial de inventario</a>
+            <a class="underline" href="{{ route('inventario.prestamos.index') }}">Volver al historial de inventario</a>
         @else
         <a class="underline" href="{{ route($gestion && in_array($solicitud->estado, ['entregado', 'devuelto']) ? 'inventario.prestamos.index' : 'insumos.index') }}">Volver a {{ $gestion && in_array($solicitud->estado, ['entregado', 'devuelto']) ? 'préstamos entregados' : 'solicitudes' }}</a>
         @endif
         @if (session('status'))<p role="status" class="ui-panel p-4">{{ session('status') }}</p>@endif
         @if ($errors->any())<div class="ui-panel p-4 text-red-600">@foreach ($errors->all() as $error)<p>{{ $error }}</p>@endforeach</div>@endif
-        @if (auth()->user()->hasRole('presidente', 'tesorero') && $solicitud->estado !== 'pendiente')
-            <a class="underline" href="{{ route('finanzas.insumos.show', $solicitud) }}">Ver aporte y garantía en Finanzas</a>
-        @endif
-        @if ($gestion && in_array($solicitud->estado, ['pendiente', 'aprobado', 'entregado']))
+@if ($gestion && in_array($solicitud->estado, ['pendiente', 'aprobado', 'entregado']))
             <aside class="rounded-xl border border-brand-400/40 bg-brand-50 p-4 text-sm text-brand-600 dark:bg-brand-500/10 dark:text-brand-400" aria-label="Siguiente paso">
                 <h2 class="font-semibold">Siguiente paso</h2>
                 <p class="mt-1">{{ match ($solicitud->estado) { 'pendiente' => 'Revisa los datos y las unidades. Más abajo puedes definir las condiciones y aprobar el préstamo.', 'aprobado' => 'Las unidades están reservadas. Registra su entrega cuando el solicitante las retire.', 'entregado' => 'Al recibir todos los insumos, registra la devolución y las unidades dañadas, si corresponde.' } }}</p>
@@ -25,7 +22,7 @@
             <p>Contacto: {{ $solicitud->telefono_contacto }}@if ($solicitud->correo_contacto) · {{ $solicitud->correo_contacto }}@endif</p>
             @if ($solicitud->direccion_contacto)<p>Dirección: {{ $solicitud->direccion_contacto }}</p>@endif
             <p>Solicitud: {{ $solicitud->created_at->format('d/m/Y') }} · Devolución comprometida: {{ $solicitud->fecha_comprometida->format('d/m/Y') }}</p>
-            @if ($solicitud->responsable_nombre)<p>Dirigente responsable: {{ $solicitud->responsable_nombre }}</p>@endif
+            @if ($solicitud->responsable_nombre)<p>Dirigente responsable: {{ $solicitud->responsable_nombre }}@if ($solicitud->responsable_cargo) · {{ \App\Models\User::ROLES[$solicitud->responsable_cargo] ?? $solicitud->responsable_cargo }}@endif</p>@endif
             @if ($solicitud->monto !== null)<p>Aporte voluntario del préstamo: ${{ number_format($solicitud->monto, 0, ',', '.') }} · Garantía acordada: ${{ number_format($solicitud->garantia, 0, ',', '.') }}</p>@endif
             @if ($solicitud->fecha_entrega)<p>Entrega: {{ $solicitud->fecha_entrega->format('d/m/Y') }}</p>@endif
             @if ($solicitud->fecha_devolucion)<p>Devolución completa: {{ $solicitud->fecha_devolucion->format('d/m/Y') }}</p>@endif
@@ -39,18 +36,18 @@
         @if ($gestion && $solicitud->estado === 'pendiente')
             <section class="ui-panel p-6">
                 <h2 class="font-semibold mb-4">Aprobar y reservar todas las unidades</h2>
-                <x-form-wizard :steps="['Condiciones del préstamo']" :fields="[['responsable_id', 'monto', 'garantia', 'fecha_comprometida']]">
+                <x-form-wizard :steps="['Condiciones del préstamo']" :fields="[['monto', 'garantia', 'fecha_comprometida']]">
                     <form method="POST" action="{{ route('insumos.aprobar', $solicitud) }}" class="space-y-4" novalidate>
                         @csrf
                         <x-form-step number="0">
-                            <div><x-input-label for="responsable_id" value="Dirigente responsable del préstamo" /><select id="responsable_id" name="responsable_id" class="ui-input w-full" required><option value="">Seleccionar dirigente</option>@foreach ($dirigentes as $dirigente)<option value="{{ $dirigente->id }}" @selected((string) old('responsable_id') === (string) $dirigente->id)>{{ $dirigente->name }} · {{ $dirigente->nombreRol() }}</option>@endforeach</select></div>
                             <div class="grid gap-4 sm:grid-cols-2 mt-4">
-                                <div><x-input-label for="monto" value="Aporte voluntario del préstamo (CLP, $0 sin aporte)" /><x-text-input id="monto" name="monto" type="number" min="0" max="4294967295" step="1" :value="old('monto', 0)" required class="w-full" /></div>
+                                <div><x-input-label for="monto" value="Aporte voluntario del préstamo (CLP)" /><x-text-input id="monto" name="monto" type="number" min="0" max="4294967295" step="1" :value="old('monto', 0)" required class="w-full" /></div>
                                 <div><x-input-label for="garantia" value="Garantía total acordada (CLP)" /><x-text-input id="garantia" name="garantia" type="number" min="0" max="4294967295" step="1" :value="old('garantia', 0)" required class="w-full" /></div>
                                 <div><x-input-label for="fecha_comprometida" value="Devolución comprometida" /><x-date-input id="fecha_comprometida" name="fecha_comprometida" :value="old('fecha_comprometida', $solicitud->fecha_comprometida->toDateString())" :min="now()->toDateString()" required /></div>
                             </div>
                             <p class="mt-4">Los montos corresponden al préstamo completo; no se multiplican por unidades ni por días. La aprobación reserva todas las unidades o se rechaza completa si faltan existencias.</p>
                         </x-form-step>
+                        <p class="text-sm text-gray-500">Responsable asignado automáticamente: {{ $solicitud->responsable_nombre ?? auth()->user()->name }} · {{ \App\Models\User::ROLES[$solicitud->responsable_cargo ?? auth()->user()->role] }}</p>
                         <x-wizard-actions />
                     </form>
                 </x-form-wizard>

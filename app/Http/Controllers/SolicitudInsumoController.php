@@ -78,6 +78,9 @@ class SolicitudInsumoController extends Controller
                 'telefono_contacto' => $datos['telefono_contacto'], 'direccion_contacto' => $datos['direccion_contacto'] ?? null,
                 'correo_contacto' => $persona['correo'], 'canal' => $gestion && $persona['usuario_id'] !== $request->user()->id ? 'ventanilla' : 'en_linea',
                 'fecha_comprometida' => $datos['fecha_comprometida'], 'registrado_por' => $request->user()->id,
+                'responsable_id' => $gestion && $persona['usuario_id'] !== $request->user()->id ? $request->user()->id : null,
+                'responsable_nombre' => $gestion && $persona['usuario_id'] !== $request->user()->id ? $request->user()->name : null,
+                'responsable_cargo' => $gestion && $persona['usuario_id'] !== $request->user()->id ? $request->user()->role : null,
             ]);
             foreach ($datos['lineas'] as $linea) {
                 $item = ItemInventario::findOrFail($linea['item_inventario_id']);
@@ -95,7 +98,6 @@ class SolicitudInsumoController extends Controller
         return view('insumos.show', [
             'solicitud' => $solicitud->load('lineas.prestamo'),
             'gestion' => $request->user()->hasRole('presidente', 'secretario') && $request->query('consulta') !== 'historial',
-            'dirigentes' => User::whereIn('role', ['presidente', 'secretario', 'tesorero'])->orderBy('name')->get(),
             'horarios' => HorarioAtencion::orderBy('dia_semana')->orderBy('hora_inicio')->get(),
         ]);
     }
@@ -103,7 +105,6 @@ class SolicitudInsumoController extends Controller
     public function aprobar(Request $request, SolicitudInsumo $solicitud)
     {
         $datos = $request->validate([
-            'responsable_id' => ['required', 'integer', Rule::exists('users', 'id')->whereIn('role', ['presidente', 'secretario', 'tesorero'])],
             'monto' => ['required', 'integer', 'min:0', 'max:4294967295'],
             'garantia' => ['required', 'integer', 'min:0', 'max:4294967295'],
             'fecha_comprometida' => ['required', 'date_format:Y-m-d', 'after_or_equal:today'],
@@ -131,10 +132,13 @@ class SolicitudInsumoController extends Controller
                     throw ValidationException::withMessages(['operacion' => 'No hay existencias suficientes de '.$linea->nombre_insumo.'. No se aprobó ningún insumo.']);
                 }
             }
-            $responsable = User::whereIn('role', ['presidente', 'secretario', 'tesorero'])->find($datos['responsable_id']);
-            if (! $responsable) throw ValidationException::withMessages(['responsable_id' => 'El responsable debe ser dirigente.']);
+            if (! in_array($solicitud->responsable_cargo, ['presidente', 'secretario'], true)) {
+                $registrador = $solicitud->canal === 'ventanilla' ? User::find($solicitud->registrado_por) : null;
+                $responsable = $registrador?->hasRole('presidente', 'secretario') ? $registrador : $request->user();
+                $solicitud->fill(['responsable_id' => $responsable->id, 'responsable_nombre' => $responsable->name, 'responsable_cargo' => $responsable->role]);
+            }
             $solicitud->update($datos + [
-                'estado' => 'aprobado', 'responsable_nombre' => $responsable->name,
+                'estado' => 'aprobado',
                 'aprobado_por' => $request->user()->id, 'aprobado_en' => now(),
             ]);
             return back()->with('status', 'Solicitud aprobada. Todas las unidades quedaron reservadas.');

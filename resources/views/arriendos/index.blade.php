@@ -16,7 +16,7 @@
     $estadoArriendo = [
         'modalidad' => old('modalidad_solicitante', 'socio'), 'socioId' => (string) old('socio_id', ''),
         'grupoId' => (string) old('grupo_id', ''),
-        'tipoActividad' => old('actividad_reserva', 'particular'),
+        'tipoActividad' => old('actividad_reserva', 'particular'), 'garantia' => old('garantia_reserva', '0'),
         'persona' => ['nombre' => old('responsable_nombre', ''), 'rut' => old('responsable_rut', ''), 'direccion' => old('responsable_direccion', ''), 'telefono' => old('responsable_telefono', '')],
         'inicio' => old('hora_inicio', $bloques['inicios'][0] ?? ''), 'fin' => old('hora_fin', $bloques['fines'][0] ?? ''), 'fines' => $bloques['fines'],
     ];
@@ -29,10 +29,10 @@
 
         <details class="ui-panel p-6 space-y-4" @if ($errors->any()) open @endif>
             <summary class="cursor-pointer text-lg font-semibold">{{ $esDirigente ? 'Reserva en ventanilla' : 'Solicitar reserva' }}</summary>
-            <p>El horario se reserva durante {{ $plazoHoras }} horas para su confirmación. </p>
+
             <x-input-error :messages="$errors->get('arriendo')" />
             <x-input-error :messages="$errors->get('reserva')" />
-            <x-form-wizard :steps="['Solicitante', 'Horario', 'Aporte']" :fields="[['tipo', 'actividad_reserva', 'socio_id', 'grupo_id', 'modalidad_solicitante', 'responsable_nombre', 'responsable_rut', 'responsable_direccion', 'responsable_telefono'], ['fecha', 'hora_inicio', 'hora_fin', 'arriendo', 'reserva'], ['comprobante', 'valor_arriendo']]">
+            <x-form-wizard :steps="['Solicitante', 'Horario', 'Aporte']" :fields="[['tipo', 'actividad_reserva', 'socio_id', 'grupo_id', 'modalidad_solicitante', 'responsable_nombre', 'responsable_rut', 'responsable_direccion', 'responsable_telefono'], ['fecha', 'hora_inicio', 'hora_fin', 'arriendo', 'reserva'], ['comprobante', 'valor_arriendo', 'garantia_reserva']]">
                 <form method="POST" action="{{ route('arriendos.store') }}" enctype="multipart/form-data" novalidate class="space-y-5"
                     x-data="arriendoFormulario(@js($estadoArriendo), @js($representantes))">
                     @csrf
@@ -74,7 +74,7 @@
                                 <x-input-label for="modalidad_solicitante" value="Registro del solicitante" />
                                 <select id="modalidad_solicitante" name="modalidad_solicitante" x-model="modalidad" class="ui-input w-full" :disabled="tipoActividad !== 'particular'" required>
                                     <option value="socio">Seleccionar socio activo</option>
-                                    <option value="manual">Ingresar persona en ventanilla, sin exigir ficha ni cuenta</option>
+                                    <option value="manual">Ingresar persona en ventanilla</option>
                                 </select>
                                 <x-input-error :messages="$errors->get('modalidad_solicitante')" />
                             </div>
@@ -137,16 +137,21 @@
                                     <x-text-input id="valor_arriendo" name="valor_arriendo" type="number" x-model="aporte" x-effect="if (tipoActividad !== 'particular') aporte = '0'" x-bind:readonly="tipoActividad !== 'particular'" min="0" max="4294967295" step="1" required />
                                     <x-input-error :messages="$errors->get('valor_arriendo')" />
                                 </div>
-                                <p>Puedes registrar $0 si no hay aporte. El monto quedará fijado al registrar la solicitud.</p>
-                                <div x-show="Number(aporte) > 0" x-cloak>
-                                    <x-input-label for="comprobante" value="Comprobante del aporte (si ya fue recibido)" />
-                                    <x-file-input id="comprobante" name="comprobante" accept="application/pdf,image/jpeg,image/png" x-bind:disabled="Number(aporte) <= 0" />
-                                    <p class="text-sm text-gray-500">PDF, JPG o PNG, máximo 5 MB. Puedes adjuntarlo después desde el detalle; será necesario para confirmar una reserva con aporte.</p>
+
+                                <div>
+                                    <x-input-label for="garantia_reserva" value="Garantía acordada (CLP)" />
+                                    <x-text-input id="garantia_reserva" name="garantia_reserva" type="number" x-model="garantia" min="0" max="4294967295" step="1" required />
+                                    <x-input-error :messages="$errors->get('garantia_reserva')" />
+                                </div>
+                                <div x-show="Number(aporte) + Number(garantia) > 0" x-cloak>
+                                    <x-input-label for="comprobante" value="Comprobante del aporte y garantía" />
+                                    <x-file-input id="comprobante" name="comprobante" accept="application/pdf,image/jpeg,image/png" x-bind:disabled="Number(aporte) + Number(garantia) <= 0" />
+                                    <p class="text-sm text-gray-500">PDF, JPG o PNG, máximo 5 MB. Puedes adjuntarlo después desde el detalle; será necesario si el total recibido es mayor que $0.</p>
                                     <x-input-error :messages="$errors->get('comprobante')" />
                                 </div>
                             </div>
                         @else
-                            <p>Presidente o secretario registrará el aporte acordado. Si es mayor que $0, podrás adjuntar el comprobante en el detalle de tu solicitud.</p>
+                            <p>Presidente o secretario registrará el aporte y la garantía acordados. El comprobante del total se adjunta desde el detalle de la solicitud.</p>
                         @endif
                     </x-form-step>
                     <x-wizard-actions />

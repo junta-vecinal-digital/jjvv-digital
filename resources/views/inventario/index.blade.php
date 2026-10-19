@@ -1,5 +1,5 @@
 <x-app-layout>
-    <x-slot name="header"><x-page-heading title="Inventario" description="Consulta existencias, registra insumos y revisa el historial de préstamos." /></x-slot>
+    <x-slot name="header"><x-page-heading title="Registrar insumo" description="Consulta existencias y registra o ajusta las unidades disponibles." /></x-slot>
     <div class="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
 
         @if (session('status'))
@@ -66,14 +66,5 @@
             </table>
         </div>
         {{ $items->links() }}
-        <section class="ui-panel" id="historial">
-            <details @if (request()->routeIs('inventario.prestamos.index') || request()->hasAny(['entregas', 'historicos'])) open @endif>
-                <summary class="cursor-pointer p-5 text-lg font-semibold">Historial de préstamos</summary>
-                <div class="space-y-4 p-4 pt-0">
-                    <p class="text-sm text-gray-500">Consulta de entregas y devoluciones. Las operaciones se registran desde Solicitudes de insumos.</p>
-                    @include('inventario._historial')
-                </div>
-            </details>
-        </section>
-    </div>
+</div>
 </x-app-layout>

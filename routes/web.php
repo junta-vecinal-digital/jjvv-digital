@@ -114,6 +114,7 @@ Route::middleware(['auth', 'role:presidente,secretario'])->group(function () {
 
 // ---------- Finanzas: presidente y tesorero ----------
 Route::middleware(['auth', 'role:presidente,tesorero'])->group(function () {
+    Route::get('/finanzas/pendientes', [\App\Http\Controllers\IngresoPendienteController::class, 'index'])->name('finanzas.pendientes.index');
     Route::get('/finanzas/insumos', [PrestamoFinancieroController::class, 'index'])->name('finanzas.insumos.index');
     Route::get('/finanzas/insumos/{solicitud}', [PrestamoFinancieroController::class, 'show'])->whereNumber('solicitud')->name('finanzas.insumos.show');
     Route::post('/finanzas/insumos/{solicitud}/registrar', [PrestamoFinancieroController::class, 'registrar'])->whereNumber('solicitud')->name('finanzas.insumos.registrar');

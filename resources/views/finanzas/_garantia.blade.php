@@ -23,12 +23,6 @@
             <section class="ui-panel p-6 space-y-4">
                 <h3 class="text-lg font-semibold">Gestionar garantía</h3>
                 <p>La garantía no forma parte de los ingresos. Devolverla no descuenta nuevamente del saldo de caja.</p>
-                @if ($garantia->estado === 'recibida')
-                    <form method="POST" action="{{ route('finanzas.garantias.por-devolver', $garantia) }}">
-                        @csrf
-                        <x-secondary-button type="submit">Marcar por devolver</x-secondary-button>
-                    </form>
-                @endif
                 <form method="POST" action="{{ route('finanzas.garantias.devolver', $garantia) }}" class="space-y-3" onsubmit="return confirm('¿Confirmar que ya devolviste el total de la garantía?')">
                     @csrf
                     <x-input-label for="fecha_devolucion" value="Fecha de devolución" />

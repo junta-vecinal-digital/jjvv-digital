@@ -1,5 +1,17 @@
 # Historial de sprints
 
+## Sprint 4: responsable automático, garantía de sede e ingresos por aprobar — 19/10/2026
+
+- El usuario autoriza específicamente actualizar requisitos y confirma: responsable de ventanilla según registrador; en línea según aprobador; garantía de sede opcional por operación; comprobante y verificación del total; registro posterior desde una bandeja financiera.
+- Se retiran los textos solicitados de formularios. Inventario vuelve a tener dos accesos separados bajo un desplegable: Registrar insumo (existencias editables) e Historial de préstamos (consulta). Préstamos continúan operándose en Reservas, incluidos los anteriores pendientes de devolución.
+- Responsable sin selector ni asignación aceptada del cliente: presidente/secretario de ventanilla o aprobador en línea. Migración 000016 añade cargo histórico; se conserva nombre/cargo aunque cambie la cuenta. No se reasignan préstamos históricos aprobados.
+- Garantía opcional en sede al registrar o definir montos. Si hay aporte o garantía positivos, se exige comprobante del total y verificación de cada importe positivo; una garantía sin aporte no produce ingreso de cero. Las actividades sin aporte también pueden acordar garantía y pasan a confirmación si la tienen. Se conservan registros directos sin importes y recurrencias.
+- Finanzas muestra Ingresos por aprobar con dos grupos de operaciones y aprobación individual desde las filas. Reutiliza endpoints y bloqueos de registro existentes: aporte como ingreso, garantía separada y reingreso de aportes anulados sin repetir garantías. Excluye totales cero y operaciones ya registradas. Se retiran formularios de registro financiero de los detalles, conservando consultas y gestión de garantías en Finanzas.
+- Requisitos actualizados dentro del alcance autorizado. Se corrige un identificador duplicado creado en la entrega anterior: actividades queda RFS-106, conservando RFS-104 de aportes voluntarios. Nuevos RFS-107/108 documentan responsable y bandeja.
+- Se adapta el caso anterior que exigía elegir responsable y se prepara Finanzas/PendientesYGarantiasDeSedeTest.php: responsable automático e intento de asignar tesorero, garantía con aporte positivo o cero, comprobante/verificación, permisos financieros, exclusión de ceros, doble registro y reingreso sin duplicar garantía. No se ejecutan tests ni migraciones desde el agente. Sintaxis, rutas y compilación se revisan; migración, tests y comprobación manual quedan pendientes del usuario. Sin despliegue ni instalaciones.
+
+---
+
 ## Sprint 4: correcciones de navegación, ventanilla y protección de dirigentes — 19/10/2026
 
 - Autorización específica del usuario para actualizar requisitos: Inventario conserva registro/edición y reúne historial de consulta fuera de Reservas; se retiran accesos cruzados del formulario de sede. Operaciones de insumos en su bandeja, incluidos entregados pendientes de devolución. Préstamos anteriores abiertos siguen operándose desde esa bandeja; historial y detalles abiertos desde él son de consulta.

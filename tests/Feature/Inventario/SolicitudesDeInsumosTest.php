@@ -189,7 +189,7 @@ test('horarios y puntos rojos muestran pendientes y atrasos solo a la directiva'
         ->assertDontSee('data-pendiente="prestamos"', false);
 });
 
-test('responsable debe ser dirigente y la aprobación no acepta montos negativos', function (array $cambios, string $campo) {
+test('la aprobación no acepta montos negativos', function (array $cambios, string $campo) {
     $this->post(route('insumos.store'), datosSolicitudInsumos($this->sillasInsumos, $this->mesasInsumos))->assertSessionHasNoErrors();
     $solicitud = SolicitudInsumo::sole();
     $datos = array_replace([
@@ -198,7 +198,7 @@ test('responsable debe ser dirigente y la aprobación no acepta montos negativos
     if ($campo !== 'responsable_id') $datos['responsable_id'] = $this->directivaInsumos->id;
     $this->actingAs($this->directivaInsumos)->post(route('insumos.aprobar', $solicitud), $datos)->assertSessionHasErrors($campo);
     expect($solicitud->fresh()->estado)->toBe('pendiente')->and($this->sillasInsumos->fresh()->disponibles())->toBe(5);
-})->with([[[], 'responsable_id'], [['monto' => -1], 'monto'], [['garantia' => -1], 'garantia']]);
+})->with([[['monto' => -1], 'monto'], [['garantia' => -1], 'garantia']]);
 
 test('entregas duplicadas y devoluciones inválidas no modifican unidades ni cierran parcialmente', function (string $caso) {
     $this->post(route('insumos.store'), datosSolicitudInsumos($this->sillasInsumos, $this->mesasInsumos))->assertSessionHasNoErrors();

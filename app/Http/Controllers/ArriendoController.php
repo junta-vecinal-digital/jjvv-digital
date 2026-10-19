@@ -51,6 +51,7 @@ class ArriendoController extends Controller
             $request->validate([
                 'actividad_reserva' => ['required', 'string', Rule::exists('tipos_actividad', 'clave')->where('activo', true)],
                 'valor_arriendo' => ['required', 'integer', 'in:0'],
+                'garantia_reserva' => ['nullable', 'integer', 'min:0', 'max:4294967295'],
                 'grupo_id' => $request->actividad_reserva === 'grupo' ? ['required', 'integer', 'exists:grupos,id'] : ['prohibited'],
             ]);
             $request->merge(['tipo' => $request->actividad_reserva]);
@@ -79,7 +80,8 @@ class ArriendoController extends Controller
             'hora_inicio' => ['required', 'date_format:H:i'],
             'hora_fin' => ['required', 'date_format:H:i', 'after:hora_inicio'],
             'valor_arriendo' => $esDirigente ? ['required', 'integer', 'min:0', 'max:4294967295'] : ['exclude'],
-            'comprobante' => $esDirigente && $request->integer('valor_arriendo') > 0
+            'garantia_reserva' => $esDirigente ? ['nullable', 'integer', 'min:0', 'max:4294967295'] : ['exclude'],
+            'comprobante' => $esDirigente && ($request->integer('valor_arriendo') > 0 || $request->integer('garantia_reserva') > 0)
                 ? ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'] : ['exclude'],
         ]);
 
@@ -137,7 +139,7 @@ class ArriendoController extends Controller
                 'valor_arriendo' => $esDirigente ? $datos['valor_arriendo'] : null,
                 'aporte_definido_por' => $esDirigente ? $usuario->id : null,
                 'aporte_definido_en' => $esDirigente ? now() : null,
-                'valor_garantia' => null,
+                'valor_garantia' => $esDirigente ? ($datos['garantia_reserva'] ?? null) : null,
                 'vence_en' => now()->addHours(Parametro::entero('arriendo_plazo_confirmacion_horas')),
                 'comprobante_arriendo_path' => isset($datos['comprobante'])
                     ? $datos['comprobante']->store('comprobantes/arriendos', 'local') : null,
@@ -165,6 +167,7 @@ class ArriendoController extends Controller
     {
         $datos = $request->validate([
             'valor_arriendo' => ['required', 'integer', 'min:0', 'max:4294967295'],
+            'garantia_reserva' => ['nullable', 'integer', 'min:0', 'max:4294967295'],
         ]);
 
         return DB::transaction(function () use ($request, $reserva, $datos) {
@@ -177,6 +180,7 @@ class ArriendoController extends Controller
             }
             $reserva->update([
                 'valor_arriendo' => $datos['valor_arriendo'],
+                'valor_garantia' => $datos['garantia_reserva'] ?? null,
                 'aporte_definido_por' => $request->user()->id,
                 'aporte_definido_en' => now(),
             ]);
@@ -200,8 +204,8 @@ class ArriendoController extends Controller
             $reserva->refresh();
             $this->autorizarConsulta($request, $reserva);
             if (! $reserva->aporte_variable || $reserva->estado !== 'pendiente'
-                || $reserva->valor_arriendo === null || $reserva->valor_arriendo <= 0 || $reserva->comprobante_arriendo_path) {
-                return back()->withErrors(['arriendo' => 'Solo puedes adjuntar el comprobante a una solicitud pendiente con aporte definido mayor que $0 y sin comprobante previo.']);
+                || $reserva->valor_arriendo === null || ($reserva->valor_arriendo <= 0 && $reserva->valor_garantia <= 0) || $reserva->comprobante_arriendo_path) {
+                return back()->withErrors(['arriendo' => 'Solo puedes adjuntar el comprobante a una solicitud pendiente con montos definidos, total mayor que $0 y sin comprobante previo.']);
             }
             $reserva->update(['comprobante_arriendo_path' => $datos['comprobante']->store('comprobantes/arriendos', 'local')]);
 
@@ -225,14 +229,14 @@ class ArriendoController extends Controller
                 if ($reserva->valor_arriendo === null) {
                     return back()->withErrors(['arriendo' => 'Define el aporte antes de confirmar la reserva.']);
                 }
-                if ($reserva->valor_arriendo > 0 && (! $reserva->comprobante_arriendo_path
+                if (($reserva->valor_arriendo > 0 || $reserva->valor_garantia > 0) && (! $reserva->comprobante_arriendo_path
                     || ! Storage::disk('local')->exists($reserva->comprobante_arriendo_path))) {
-                    return back()->withErrors(['arriendo' => 'Adjunta el comprobante del aporte antes de confirmar.']);
+                    return back()->withErrors(['arriendo' => 'Adjunta el comprobante del total antes de confirmar.']);
                 }
             }
             $request->validate([
                 'pago_verificado' => ! $reserva->aporte_variable || $reserva->valor_arriendo > 0 ? ['accepted'] : ['exclude'],
-                'garantia_verificada' => ! $reserva->aporte_variable ? ['accepted'] : ['exclude'],
+                'garantia_verificada' => ! $reserva->aporte_variable || $reserva->valor_garantia > 0 ? ['accepted'] : ['exclude'],
             ]);
 
             $reserva->update([
@@ -240,7 +244,7 @@ class ArriendoController extends Controller
                 'validado_en' => now(),
                 'validado_por' => $request->user()->id,
             ]);
-            if (! $reserva->aporte_variable) Garantia::create([
+            if (! $reserva->aporte_variable || $reserva->valor_garantia > 0) Garantia::create([
                 'reserva_id' => $reserva->id,
                 'monto' => $reserva->valor_garantia,
                 'estado' => 'recibida',

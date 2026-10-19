@@ -17,7 +17,7 @@ El detalle de entregas, correcciones, revisiones y confirmaciones anteriores se 
 
 - Representantes de grupos: pueden no tener ficha ni cuenta; seleccionar socios/dirigentes o registrar manualmente. Se conservan tras la baja del socio. La etiqueta de representante no concede permisos. Sin representante no se admiten reservas nuevas del grupo.
 - Calendario de consulta separado de Reservas; socios activos ven solo ocupación. Presidente/secretario gestionan e imprimen. Parámetros y catálogos son exclusivos del administrador.
-- Reservas de sede: aporte definido por presidente/secretario por operación; $0 gratuito. Sin tarifas fijas ni garantías nuevas. Si hay aporte positivo, se exige comprobante y verificación antes de confirmar. Las condiciones, pagos y garantías históricos se conservan.
+- Reservas de sede: aporte definido por presidente/secretario por operación; $0 gratuito. Sin tarifas fijas; garantía opcional por operación. Si hay aporte o garantía positivos, se exige comprobante del total y verificación antes de confirmar. Las condiciones, pagos y garantías históricos se conservan.
 - Finanzas: garantías separadas de ingresos; solo una retención genera ingreso por su parte retenida. No crear ingresos de $0 ni descontar dos veces una cuota por devolución/anulación.
 
 ## Sprint 3: bloques comprobados
@@ -68,3 +68,5 @@ Optimización visual, etapas 1 a 3 — 18/10/2026: accesos por cargo en el panel
 Optimización visual, continuación — 18/10/2026: estados destacados en reservas e insumos, orientación del siguiente paso en detalles, avance numérico y botones adaptables en formularios, mejoras de tablas, foco y avisos accesibles. Pendiente de tests y revisión visual del usuario, incluidos zoom y ventanas pequeñas.
 
 Correcciones autorizadas — 19/10/2026: Inventario independiente con existencias editables e historial de consulta; actividades y campo En representación de ajustados; solicitudes de insumos de cualquier vecino en ventanilla; bajas de dirigentes y eliminación de cuentas restringidas; horarios de retiro ocultos para presidente/secretario. REQUIREMENTS.md actualizado con autorización específica. Migración 000015 y pruebas de regresión preparadas; aplicación de migración, tests y comprobación manual pendientes del usuario.
+
+Ajustes autorizados — 19/10/2026: textos simplificados, menú Inventario con Registrar insumo e Historial de préstamos separados; responsable automático presidente/secretario con nombre y cargo históricos; garantía opcional de sede y bandeja Finanzas → Ingresos por aprobar. REQUIREMENTS.md actualizado con autorización específica; se corrige la numeración duplicada del requisito de actividades a RFS-106. Migración 000016 y regresión Finanzas/PendientesYGarantiasDeSedeTest.php preparadas. Pendientes del usuario: migración, tests y revisión manual. Se conservan operaciones y garantías históricas, y la garantía no forma parte del saldo de ingresos.

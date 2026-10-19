@@ -90,3 +90,5 @@ Todos los destinos de esta tabla son relativos a `tests/Feature`. Los seis archi
 | `Sprint4AportesYCertificadosTest.php` | [Integracion/AportesCertificadosYComprobantesTest.php](Feature/Integracion/AportesCertificadosYComprobantesTest.php) |
 
 Correcciones del 19/10/2026: Integracion/VentanillaInventarioYProteccionDeDirigentesTest.php cubre restricciones de bajas/cuentas, ventanilla sin ficha, historial de consulta y actividad privada. Aplicar las migraciones antes de comprobar manualmente el catálogo.
+
+Finanzas/PendientesYGarantiasDeSedeTest.php: regresión de responsable automático, garantías opcionales de sede e ingresos por aprobar. Preparado el 19/10/2026; ejecutar las migraciones antes de la revisión manual. Los tests los ejecuta el usuario.

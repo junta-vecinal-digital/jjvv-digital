@@ -8,22 +8,14 @@
             <h2 class="mt-2 text-xl font-semibold text-gray-900 dark:text-white">Bienvenido, {{ Auth::user()->name }}</h2>
             <p class="mt-2 text-sm leading-6 text-gray-500 dark:text-gray-400">Elige una gestión para comenzar. También puedes acceder a todos los apartados desde el menú lateral.</p>
         </section>
-        @if (Auth::user()->esDirigente())
+        @if (Auth::user()->hasRole('presidente', 'secretario'))
             @php
-                $accesos = Auth::user()->hasRole('presidente', 'secretario') ? [
+                $accesos = [
                     ['socios.index', 'Gestión de socios', 'Inscripciones, fichas y revisión de antecedentes.'],
                     ['admin.certificados.index', 'Gestión de certificados', 'Revisar solicitudes y emitir en ventanilla.'],
                     ['reservas.index', 'Reserva en ventanilla', 'Registrar y revisar el uso de la sede.'],
                     ['insumos.index', 'Solicitudes de insumos', 'Revisar solicitudes y gestionar su entrega.'],
-                ] : [];
-                if (Auth::user()->hasRole('presidente', 'tesorero')) {
-                    $accesos = array_merge($accesos, [
-                        ['ingresos.create', 'Registrar ingreso', 'Registrar un aporte recibido y su respaldo.'],
-                        ['egresos.create', 'Registrar egreso', 'Registrar una salida de caja y su comprobante.'],
-                        ['finanzas.arriendos.index', 'Aportes de sede', 'Consultar y registrar aportes de las reservas.'],
-                        ['reportes.index', 'Reportes', 'Consultar y exportar información de gestión.'],
-                    ]);
-                }
+                ];
             @endphp
             <section aria-labelledby="gestiones-frecuentes">
                 <h2 id="gestiones-frecuentes" class="mb-3 text-lg font-semibold text-gray-900 dark:text-white">¿Qué necesitas hacer?</h2>

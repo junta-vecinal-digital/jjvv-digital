@@ -198,9 +198,12 @@ class ReservaController extends Controller
             }
 
             $tipoActividad = TipoActividad::where('clave', $datos['tipo'])->firstOrFail();
+            $request->validate(['garantia_reserva' => ['nullable', 'integer', 'min:0', 'max:4294967295']]);
+            $conGarantia = $request->integer('garantia_reserva') > 0;
+            $comprobante = $conGarantia ? $request->validate(['comprobante' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120']]) : [];
             Reserva::create([
-                'tipo' => $datos['tipo'],
-                'estado' => 'confirmada',
+                'tipo' => $conGarantia ? 'arriendo' : $datos['tipo'],
+                'estado' => $conGarantia ? 'pendiente' : 'confirmada',
                 'inicio' => $inicio,
                 'fin' => $fin,
                 'motivo' => $tipoActividad->nombre,
@@ -210,6 +213,12 @@ class ReservaController extends Controller
                 'grupo_id' => $grupoId,
                 'socio_id' => $socioId,
                 'creado_por' => $request->user()->id,
+                ...($conGarantia ? [
+                    'aporte_variable' => true, 'valor_arriendo' => 0, 'valor_garantia' => $request->integer('garantia_reserva'),
+                    'aporte_definido_por' => $request->user()->id, 'aporte_definido_en' => now(),
+                    'canal' => 'ventanilla', 'vence_en' => now()->addHours(\App\Models\Parametro::entero('arriendo_plazo_confirmacion_horas')),
+                    'comprobante_arriendo_path' => isset($comprobante['comprobante']) ? $comprobante['comprobante']->store('comprobantes/arriendos', 'local') : null,
+                ] : []),
             ]);
 
             return redirect()

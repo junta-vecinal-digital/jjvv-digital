@@ -33,14 +33,17 @@ class ArriendoFinancieroController extends Controller
             DB::table('parametros')->where('clave', 'sede_hora_inicio')->update(['valor' => DB::raw('valor')]);
             $reserva->refresh();
             abort_unless($reserva->tipo === 'arriendo' && $reserva->validado_en, 422, 'El arriendo debe estar validado.');
-            if ($reserva->aporte_variable && $reserva->valor_arriendo <= 0) {
+            $ingresoVigente = $reserva->ingresos()->vigentes()->exists();
+            $garantia = $reserva->garantia;
+            $registrarGarantia = $garantia && $garantia->monto > 0 && ! $garantia->registrada_en;
+            if ($reserva->valor_arriendo <= 0 && ! $registrarGarantia) {
                 return back()->withErrors(['finanzas' => 'Una reserva gratuita no genera ingresos.']);
             }
-            if ($reserva->ingresos()->vigentes()->exists()) {
+            if ($ingresoVigente && ! $registrarGarantia) {
                 return back()->withErrors(['finanzas' => 'Este arriendo ya tiene un ingreso vigente.']);
             }
 
-            Ingreso::create([
+            if ($reserva->valor_arriendo > 0 && ! $ingresoVigente) Ingreso::create([
                 'reserva_id' => $reserva->id,
                 'concepto' => $reserva->aporte_variable ? 'aporte_reserva' : 'arriendo',
                 'fecha_pago' => $datos['fecha_pago'],
@@ -51,8 +54,7 @@ class ArriendoFinancieroController extends Controller
                     : 'Aporte por uso de sede #'.$reserva->id.'. Comprobante compartido con la garantía.',
                 'registrado_por' => $request->user()->id,
             ]);
-            $garantia = $reserva->garantia;
-            if ($garantia && ! $garantia->registrada_en) {
+            if ($registrarGarantia) {
                 $garantia->update([
                     'registrada_en' => now(),
                     'registrada_por' => $request->user()->id,
