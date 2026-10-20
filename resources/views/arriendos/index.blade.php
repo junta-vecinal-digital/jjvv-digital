@@ -1,108 +1,48 @@
 @php
-    $representantes = $grupos->mapWithKeys(function ($grupo) use ($socios) {
-        $persona = $grupo->datosRepresentante();
-        $socioGrupo = $grupo->representante?->estado === 'activo' ? $grupo->representante
-            : ($grupo->representante_usuario_id ? $socios->firstWhere('user_id', $grupo->representante_usuario_id) : null);
-        if (! $socioGrupo && \App\Rules\RutChileno::esValido($persona['rut'])) {
-            $socioGrupo = $socios->first(fn ($socio) => \App\Rules\RutChileno::normalizar($socio->rut) === \App\Rules\RutChileno::normalizar($persona['rut']));
-        }
-        return [$grupo->id => [
-            'socioId' => (string) ($socioGrupo?->id ?? ''),
-            'nombre' => $persona['nombre'] ?? '', 'rut' => $persona['rut'] ?? $socioGrupo?->rut ?? '',
-            'direccion' => $persona['direccion'] ?? $socioGrupo?->direccion ?? '',
-            'telefono' => $persona['telefono'] ?? $socioGrupo?->telefono ?? '',
-        ]];
-    });
+    $esCreacion = ! old('operacion') || old('operacion') === 'crear-reserva';
+    $valorCreacion = fn ($campo, $defecto = null) => $esCreacion ? old($campo, $defecto) : $defecto;
+@endphp
+@php
     $estadoArriendo = [
-        'modalidad' => old('modalidad_solicitante', 'socio'), 'socioId' => (string) old('socio_id', ''),
-        'grupoId' => (string) old('grupo_id', ''),
-        'tipoActividad' => old('actividad_reserva', 'particular'), 'garantia' => old('garantia_reserva', '0'),
-        'persona' => ['nombre' => old('responsable_nombre', ''), 'rut' => old('responsable_rut', ''), 'direccion' => old('responsable_direccion', ''), 'telefono' => old('responsable_telefono', '')],
-        'inicio' => old('hora_inicio', $bloques['inicios'][0] ?? ''), 'fin' => old('hora_fin', $bloques['fines'][0] ?? ''), 'fines' => $bloques['fines'],
+        'seleccion' => $valorCreacion('solicitante', ''), 'personas' => $solicitantes,
+        'grupoId' => (string) $valorCreacion('grupo_id', ''),
+        'tipoActividad' => $valorCreacion('actividad_reserva', $esDirigente ? 'actividad' : 'particular'), 'garantia' => $valorCreacion('garantia_reserva', '0'),
+        'persona' => ['nombre' => $valorCreacion('responsable_nombre', ''), 'rut' => $valorCreacion('responsable_rut', ''), 'direccion' => $valorCreacion('responsable_direccion', ''), 'telefono' => $valorCreacion('responsable_telefono', '')],
+        'inicio' => $valorCreacion('hora_inicio', $bloques['inicios'][0] ?? ''), 'fin' => $valorCreacion('hora_fin', $bloques['fines'][0] ?? ''), 'fines' => $bloques['fines'],
     ];
 @endphp
 <x-app-layout>
-    <x-slot name="header"><x-page-heading :title="$esDirigente ? 'Reservas de sede en ventanilla' : 'Mis reservas de sede'" description="Consulta los horarios disponibles y revisa el estado de las reservas."><a href="{{ route('calendario.index') }}" class="ui-button ui-button-secondary">Consultar calendario</a></x-page-heading></x-slot>
+    <x-slot name="header"><x-page-heading :title="$esDirigente ? 'Reservas de sede' : 'Mis reservas de sede'" description="Registra el uso de la sede y revisa las solicitudes recibidas."><a href="{{ route('calendario.index') }}" class="ui-button ui-button-secondary">Consultar calendario</a>@unless(request('crear'))<a class="ui-button ui-button-primary" href="{{ route($esDirigente ? 'reservas.index' : 'arriendos.index', ['crear'=>1]) }}">{{ $esDirigente ? 'Reservar en ventanilla' : 'Solicitar reserva' }}</a>@endunless</x-page-heading></x-slot>
     <div class="max-w-7xl mx-auto px-4 py-6 space-y-6">
 
-        @if (in_array(session('status'), ['reserva-creada', 'reserva-cancelada']))<p class="ui-panel p-4" role="status">{{ session('status') === 'reserva-creada' ? 'Reserva guardada.' : 'Reserva cancelada y horario liberado.' }}</p>@endif
+        <x-reservas-tabs active="sede" />
+        @if (session('status'))<p class="ui-notice" role="status">{{ match(session('status')) { 'reserva-creada' => 'Reserva guardada.', 'reserva-cancelada' => 'Reserva cancelada y horario liberado.', 'aporte-definido' => 'Aporte y garantía definidos.', 'comprobante-adjuntado' => 'Comprobante adjuntado para revisión.', 'arriendo-confirmado' => 'Reserva confirmada.', default => session('status') } }}</p>@endif
+        @if ($errors->any())<div role="alert" class="ui-notice text-red-700">@foreach ($errors->all() as $error)<p>{{ $error }}</p>@endforeach</div>@endif
 
-        <details class="ui-panel p-6 space-y-4" @if ($errors->any()) open @endif>
-            <summary class="cursor-pointer text-lg font-semibold">{{ $esDirigente ? 'Reserva en ventanilla' : 'Solicitar reserva' }}</summary>
+        @php($erroresListado = $errors)
+        @php($errors = $esCreacion ? $errors : new \Illuminate\Support\ViewErrorBag)
+        @if(request('crear'))
+        <section class="ui-panel p-6 space-y-4">
+            <h2 class="text-lg font-semibold">{{ $esDirigente ? 'Reserva en ventanilla' : 'Solicitar reserva' }}</h2>
 
             <x-input-error :messages="$errors->get('arriendo')" />
             <x-input-error :messages="$errors->get('reserva')" />
-            <x-form-wizard :steps="['Solicitante', 'Horario', 'Aporte']" :fields="[['tipo', 'actividad_reserva', 'socio_id', 'grupo_id', 'modalidad_solicitante', 'responsable_nombre', 'responsable_rut', 'responsable_direccion', 'responsable_telefono'], ['fecha', 'hora_inicio', 'hora_fin', 'arriendo', 'reserva'], ['comprobante', 'valor_arriendo', 'garantia_reserva']]">
+            <x-form-wizard :steps="['Solicitante', 'Horario', 'Aporte']" :fields="[['solicitante', 'tipo', 'actividad_reserva', 'socio_id', 'grupo_id', 'modalidad_solicitante', 'responsable_nombre', 'responsable_rut', 'responsable_direccion', 'responsable_telefono'], ['fecha', 'hora_inicio', 'hora_fin', 'arriendo', 'reserva'], ['comprobante', 'valor_arriendo', 'garantia_reserva']]">
                 <form method="POST" action="{{ route('arriendos.store') }}" enctype="multipart/form-data" novalidate class="space-y-5"
-                    x-data="arriendoFormulario(@js($estadoArriendo), @js($representantes))">
+                    x-data="arriendoFormulario(@js($estadoArriendo))">
                     @csrf
-                    <x-form-step number="0">
-                        @if ($esDirigente)
-                            <div>
-                                <x-input-label for="tipo_actividad" value="Actividad" />
-                                <select id="tipo_actividad" name="actividad_reserva" x-model="tipoActividad" @change="if (tipoActividad !== 'grupo') grupoId = ''" class="ui-input w-full" required>
-
-                                    @foreach ($tiposActividad as $tipo)<option value="{{ $tipo->clave }}">{{ $tipo->nombre }}</option>@endforeach
-                                </select>
-                                <x-input-error :messages="$errors->get('actividad_reserva')" />
-                            </div>
-                        @elseif ($grupos->isNotEmpty())
-                            <div>
-                                <x-input-label for="actividad_personal" value="Actividad" />
-                                <select id="actividad_personal" name="actividad_reserva" x-model="tipoActividad" @change="if (tipoActividad !== 'grupo') grupoId = ''" class="ui-input w-full" required>
-                                    @foreach ($tiposActividad->whereIn('clave', ['particular', 'grupo']) as $tipo)<option value="{{ $tipo->clave }}">{{ $tipo->nombre }}</option>@endforeach
-                                </select>
-                                <x-input-error :messages="$errors->get('actividad_reserva')" />
-                            </div>
-                        @else
-                            <input type="hidden" name="actividad_reserva" value="particular">
-                        @endif
-                        @if ($grupos->isNotEmpty())
-                            <div>
-                                <x-input-label for="grupo_id" value="En representación de" />
-                                <select id="grupo_id" name="grupo_id" class="ui-input w-full" x-model="grupoId" @change="elegirGrupo()" :required="tipoActividad === 'grupo'" :disabled="tipoActividad !== 'grupo'">
-                                    <option value="">Sin agrupación</option>
-                                    @foreach ($grupos as $grupo)
-                                        <option value="{{ $grupo->id }}" @selected((string) old('grupo_id') === (string) $grupo->id)>{{ $grupo->nombre }}</option>
-                                    @endforeach
-                                </select>
-                                <x-input-error :messages="$errors->get('grupo_id')" />
-                            </div>
-                        @endif
-                        @if ($esDirigente)
-                            <div>
-                                <x-input-label for="modalidad_solicitante" value="Registro del solicitante" />
-                                <select id="modalidad_solicitante" name="modalidad_solicitante" x-model="modalidad" class="ui-input w-full" :disabled="tipoActividad !== 'particular'" required>
-                                    <option value="socio">Seleccionar socio activo</option>
-                                    <option value="manual">Ingresar persona en ventanilla</option>
-                                </select>
-                                <x-input-error :messages="$errors->get('modalidad_solicitante')" />
-                            </div>
-                            <div x-show="(tipoActividad === 'particular' && modalidad === 'socio') || (tipoActividad === 'grupo' && socioId)">
-                                <x-input-label for="socio_id" value="Socio responsable" />
-                                <select id="socio_id" name="socio_id" x-model="socioId" class="ui-input w-full" :required="tipoActividad === 'particular' && modalidad === 'socio'" :disabled="tipoActividad !== 'particular' || modalidad !== 'socio'">
-                                    <option value="">Elegir socio activo</option>
-                                    @foreach ($socios as $socio)
-                                        <option value="{{ $socio->id }}">{{ $socio->nombre_completo }} · {{ $socio->rut }}</option>
-                                    @endforeach
-                                </select>
-                                <x-input-error :messages="$errors->get('socio_id')" />
-                                <p x-show="grupoId && socioId" class="mt-2 text-sm text-gray-500">Socio autocompletado desde el representante de la agrupación.</p>
-                            </div>
-                            <p x-show="tipoActividad === 'grupo' && grupoId && !socioId" class="text-sm">Representante: <strong x-text="persona.nombre"></strong> · <span x-text="persona.rut"></span></p>
-                            <div x-show="tipoActividad === 'particular' && modalidad === 'manual'" x-cloak class="grid gap-4 sm:grid-cols-2">
-                                @foreach (['nombre' => ['Nombre completo', 255], 'rut' => ['RUT', 12], 'direccion' => ['Domicilio en la unidad vecinal', 255], 'telefono' => ['Teléfono', 20]] as $campo => [$etiqueta, $maximo])
-                                    <div>
-                                        <x-input-label :for="'responsable_'.$campo" :value="$etiqueta" />
-                                        <x-text-input :id="'responsable_'.$campo" :name="'responsable_'.$campo" x-model="persona.{{ $campo }}" :maxlength="$maximo"
-                                            x-bind:required="tipoActividad === 'particular' && modalidad === 'manual'" x-bind:disabled="tipoActividad !== 'particular' || modalidad !== 'manual'" class="w-full" />
-                                        <x-input-error :messages="$errors->get('responsable_'.$campo)" />
-                                    </div>
-                                @endforeach
-                                <p class="text-sm sm:col-span-2">Estos datos quedan en la reserva; no se crea una ficha ni una cuenta. Para un grupo, el responsable debe ser su representante.</p>
-                            </div>
+                    <input type="hidden" name="operacion" value="crear-reserva">
+                    <x-form-step number="0" class="ui-form-grid">
+                        <div><x-input-label for="actividad_reserva" value="Actividad" /><select id="actividad_reserva" name="actividad_reserva" x-model="tipoActividad" @change="cambiarActividad()" class="ui-input w-full" required>
+                            @foreach($tiposActividad as $tipo) @if($esDirigente || in_array($tipo->clave, ['particular','grupo']))<option value="{{ $tipo->clave }}">{{ $tipo->nombre }}</option>@endif @endforeach
+                        </select></div>
+                        @if($esDirigente)
+                            <div><x-input-label for="solicitante" value="Solicitante" /><select id="solicitante" name="solicitante" x-model="seleccion" @change="elegirSolicitante()" class="ui-input w-full" required><option value="">Seleccionar solicitante</option><template x-for="opcion in opciones()" :key="opcion.clave"><option :value="opcion.clave" x-text="opcion.etiqueta"></option></template><option x-show="!['actividad','grupo'].includes(tipoActividad)" :disabled="['actividad','grupo'].includes(tipoActividad)" value="manual">Registrar solicitante</option></select></div>
+                            @foreach(['nombre'=>'Nombre', 'rut'=>'RUT', 'direccion'=>'Dirección', 'telefono'=>'Teléfono'] as $campo=>$etiqueta)<div><x-input-label :for="'responsable_'.$campo" :value="$etiqueta" /><x-text-input :id="'responsable_'.$campo" :name="'responsable_'.$campo" x-model="persona.{{ $campo }}" x-bind:disabled="!seleccion" x-bind:readonly="seleccion !== 'manual'" x-bind:required="seleccion === 'manual'" class="w-full" /></div>@endforeach
+                            <p class="text-sm text-gray-500 sm:col-span-2" x-show="tipoActividad === 'grupo' && seleccion" x-text="'En representación de: ' + (personas.find(p => p.clave === seleccion)?.etiqueta.split(' · ').slice(1).join(' · ') || '')"></p>
                         @else
                             <p>Solicitante: <strong>{{ auth()->user()->socio->nombre_completo }}</strong></p>
+                            @if($grupos->isNotEmpty())<div x-show="tipoActividad === 'grupo'"><x-input-label for="grupo_id" value="En representación de" /><select id="grupo_id" name="grupo_id" :disabled="tipoActividad !== 'grupo'" :required="tipoActividad === 'grupo'" x-model="grupoId" class="ui-input w-full"><option value="">Elegir agrupación</option>@foreach($grupos as $grupo)<option value="{{ $grupo->id }}">{{ $grupo->nombre }}</option>@endforeach</select></div>@endif
                         @endif
                     </x-form-step>
                     <x-form-step number="1">
@@ -110,7 +50,7 @@
                         <div class="grid gap-4 sm:grid-cols-3">
                             <div>
                                 <x-input-label for="fecha" value="Fecha" />
-                                <x-date-input id="fecha" name="fecha" class="w-full" :value="old('fecha', now()->addDay()->toDateString())" min="{{ now()->toDateString() }}" max="{{ now()->addMonths(6)->toDateString() }}" required />
+                                <x-date-input id="fecha" name="fecha" class="w-full" :value="$valorCreacion('fecha', now()->addDay()->toDateString())" min="{{ now()->toDateString() }}" max="{{ now()->addMonths(6)->toDateString() }}" required />
                                 <x-input-error :messages="$errors->get('fecha')" />
                             </div>
                             <div>
@@ -131,7 +71,7 @@
                     </x-form-step>
                     <x-form-step number="2">
                         @if ($esDirigente)
-                            <div class="space-y-4" x-data="{ aporte: @js(old('valor_arriendo', '0')) }">
+                            <div class="space-y-4" x-data="{ aporte: @js($valorCreacion('valor_arriendo', '0')) }">
                                 <div>
                                     <x-input-label for="valor_arriendo" value="Aporte voluntario acordado (CLP)" />
                                     <x-text-input id="valor_arriendo" name="valor_arriendo" type="number" x-model="aporte" x-effect="if (tipoActividad !== 'particular') aporte = '0'" x-bind:readonly="tipoActividad !== 'particular'" min="0" max="4294967295" step="1" required />
@@ -154,36 +94,34 @@
                             <p>Presidente o secretario registrará el aporte y la garantía acordados. El comprobante del total se adjunta desde el detalle de la solicitud.</p>
                         @endif
                     </x-form-step>
-                    <x-wizard-actions />
+                    <x-wizard-actions :cancel="route($esDirigente ? 'reservas.index' : 'arriendos.index')" />
                 </form>
             </x-form-wizard>
-        </details>
+        </section>
+        @else
+        @php($errors = $erroresListado)
         <section class="ui-panel overflow-hidden">
             <h3 class="p-6 text-lg font-semibold">{{ $esDirigente ? 'Reservas y solicitudes de sede' : 'Mis reservas' }}</h3>
             <div class="overflow-x-auto">
                 <table class="ui-table">
-                    <thead><tr><th>Fecha y horario</th><th>Solicitante</th><th>Condición</th><th>Estado</th><th></th></tr></thead>
-                    <tbody>
+                    <thead><tr><th>Fecha y horario</th><th>Solicitante / actividad</th><th>Condición</th><th>Estado</th><th>Detalle</th></tr></thead>
                         @forelse ($arriendos as $arriendo)
-                            <tr>
+                            <x-record-row :id="'reserva_'.$arriendo->id" :columns="5">
+                                <x-slot name="summary">
                                 <td>{{ $arriendo->inicio->format('d/m/Y H:i') }} a {{ $arriendo->fin->format('H:i') }}</td>
-                                <td>{{ $arriendo->responsable_nombre ?? $arriendo->socio?->nombre_completo }}@if ($arriendo->grupo)<br>{{ $arriendo->grupo->nombre }}@endif</td>
+                                <td><strong>{{ $arriendo->responsable_nombre ?? $arriendo->socio?->nombre_completo }}</strong><span class="block text-xs text-gray-500">{{ $arriendo->motivo }}@if ($arriendo->grupo) · {{ $arriendo->grupo->nombre }}@endif</span></td>
                                 <td>{{ $arriendo->tipo !== 'arriendo' || ($arriendo->aporte_variable && $arriendo->valor_arriendo !== null && $arriendo->valor_arriendo == 0) ? 'Sin aporte' : ($arriendo->aporte_variable && $arriendo->valor_arriendo === null ? 'Aporte por definir' : 'Con aporte voluntario') }}<br>{{ $arriendo->etiquetaTipo() }}</td>
                                 <td><x-status-badge :state="$arriendo->estado" :label="\App\Models\Reserva::ESTADOS[$arriendo->estado] ?? $arriendo->estado" /></td>
-                                <td>
-                                    @if ($arriendo->tipo === 'arriendo')<a class="underline" href="{{ route('arriendos.show', $arriendo) }}">Ver detalle</a>@endif
-                                    @if ($esDirigente && in_array($arriendo->estado, ['pendiente', 'confirmada']))
-                                        <form method="POST" action="{{ route('reservas.cancelar', $arriendo) }}" onsubmit="return confirm('¿Cancelar esta reserva y liberar su horario?')">@csrf<button class="underline">Cancelar reserva</button></form>
-                                    @endif
-                                </td>
-                            </tr>
+                                </x-slot>
+                                @include('arriendos._detalle', ['reserva' => $arriendo, 'esFinanciero' => false, 'volverFinanzas' => false])
+                            </x-record-row>
                         @empty
-                            <tr><td colspan="5">No hay reservas de sede.</td></tr>
+                            <tbody><tr><td colspan="5">No hay reservas de sede.</td></tr></tbody>
                         @endforelse
-                    </tbody>
                 </table>
             </div>
             <div class="p-4">{{ $arriendos->links() }}</div>
         </section>
+        @endif
     </div>
 </x-app-layout>

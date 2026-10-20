@@ -13,7 +13,7 @@
                 <form novalidate method="POST" action="{{ $proyecto ? route('proyectos.update', $proyecto) : route('proyectos.store') }}" class="space-y-4">
                     @csrf
                     @if ($proyecto) @method('PUT') @endif
-                    <x-form-step number="0">
+                    <x-form-step number="0" class="ui-form-grid">
                         <div>
                             <x-input-label for="titulo" value="Título del proyecto" />
                             <x-text-input id="titulo" name="titulo" class="mt-1 block w-full" :value="old('titulo', $proyecto?->titulo)" maxlength="255" required />
@@ -26,7 +26,7 @@
                             <x-input-error :messages="$errors->get('organismo')" class="mt-2" />
                         </div>
                     </x-form-step>
-                    <x-form-step number="1">
+                    <x-form-step number="1" class="ui-form-grid">
                         <div>
                             <x-input-label for="fecha_postulacion" value="Fecha de postulación" />
                             <x-date-input id="fecha_postulacion" name="fecha_postulacion" :value="old('fecha_postulacion', $proyecto?->fecha_postulacion?->toDateString() ?? now()->toDateString())" class="mt-1" required />
@@ -62,7 +62,7 @@
                             <x-input-error :messages="$errors->get('postulador_id')" class="mt-2" />
                         </div>
                     </x-form-step>
-                    <x-wizard-actions />
+                    <x-wizard-actions :cancel="route('proyectos.index')" />
                 </form>
             </x-form-wizard>
         </div>

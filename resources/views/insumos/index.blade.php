@@ -1,27 +1,35 @@
 @php
-    $personaInicial = $personas->firstWhere('clave', old('solicitante')) ?? $personas->first();
+    $esCreacion = ! old('operacion') || old('operacion') === 'crear-insumo';
+    $valorCreacion = fn ($campo, $defecto = null) => $esCreacion ? old($campo, $defecto) : $defecto;
+@endphp
+@php
+    $personaInicial = $personas->firstWhere('clave', $valorCreacion('solicitante')) ?? $personas->first();
     $estado = [
-        'personas' => $personas, 'persona' => old('solicitante', $personaInicial['clave'] ?? ($gestion ? 'manual' : '')),
-        'grupo' => (string) old('grupo_id', count($personaInicial['grupos'] ?? []) === 1 ? $personaInicial['grupos'][0]['id'] : ''),
-        'telefono' => old('telefono_contacto', $personaInicial['telefono'] ?? ''),
-        'direccion' => old('direccion_contacto', $personaInicial['direccion'] ?? ''),
-        'rut' => old('solicitante_rut', $personaInicial['rut'] ?? ''),
-        'lineas' => array_values(old('lineas', [['item_inventario_id' => '', 'cantidad' => 1]])),
+        'personas' => $personas, 'persona' => $valorCreacion('solicitante', $personaInicial['clave'] ?? ($gestion ? 'manual' : '')),
+        'grupo' => (string) $valorCreacion('grupo_id', count($personaInicial['grupos'] ?? []) === 1 ? $personaInicial['grupos'][0]['id'] : ''),
+        'telefono' => $valorCreacion('telefono_contacto', $personaInicial['telefono'] ?? ''),
+        'direccion' => $valorCreacion('direccion_contacto', $personaInicial['direccion'] ?? ''),
+        'rut' => $valorCreacion('solicitante_rut', $personaInicial['rut'] ?? ''),
+        'lineas' => array_values($valorCreacion('lineas', [['item_inventario_id' => '', 'cantidad' => 1]])),
     ];
 @endphp
 <x-app-layout>
-    <x-slot name="header"><x-page-heading :title="$gestion ? 'Solicitudes de insumos' : 'Mis solicitudes de insumos'" description="Consulta solicitudes y su estado. Abre el formulario para registrar una nueva." /></x-slot>
-    <div class="max-w-6xl mx-auto px-4 py-6 space-y-6">
+    <x-slot name="header"><x-page-heading :title="$gestion ? 'Solicitudes de insumos' : 'Mis solicitudes de insumos'" description="Consulta los detalles y gestiona cada préstamo desde el listado.">@unless(request('crear'))<a class="ui-button ui-button-primary" href="{{ route('insumos.index', ['crear'=>1]) }}">Registrar solicitud</a>@endunless</x-page-heading></x-slot>
+    <div class="max-w-7xl mx-auto px-4 py-6 space-y-6">
         <x-reservas-tabs active="solicitudes" />
-        @if (session('status'))<p class="ui-panel p-4">{{ session('status') }}</p>@endif
-        @if ($errors->any())<div class="ui-panel p-4 text-red-600">@foreach ($errors->all() as $error)<p>{{ $error }}</p>@endforeach</div>@endif
+        @if (session('status'))<p role="status" class="ui-notice">{{ session('status') }}</p>@endif
+        @if ($errors->any())<div role="alert" class="ui-notice text-red-700">@foreach ($errors->all() as $error)<p>{{ $error }}</p>@endforeach</div>@endif
         @if (! $gestion) @include('insumos._horarios') @endif
-        <details class="ui-panel p-6" @if ($errors->any()) open @endif>
-            <summary class="cursor-pointer font-semibold">{{ $gestion ? 'Registrar solicitud propia o en ventanilla' : 'Solicitar insumos' }}</summary>
+        @php($erroresListado = $errors)
+        @php($errors = $esCreacion ? $errors : new \Illuminate\Support\ViewErrorBag)
+        @if(request('crear'))
+        <section class="ui-panel p-6 space-y-4">
+            <h2 class="text-lg font-semibold">{{ $gestion ? 'Registrar solicitud propia o en ventanilla' : 'Solicitar insumos' }}</h2>
             <x-form-wizard :steps="['Solicitante', 'Insumos']" :fields="[['solicitante', 'solicitante_nombre', 'solicitante_rut', 'grupo_id', 'telefono_contacto', 'direccion_contacto', 'fecha_comprometida'], ['lineas']]">
                 <form method="POST" action="{{ route('insumos.store') }}" class="space-y-4" novalidate
                     x-data="{ ...@js($estado), seleccionada() { return this.personas.find(p => p.clave === this.persona); }, elegir() { const p = this.seleccionada(); this.grupo = p?.grupos.length === 1 ? String(p.grupos[0].id) : ''; this.telefono = p?.telefono ?? ''; this.direccion = p?.direccion ?? ''; this.rut = p?.rut ?? ''; } }">
                     @csrf
+                    <input type="hidden" name="operacion" value="crear-insumo">
                     <x-form-step number="0">
                         @if ($gestion)
                             <x-input-label for="solicitante" value="Solicitante" />
@@ -35,7 +43,7 @@
                         @if ($gestion)
                             <div x-show="persona === 'manual'" x-cloak>
                                 <x-input-label for="solicitante_nombre" value="Nombre completo del vecino" />
-                                <x-text-input id="solicitante_nombre" name="solicitante_nombre" :value="old('solicitante_nombre')" x-bind:disabled="persona !== 'manual'" x-bind:required="persona === 'manual'" maxlength="255" class="w-full" />
+                                <x-text-input id="solicitante_nombre" name="solicitante_nombre" :value="$valorCreacion('solicitante_nombre')" x-bind:disabled="persona !== 'manual'" x-bind:required="persona === 'manual'" maxlength="255" class="w-full" />
                                 <p class="mt-2 text-sm text-gray-500">Se registra en ventanilla sin crear ficha ni cuenta.</p>
                             </div>
                         @endif
@@ -50,7 +58,7 @@
                             <div><x-input-label for="solicitante_rut" value="RUT del solicitante" /><x-text-input id="solicitante_rut" name="solicitante_rut" x-model="rut" x-bind:readonly="!!seleccionada()?.rut" maxlength="12" required class="w-full" /></div>
                             <div><x-input-label for="telefono_contacto" value="Teléfono de contacto" /><x-text-input id="telefono_contacto" name="telefono_contacto" x-model="telefono" maxlength="20" required class="w-full" /></div>
                             <div><x-input-label for="direccion_contacto" value="Dirección de contacto" /><x-text-input id="direccion_contacto" name="direccion_contacto" x-model="direccion" x-bind:required="persona === 'manual'" maxlength="255" class="w-full" /></div>
-                            <div><x-input-label for="fecha_comprometida" value="Fecha comprometida de devolución" /><x-date-input id="fecha_comprometida" name="fecha_comprometida" :value="old('fecha_comprometida', now()->addWeek()->toDateString())" :min="now()->toDateString()" required /></div>
+                            <div><x-input-label for="fecha_comprometida" value="Fecha comprometida de devolución" /><x-date-input id="fecha_comprometida" name="fecha_comprometida" :value="$valorCreacion('fecha_comprometida', now()->addWeek()->toDateString())" :min="now()->toDateString()" required /></div>
                         </div>
                     </x-form-step>
                     <x-form-step number="1">
@@ -75,16 +83,26 @@
                         <p class="mt-3">Selecciona cada insumo una sola vez. Las cantidades se comprobarán nuevamente al aprobar.</p>
                     </x-form-step>
                     <p class="text-sm text-gray-500">{{ $gestion ? 'El responsable se registra automáticamente según quién ingresa o aprueba la solicitud.' : 'El responsable se asignará al aprobar la solicitud.' }}</p>
-                    <x-wizard-actions />
+                    <x-wizard-actions :cancel="route('insumos.index')" />
                 </form>
             </x-form-wizard>
-        </details>
+        </section>
+        @else
+        @php($errors = $erroresListado)
         <section class="ui-panel overflow-x-auto">
-            <table class="ui-table"><thead><tr><th>Solicitud</th><th>Solicitante</th><th>Grupo</th><th>Devolución comprometida</th><th>Estado</th><th></th></tr></thead><tbody>
+            <table class="ui-table"><thead><tr><th>Solicitud / solicitante</th><th>Agrupación</th><th>Devolución comprometida</th><th>Estado</th><th>Detalle</th></tr></thead>
                 @forelse ($solicitudes as $solicitud)
-                    <tr><td>#{{ $solicitud->id }} · {{ $solicitud->created_at->format('d/m/Y') }}</td><td>{{ $solicitud->solicitante_nombre }}</td><td>{{ $solicitud->grupo_nombre ?? 'Particular' }}</td><td>{{ $solicitud->fecha_comprometida->format('d/m/Y') }}</td><td><x-status-badge :state="$solicitud->estado" :label="\App\Models\SolicitudInsumo::ESTADOS[$solicitud->estado]" />@if ($solicitud->atrasado()) · Atrasado @endif</td><td><a class="underline" href="{{ route('insumos.show', $solicitud) }}">Ver detalle</a></td></tr>
-                @empty<tr><td colspan="6">No hay solicitudes para mostrar.</td></tr>@endforelse
-            </tbody></table>
+                    <x-record-row :id="'insumo_'.$solicitud->id" :columns="5">
+                        <x-slot name="summary">
+                            <td><strong>{{ $solicitud->solicitante_nombre }}</strong><span class="block text-xs text-gray-500">#{{ $solicitud->id }} · {{ $solicitud->created_at->format('d/m/Y') }}</span></td>
+                            <td>{{ $solicitud->grupo_nombre ?? 'Particular' }}</td>
+                            <td>{{ $solicitud->fecha_comprometida->format('d/m/Y') }}</td>
+                            <td><x-status-badge :state="$solicitud->estado" :label="\App\Models\SolicitudInsumo::ESTADOS[$solicitud->estado]" />@if ($solicitud->atrasado()) <span class="block text-xs text-red-700">Atrasado</span>@endif</td>
+                        </x-slot>
+                        @include('insumos._detalle')
+                    </x-record-row>
+                @empty<tbody><tr><td colspan="5">No hay solicitudes para mostrar.</td></tr></tbody>@endforelse
+            </table>
         </section>
         {{ $solicitudes->links() }}
         @if ($gestion && $prestamosHistoricos->isNotEmpty())
@@ -96,6 +114,7 @@
                     @endforeach
                 </ul>
             </details>
+        @endif
         @endif
     </div>
 </x-app-layout>

@@ -116,7 +116,9 @@ test('reserva de no socio en ventanilla registra el aporte sin garantía ni crea
     ])->assertSessionHasNoErrors();
     expect(Ingreso::saldoCaja())->toBe(40000)->and(Ingreso::sole()->concepto)->toBe('aporte_reserva');
     $this->assertDatabaseCount('garantias', 0);
-    $this->get(route('finanzas.arriendos.index'))->assertOk()->assertSee('Persona Ventanilla');
+    $this->get(route('ingresos.index'))->assertOk()
+        ->assertSee(route('arriendos.show', ['reserva' => $reserva, 'desde' => 'finanzas']));
+    $this->get(route('arriendos.show', $reserva))->assertOk()->assertSee('Persona Ventanilla');
     $this->get(route('arriendos.show', ['reserva' => $reserva, 'desde' => 'finanzas']))->assertViewHas('volverFinanzas', true);
     $this->actingAs($this->socio4->user)->get(route('arriendos.show', $reserva))->assertForbidden();
 })->with(['presidente', 'secretario']);

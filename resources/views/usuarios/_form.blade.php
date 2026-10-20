@@ -1,31 +1,34 @@
 @php
+    $operacion = $usuario ? 'usuario_'.$usuario->id : 'usuario_nuevo';
+    $valor = fn ($campo, $defecto = null) => (! $usuario || old('operacion') === $operacion) ? old($campo, $defecto) : $defecto;
+    $errors = (! $usuario || old('operacion') === $operacion) ? $errors : new \Illuminate\Support\ViewErrorBag;
     $esUnoMismo = $usuario && $usuario->is(auth()->user());
-    $rolActual = old('role', $usuario?->role ?? 'vecino');
+    $rolActual = $valor('role', $usuario?->role ?? 'vecino');
 @endphp
 
-<x-form-step number="0">
+<div class="ui-form-grid">
     <div>
-        <x-input-label for="name" value="Nombre completo" />
-        <x-text-input id="name" name="name" autocomplete="off" type="text" class="mt-1 block w-full"
-            :value="old('name', $usuario?->name)" required autofocus />
+        <x-input-label for="name_{{ $usuario?->id ?? 'nuevo' }}" value="Nombre completo" />
+        <x-text-input id="name_{{ $usuario?->id ?? 'nuevo' }}" name="name" autocomplete="off" type="text" class="mt-1 block w-full"
+            :value="$valor('name', $usuario?->name)" required autofocus />
         <x-input-error class="mt-2" :messages="$errors->get('name')" />
     </div>
 
     <div>
-        <x-input-label for="email" value="Correo electrónico" />
-        <x-text-input id="email" name="email" autocomplete="off" type="email" class="mt-1 block w-full"
-            :value="old('email', $usuario?->email)" required />
+        <x-input-label for="email_{{ $usuario?->id ?? 'nuevo' }}" value="Correo electrónico" />
+        <x-text-input id="email_{{ $usuario?->id ?? 'nuevo' }}" name="email" autocomplete="off" type="email" class="mt-1 block w-full"
+            :value="$valor('email', $usuario?->email)" required />
         <x-input-error class="mt-2" :messages="$errors->get('email')" />
     </div>
 
-</x-form-step>
-<x-form-step number="1">
+</div>
+<div class="ui-form-grid mt-6">
     <div>
-        <x-input-label for="role" value="Rol" />
-        <select id="role" name="role" @disabled($esUnoMismo)
+        <x-input-label for="role_{{ $usuario?->id ?? 'nuevo' }}" value="Rol" />
+        <select id="role_{{ $usuario?->id ?? 'nuevo' }}" name="role" @disabled($esUnoMismo)
             class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-brand-500 dark:focus:border-brand-400 focus:ring-brand-500 dark:focus:ring-brand-400 rounded-md shadow-sm disabled:opacity-60">
-            @foreach (\App\Models\User::ROLES as $valor => $etiqueta)
-                <option value="{{ $valor }}" @selected($rolActual === $valor)>{{ $etiqueta }}</option>
+            @foreach (\App\Models\User::ROLES as $claveRol => $etiqueta)
+                <option value="{{ $claveRol }}" @selected($rolActual === $claveRol)>{{ $etiqueta }}</option>
             @endforeach
         </select>
 
@@ -35,7 +38,7 @@
             <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">No puedes cambiar tu propio rol.</p>
         @else
             <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                El rol define a qué secciones accede la persona. El administrador solo gestiona usuarios y roles; no accede a fichas de socios ni a finanzas.
+                El rol define a qué secciones accede la persona. El administrador gestiona cuentas, parámetros y catálogos; la baja de ficha de un dirigente es una operación específica.
             </p>
         @endif
 
@@ -46,11 +49,10 @@
         <x-secondary-button @click="generarClave()">Generar contraseña</x-secondary-button>
     </div>
     <div>
-        <x-input-label for="password" :value="$usuario ? 'Nueva contraseña (opcional)' : 'Contraseña temporal'" />
+        <x-input-label for="password_{{ $usuario?->id ?? 'nuevo' }}" :value="$usuario ? 'Nueva contraseña (opcional)' : 'Contraseña temporal'" />
         <div class="mt-1 flex items-center gap-2">
-            <x-text-input id="password" name="password" type="password" x-model="clave" x-bind:type="mostrarClave ? 'text' : 'password'" class="min-w-0 flex-1"
+            <x-password-input id="password_{{ $usuario?->id ?? 'nuevo' }}" name="password" type="password" x-model="clave" class="min-w-0 flex-1"
                 autocomplete="new-password" :required="! $usuario" />
-            <x-secondary-button class="shrink-0" @click="mostrarClave = !mostrarClave" x-bind:aria-pressed="mostrarClave" aria-controls="password password_confirmation" x-text="mostrarClave ? 'Ocultar' : 'Mostrar'">Mostrar</x-secondary-button>
         </div>
         <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
             @if ($usuario)
@@ -63,8 +65,8 @@
     </div>
 
     <div>
-        <x-input-label for="password_confirmation" value="Confirmar contraseña" />
-        <x-text-input id="password_confirmation" name="password_confirmation" type="password" x-model="confirmacion" x-bind:type="mostrarClave ? 'text' : 'password'" class="mt-1 block w-full"
+        <x-input-label for="password_confirmation_{{ $usuario?->id ?? 'nuevo' }}" value="Confirmar contraseña" />
+        <x-password-input id="password_confirmation_{{ $usuario?->id ?? 'nuevo' }}" name="password_confirmation" type="password" x-model="confirmacion" class="mt-1 block w-full"
             autocomplete="new-password" :required="! $usuario" />
     </div>
-</x-form-step>
+</div>

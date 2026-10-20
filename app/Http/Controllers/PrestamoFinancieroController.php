@@ -15,10 +15,7 @@ class PrestamoFinancieroController extends Controller
 {
     public function index()
     {
-        return view('finanzas.insumos.index', [
-            'solicitudes' => SolicitudInsumo::with(['ingresos', 'garantiaRecibida'])
-                ->whereIn('estado', ['aprobado', 'entregado', 'devuelto'])->latest('id')->paginate(20),
-        ]);
+        return redirect()->route('finanzas.arriendos.index');
     }
 
     public function show(SolicitudInsumo $solicitud)

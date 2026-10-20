@@ -22,7 +22,7 @@ test('presidente y secretario publican varios tramos semanales visibles sin inic
     $this->assertDatabaseCount('citas', 0);
     $this->assertDatabaseCount('reservas', 0);
     auth()->logout();
-    $this->get('/')->assertOk()->assertSee('Lunes')->assertSee('09:00 a 12:00')->assertSee('15:00 a 18:00');
+    $this->get('/')->assertOk()->assertSee('Lunes')->assertSee('09:00–12:00')->assertSee('15:00–18:00');
 })->with(['presidente', 'secretario']);
 
 test('los tramos permiten continuidad pero rechazan superposiciones incluso al editar', function () {
@@ -96,14 +96,14 @@ test('los puntos rojos indican pendientes para la directiva y desaparecen al res
         'fin' => now()->addDay()->setTime(11, 0), 'motivo' => 'Arriendo', 'vence_en' => now()->addHours(48),
     ]);
     $this->actingAs(User::factory()->create(['role' => $rol]));
-    $this->get(route('dashboard'))->assertOk()->assertSee('data-pendiente="socios"', false)
-        ->assertSee('data-pendiente="certificados"', false)->assertSee('data-pendiente="arriendos"', false);
+    $respuesta = $this->get(route('dashboard'))->assertOk();
+    expect(substr_count($respuesta->getContent(), 'Hay solicitudes pendientes de revisión'))->toBe(3);
 
     $socio->update(['estado' => 'por_firmar']);
     $certificado->forceFill(['estado' => 'rechazado'])->save();
     // Aun sin scheduler: una solicitud vencida ya no debe encender el aviso.
     $reserva->update(['vence_en' => now()->subMinute()]);
-    $this->get(route('dashboard'))->assertOk()->assertDontSee('data-pendiente=', false);
+    $this->get(route('dashboard'))->assertOk()->assertDontSee('Hay solicitudes pendientes de revisión');
 })->with(['presidente', 'secretario']);
 
 test('el panel del presidente muestra solicitudes por revisar sin exponerlas a otros roles', function () {
@@ -116,10 +116,11 @@ test('el panel del presidente muestra solicitudes por revisar sin exponerlas a o
         'direccion' => 'Pasaje 100', 'dirigido_a' => 'Banco',
     ]);
     $this->get(route('dashboard'))->assertOk()->assertSee('Pendiente del panel')->assertSee('Certificado del panel')
-        ->assertSee(route('socios.show', $socio))->assertSee(route('admin.certificados.show', $certificado));
+        ->assertSee(route('socios.index', ['estado' => 'pendientes']))
+        ->assertSee(route('admin.certificados.index', ['estado' => 'solicitado']));
     foreach (['admin', 'tesorero', 'vecino'] as $rol) {
         $this->actingAs(User::factory()->create(['role' => $rol]))->get(route('dashboard'))->assertOk()
-            ->assertDontSee('Pendiente del panel')->assertDontSee('Certificado del panel')->assertDontSee('data-pendiente=', false)
+            ->assertDontSee('Pendiente del panel')->assertDontSee('Certificado del panel')->assertDontSee('Hay solicitudes pendientes de revisión')
             ->assertViewHas('sociosPendientes', fn ($lista) => $lista->isEmpty())
             ->assertViewHas('certificadosPendientes', fn ($lista) => $lista->isEmpty());
     }
@@ -128,8 +129,10 @@ test('el panel del presidente muestra solicitudes por revisar sin exponerlas a o
 test('finanzas agrupa sus enlaces y conserva los permisos de cada rol', function (string $rol, bool $permitido) {
     $respuesta = $this->actingAs(User::factory()->create(['role' => $rol]))->get(route('dashboard'))->assertOk();
     if ($permitido) {
-        $respuesta->assertSee('Finanzas')->assertSee(route('ingresos.index'))->assertSee(route('egresos.index'))
+        $respuesta->assertSee('Finanzas')->assertSee('Ingresos y egresos')->assertSee(route('ingresos.index'))
             ->assertSee(route('finanzas.arriendos.index'));
+        $this->get(route('ingresos.index'))->assertOk()->assertSee(route('egresos.index'));
+        $this->get(route('egresos.index'))->assertOk()->assertSee(route('ingresos.index'));
         $this->get(route('finanzas.arriendos.index'))->assertOk();
     } else {
         $respuesta->assertDontSee(route('finanzas.arriendos.index'));

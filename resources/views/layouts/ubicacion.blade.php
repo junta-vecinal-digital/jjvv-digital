@@ -2,6 +2,7 @@
     $rutaActual = request()->route()?->getName();
     $gestiona = auth()->user()->hasRole('presidente', 'secretario');
     $secciones = [
+        'socios.archivo' => ['socios.archivo', 'Archivo de socios'],
         'socios.create' => ['socios.create', 'Mi ficha de socio'],
         'socios.*' => ['socios.index', 'Gestión de socios'],
         'admin.certificados.*' => ['admin.certificados.index', 'Gestión de certificados'],
@@ -14,9 +15,9 @@
         'inventario.*' => ['inventario.index', 'Inventario'],
         'ingresos.*' => ['ingresos.index', 'Ingresos'],
         'egresos.*' => ['egresos.index', 'Egresos'],
-        'finanzas.pendientes.*' => ['finanzas.pendientes.index', 'Ingresos por aprobar'],
-        'finanzas.arriendos.*' => ['finanzas.arriendos.index', 'Garantías de sede'],
-        'finanzas.insumos.*' => ['finanzas.insumos.index', 'Garantías de insumos'],
+        'finanzas.pendientes.*' => ['ingresos.index', 'Ingresos'],
+        'finanzas.arriendos.*' => ['finanzas.arriendos.index', 'Registro garantías'],
+        'finanzas.insumos.*' => ['finanzas.arriendos.index', 'Registro garantías'],
         'actas.*' => ['actas.index', 'Actas'],
         'proyectos.*' => ['proyectos.index', 'Proyectos'],
         'reportes.*' => ['reportes.index', 'Reportes'],
@@ -35,7 +36,7 @@
     if (request()->routeIs('arriendos.*')) {
         $desdeFinanzas = request('desde') === 'finanzas' && auth()->user()->hasRole('presidente', 'tesorero');
         $soloFinanzas = ! $gestiona && ! auth()->user()->esSocioActivo();
-        $seccion = $desdeFinanzas || $soloFinanzas ? ['finanzas.arriendos.index', 'Aportes de sede']
+        $seccion = $desdeFinanzas || $soloFinanzas ? ['finanzas.arriendos.index', 'Registro garantías']
             : [$gestiona ? 'reservas.index' : 'arriendos.index', $gestiona ? 'Reservas de sede' : 'Mis reservas de sede'];
     }
 @endphp

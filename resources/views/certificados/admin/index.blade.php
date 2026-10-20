@@ -27,36 +27,15 @@
                 <x-secondary-button type="submit">Filtrar</x-secondary-button>
             </form>
 
-            <div class="ui-panel overflow-x-auto">
-                <table class="ui-table divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead class="bg-gray-50 dark:bg-gray-700/50 text-left text-gray-600 dark:text-gray-300">
-                        <tr>
-                            <th class="px-4 py-3 font-medium">Folio</th>
-                            <th class="px-4 py-3 font-medium">Tipo</th>
-                            <th class="px-4 py-3 font-medium">Solicitante</th>
-                            <th class="px-4 py-3 font-medium">Presentado ante</th>
-                            <th class="px-4 py-3 font-medium">Fecha</th>
-                            <th class="px-4 py-3 font-medium">Estado</th>
-                            <th class="px-4 py-3"></th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700 text-gray-800 dark:text-gray-200">
-                        @forelse ($certificados as $c)
-                            <tr>
-                                <td class="px-4 py-3">{{ $c->folio ?? '—' }}</td>
-                                <td class="px-4 py-3">{{ $c->etiquetaTipo() }}</td>
-                                <td class="px-4 py-3">{{ $c->nombre_solicitante }}<div class="text-xs text-gray-500">{{ $c->rut_solicitante }}</div></td>
-                                <td class="px-4 py-3">{{ $c->dirigido_a }}</td>
-                                <td class="px-4 py-3">{{ ($c->fecha_emision ?? $c->created_at)->format('d/m/Y') }}</td>
-                                <td class="px-4 py-3"><x-estado-certificado :estado="$c->estado" /></td>
-                                <td class="px-4 py-3 text-right"><a href="{{ route('admin.certificados.show', $c) }}" class="underline text-brand-600 dark:text-brand-400">{{ $c->estado === 'solicitado' ? 'Revisar' : 'Ver' }}</a></td>
-                            </tr>
-                        @empty
-                            <tr><td colspan="7" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">No hay certificados con esos filtros.</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
+            <x-operation-notice />
+            <section class="ui-panel overflow-x-auto"><table class="ui-table"><thead><tr><th>Solicitante / tipo</th><th>Folio / fecha</th><th>Estado</th><th>Acción</th></tr></thead>
+                @forelse($certificados as $certificado)
+                    <x-record-row :id="'certificado_'.$certificado->id" :columns="4" :label="$certificado->estado === 'solicitado' ? 'Revisar solicitud' : 'Ver certificado'">
+                        <x-slot name="summary"><td><strong>{{ $certificado->nombre_solicitante }}</strong><span class="ui-sub">{{ $certificado->etiquetaTipo() }} · Presentado ante: {{ $certificado->dirigido_a }}</span></td><td>{{ $certificado->folio ?? 'Sin folio' }}<span class="ui-sub">{{ ($certificado->fecha_emision ?? $certificado->created_at)->format('d/m/Y') }}</span></td><td><x-estado-certificado :estado="$certificado->estado" /></td></x-slot>
+                        @include('certificados.admin._detalle')
+                    </x-record-row>
+                @empty<tbody><tr><td colspan="4">No hay certificados con esos filtros.</td></tr></tbody>@endforelse
+            </table></section>
 
             <div class="px-4 sm:px-0">{{ $certificados->links() }}</div>
         </div>

@@ -14,8 +14,10 @@ class ProyectoController extends Controller
         $filtros = $request->validate(['estado' => ['nullable', Rule::in(array_keys(Proyecto::ESTADOS))]]);
 
         return view('proyectos.index', [
-            'proyectos' => Proyecto::when($filtros['estado'] ?? null, fn ($q, $estado) => $q->where('estado', $estado))
+            'proyectos' => Proyecto::with('registrador')->when($filtros['estado'] ?? null, fn ($q, $estado) => $q->where('estado', $estado))
                 ->orderByDesc('fecha_postulacion')->orderByDesc('id')->paginate(20)->withQueryString(),
+            'organismos' => Proyecto::distinct()->orderBy('organismo')->pluck('organismo'),
+            'postuladores' => User::whereIn('role', ['presidente', 'secretario', 'tesorero'])->orderBy('name')->get(['id', 'name', 'role']),
         ]);
     }
 
@@ -28,12 +30,12 @@ class ProyectoController extends Controller
     {
         $proyecto = Proyecto::create($this->validar($request) + ['registrado_por' => $request->user()->id]);
 
-        return redirect()->route('proyectos.show', $proyecto)->with('status', 'Proyecto registrado.');
+        return redirect()->route('proyectos.index')->withInput(['operacion' => 'proyecto_'.$proyecto->id])->with('status', 'Proyecto registrado.');
     }
 
     public function show(Proyecto $proyecto)
     {
-        return view('proyectos.show', ['proyecto' => $proyecto->load('registrador')]);
+        return view('proyectos.show', $this->datosFormulario($proyecto->load('registrador')));
     }
 
     public function edit(Proyecto $proyecto)
@@ -45,7 +47,7 @@ class ProyectoController extends Controller
     {
         $proyecto->update($this->validar($request, $proyecto));
 
-        return redirect()->route('proyectos.show', $proyecto)->with('status', 'Proyecto actualizado.');
+        return ($request->filled('operacion') ? back()->withInput($request->only('operacion')) : redirect()->route('proyectos.show', $proyecto))->with('status', 'Proyecto actualizado.');
     }
 
     private function validar(Request $request, ?Proyecto $proyecto = null): array

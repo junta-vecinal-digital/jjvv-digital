@@ -30,7 +30,7 @@
                           }">
                         @csrf
 
-                        <x-form-step number="0">
+                        <x-form-step number="0" class="ui-form-grid">
                             <div>
                                 <x-input-label for="tipo" value="Tipo de certificado" />
                                 <select id="tipo" name="tipo" x-model="tipo" class="{{ $cls }}">
@@ -66,7 +66,7 @@
                                 <x-input-error class="mt-2" :messages="$errors->get('nombre_solicitante')" />
                             </div>
 
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div class="grid gap-6 sm:col-span-2 sm:grid-cols-2">
                                 <div>
                                     <x-input-label for="rut_solicitante" value="RUT" />
                                     <input id="rut_solicitante" name="rut_solicitante" type="text" :readonly="!!socioId && !editarDatos" x-model="rut" placeholder="12345678-5" class="{{ $cls }}" required>
@@ -80,7 +80,7 @@
                             </div>
 
                         </x-form-step>
-                        <x-form-step number="1">
+                        <x-form-step number="1" class="ui-form-grid">
                             <div>
                                 <x-input-label for="dirigido_a" value="Dirigido a / entidad donde se presentará" />
                                 <input id="dirigido_a" name="dirigido_a" list="destinatarios-certificado" autocomplete="off" maxlength="255" type="text" class="{{ $cls }}" required value="{{ old('dirigido_a') }}">
@@ -89,7 +89,7 @@
                             </div>
 
                         </x-form-step>
-                        <x-form-step number="2">
+                        <x-form-step number="2" class="ui-form-grid">
                             {{-- Solo residencia: pago y verificaciones --}}
                             <fieldset :disabled="tipo !== 'residencia'" x-show="tipo === 'residencia'" class="space-y-6 border-t border-gray-200 dark:border-gray-700 pt-6">
                                 <p class="text-sm text-gray-600 dark:text-gray-400">
@@ -101,7 +101,7 @@
                                     <x-text-input id="aporte" name="aporte" type="number" x-model="aporte" min="0" max="100000000" step="1" x-bind:required="tipo === 'residencia'" />
                                     <x-input-error :messages="$errors->get('aporte')" />
                                 </div>
-                                <div>
+                                <div x-show="Number(aporte) > 0">
                                     <x-input-label for="medio_pago" value="Medio del aporte" />
                                     <select id="medio_pago" name="medio_pago" x-model="medio" :disabled="Number(aporte) <= 0" class="{{ $cls }}">
                                         @foreach ($medios as $valor => $etiqueta)
@@ -111,19 +111,19 @@
                                     <x-input-error class="mt-2" :messages="$errors->get('medio_pago')" />
                                 </div>
 
-                                <div x-show="medio === 'efectivo'">
+                                <div x-show="Number(aporte) > 0 && medio === 'efectivo'">
                                     <x-input-label for="talonario" value="Número de talonario" />
                                     <input id="talonario" name="talonario" type="text" :disabled="Number(aporte) <= 0 || medio !== 'efectivo'" :required="tipo === 'residencia' && Number(aporte) > 0 && medio === 'efectivo'" class="{{ $cls }}" value="{{ old('talonario') }}">
                                     <x-input-error class="mt-2" :messages="$errors->get('talonario')" />
                                 </div>
 
-                                <div x-show="medio === 'transferencia'">
+                                <div x-show="Number(aporte) > 0 && medio === 'transferencia'">
                                     <x-input-label for="numero_transaccion" value="Número de transacción" />
                                     <input id="numero_transaccion" name="numero_transaccion" type="text" :disabled="Number(aporte) <= 0 || medio !== 'transferencia'" :required="tipo === 'residencia' && Number(aporte) > 0 && medio === 'transferencia'" maxlength="50" class="{{ $cls }}" value="{{ old('numero_transaccion') }}">
                                     <x-input-error class="mt-2" :messages="$errors->get('numero_transaccion')" />
                                 </div>
 
-                                <div>
+                                <div x-show="Number(aporte) > 0">
                                     <label class="inline-flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
                                         <input type="checkbox" name="pago_verificado" value="1" :disabled="Number(aporte) <= 0" :required="tipo === 'residencia' && Number(aporte) > 0" @checked(old('pago_verificado'))
                                                class="mt-0.5 rounded border-gray-300 dark:border-gray-700 dark:bg-gray-900 text-brand-600 shadow-sm focus:ring-brand-500">
@@ -154,7 +154,7 @@
 
                         </x-form-step>
 
-                        <x-wizard-actions />
+                        <x-wizard-actions :cancel="route('admin.certificados.index')" />
                     </form>
                 </x-form-wizard>
             </div>

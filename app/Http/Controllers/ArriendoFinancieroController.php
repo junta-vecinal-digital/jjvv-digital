@@ -16,8 +16,8 @@ class ArriendoFinancieroController extends Controller
     public function index()
     {
         return view('finanzas.arriendos.index', [
-            'arriendos' => Reserva::with(['socio', 'grupo', 'garantia', 'ingresos'])
-                ->where('tipo', 'arriendo')->whereNotNull('validado_en')->latest('id')->paginate(20),
+            'garantias' => Garantia::with(['reserva.socio', 'solicitudInsumo', 'ingresos'])
+                ->latest('id')->paginate(20),
         ]);
     }
 
@@ -37,10 +37,10 @@ class ArriendoFinancieroController extends Controller
             $garantia = $reserva->garantia;
             $registrarGarantia = $garantia && $garantia->monto > 0 && ! $garantia->registrada_en;
             if ($reserva->valor_arriendo <= 0 && ! $registrarGarantia) {
-                return back()->withErrors(['finanzas' => 'Una reserva gratuita no genera ingresos.']);
+                return back()->withInput()->withErrors(['finanzas' => 'Una reserva gratuita no genera ingresos.']);
             }
             if ($ingresoVigente && ! $registrarGarantia) {
-                return back()->withErrors(['finanzas' => 'Este arriendo ya tiene un ingreso vigente.']);
+                return back()->withInput()->withErrors(['finanzas' => 'Este arriendo ya tiene un ingreso vigente.']);
             }
 
             if ($reserva->valor_arriendo > 0 && ! $ingresoVigente) Ingreso::create([
@@ -75,7 +75,7 @@ class ArriendoFinancieroController extends Controller
             $garantia->refresh();
             $this->validarDevolucionInsumos($garantia);
             if ($garantia->estado !== 'recibida') {
-                return back()->withErrors(['finanzas' => 'Solo una garantía recibida puede quedar por devolver.']);
+                return back()->withInput()->withErrors(['finanzas' => 'Solo una garantía recibida puede quedar por devolver.']);
             }
             $garantia->update(['estado' => 'por_devolver']);
 
@@ -92,10 +92,10 @@ class ArriendoFinancieroController extends Controller
             $garantia->refresh();
             $this->validarDevolucionInsumos($garantia, $datos['fecha_resolucion']);
             if (! $garantia->registrada_en || ! in_array($garantia->estado, ['recibida', 'por_devolver'], true)) {
-                return back()->withErrors(['finanzas' => 'La garantía debe estar registrada y pendiente de resolución.']);
+                return back()->withInput()->withErrors(['finanzas' => 'La garantía debe estar registrada y pendiente de resolución.']);
             }
             if ($datos['fecha_resolucion'] < $garantia->fecha_pago->toDateString()) {
-                return back()->withErrors(['fecha_resolucion' => 'La devolución no puede ser anterior al pago.']);
+                return back()->withInput()->withErrors(['fecha_resolucion' => 'La devolución no puede ser anterior al pago.']);
             }
             $garantia->update([
                 'estado' => 'devuelta',
@@ -123,7 +123,7 @@ class ArriendoFinancieroController extends Controller
             $garantia->refresh();
             $this->validarDevolucionInsumos($garantia, $datos['fecha_resolucion']);
             if (! $garantia->registrada_en || ! in_array($garantia->estado, ['recibida', 'por_devolver'], true)) {
-                return back()->withErrors(['finanzas' => 'La garantía debe estar registrada y pendiente de resolución.']);
+                return back()->withInput()->withErrors(['finanzas' => 'La garantía debe estar registrada y pendiente de resolución.']);
             }
             if ($datos['fecha_resolucion'] < $garantia->fecha_pago->toDateString()) {
                 return back()->withInput()->withErrors(['fecha_resolucion' => 'La resolución no puede ser anterior al pago.']);
@@ -152,7 +152,7 @@ class ArriendoFinancieroController extends Controller
             DB::table('parametros')->where('clave', 'sede_hora_inicio')->update(['valor' => DB::raw('valor')]);
             $garantia->refresh();
             if ($garantia->estado !== 'retenida' || $garantia->ingresos()->vigentes()->exists()) {
-                return back()->withErrors(['finanzas' => 'La retención ya tiene un ingreso vigente o la garantía no está retenida.']);
+                return back()->withInput()->withErrors(['finanzas' => 'La retención ya tiene un ingreso vigente o la garantía no está retenida.']);
             }
             $this->crearIngresoRetencion($garantia, $request->user()->id);
 

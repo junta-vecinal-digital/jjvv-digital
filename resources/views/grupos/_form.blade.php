@@ -1,4 +1,8 @@
 @php
+    $operacion = 'grupo_'.($grupo?->id ?? 'nuevo');
+    $valorFormulario = fn ($campo, $defecto = null) => old('operacion') === $operacion ? old($campo, $defecto) : $defecto;
+    $errors = old('operacion') === $operacion ? $errors : new \Illuminate\Support\ViewErrorBag;
+
     $esEdicion = $grupo !== null;
     $representante = $grupo?->datosRepresentante() ?? ['nombre' => '', 'rut' => '', 'correo' => '', 'telefono' => '', 'direccion' => ''];
     $origen = $grupo?->representante_id ? 'socio:'.$grupo->representante_id : ($grupo?->representante_usuario_id ? 'usuario:'.$grupo->representante_usuario_id : 'manual');
@@ -9,15 +13,15 @@
         ? 2 : ($errors->hasAny(['origen_representante', 'representante_nombre', 'representante_rut', 'representante_correo', 'representante_telefono', 'representante_direccion']) ? 1 : 0);
     $estado = [
         'paso' => $paso,
-        'nombre' => old('nombre', $grupo?->nombre ?? ''),
-        'origen' => old('origen_representante', $origen),
-        'representante' => collect($representante)->mapWithKeys(fn ($valor, $campo) => [$campo => old('representante_'.$campo, $valor ?? '')])->all(),
-        'usarContacto' => (bool) old('usar_contacto_representante', $contactoDelRepresentante),
+        'nombre' => $valorFormulario('nombre', $grupo?->nombre ?? ''),
+        'origen' => $valorFormulario('origen_representante', $origen),
+        'representante' => collect($representante)->mapWithKeys(fn ($valor, $campo) => [$campo => $valorFormulario('representante_'.$campo, $valor ?? '')])->all(),
+        'usarContacto' => (bool) $valorFormulario('usar_contacto_representante', $contactoDelRepresentante),
         'contacto' => [
-            'nombre' => old('contacto_nombre', $grupo?->contacto_nombre ?? ''),
-            'correo' => old('contacto_correo', $grupo?->contacto_correo ?? ''),
-            'telefono' => old('contacto_telefono', $grupo?->contacto_telefono ?? ''),
-            'direccion' => old('contacto_direccion', $grupo?->contacto_direccion ?? ''),
+            'nombre' => $valorFormulario('contacto_nombre', $grupo?->contacto_nombre ?? ''),
+            'correo' => $valorFormulario('contacto_correo', $grupo?->contacto_correo ?? ''),
+            'telefono' => $valorFormulario('contacto_telefono', $grupo?->contacto_telefono ?? ''),
+            'direccion' => $valorFormulario('contacto_direccion', $grupo?->contacto_direccion ?? ''),
         ],
     ];
 @endphp
@@ -41,6 +45,7 @@
     <form x-ref="formulario" method="POST" action="{{ $esEdicion ? route('grupos.update', $grupo) : route('grupos.store') }}"
         novalidate @submit="confirmar($event)">
         @csrf
+<input type="hidden" name="operacion" value="{{ $operacion }}"><input type="hidden" name="accion" value="editar">
         @if ($esEdicion)
             @method('PUT')
         @endif
@@ -51,8 +56,8 @@
             <fieldset data-paso="0" :inert="paso !== 0" :aria-hidden="paso !== 0" class="w-full min-w-0 shrink-0 space-y-4 p-6">
                 <legend class="sr-only">Nombre del grupo</legend>
                 <div>
-                    <x-input-label for="grupo_nombre" value="Nombre del grupo" />
-                    <x-text-input id="grupo_nombre" name="nombre" x-model="nombre" type="text" maxlength="255" required class="mt-1 block w-full" autocomplete="off" />
+                    <x-input-label for="grupo_nombre_{{ $grupo?->id ?? 'nuevo' }}" value="Nombre del grupo" />
+                    <x-text-input id="grupo_nombre_{{ $grupo?->id ?? 'nuevo' }}" name="nombre" x-model="nombre" type="text" maxlength="255" required class="mt-1 block w-full" autocomplete="off" />
                     <x-input-error :messages="$errors->get('nombre')" class="mt-2" />
                 </div>
                 <p class="text-sm text-gray-500 dark:text-gray-400">Los horarios de la sede se configuran con día y hora después de guardar el grupo.</p>
@@ -61,8 +66,8 @@
             <fieldset data-paso="1" :inert="paso !== 1" :aria-hidden="paso !== 1" class="w-full min-w-0 shrink-0 space-y-4 p-6">
                 <legend class="sr-only">Representante del grupo</legend>
                 <div>
-                    <x-input-label for="grupo_persona" value="Representante" />
-                    <select id="grupo_persona" name="origen_representante" x-model="origen" @change="elegirRepresentante()" class="mt-1 block w-full">
+                    <x-input-label for="grupo_persona_{{ $grupo?->id ?? 'nuevo' }}" value="Representante" />
+                    <select id="grupo_persona_{{ $grupo?->id ?? 'nuevo' }}" name="origen_representante" x-model="origen" @change="elegirRepresentante()" class="mt-1 block w-full">
                         <option value="sin_representante">Asignar después / retirar representante</option>
                         <option value="manual">Ingresar datos manualmente</option>
                         @foreach ($personas as $clave => $persona)
@@ -75,8 +80,8 @@
                 <div x-show="origen !== 'sin_representante'" class="grid gap-4 sm:grid-cols-2">
                     @foreach (['nombre' => ['Nombre', 'text', 255], 'rut' => ['RUT', 'text', 12], 'correo' => ['Correo', 'email', 255], 'telefono' => ['Teléfono', 'tel', 20], 'direccion' => ['Dirección', 'text', 255]] as $campo => [$etiqueta, $tipo, $maximo])
                         <div>
-                            <x-input-label :for="'representante_'.$campo" :value="$etiqueta.' del representante'" />
-                            <x-text-input :id="'representante_'.$campo" :name="'representante_'.$campo" :type="$tipo" :maxlength="$maximo"
+                            <x-input-label :for="'representante_'.$campo.'_'.$operacion" :value="$etiqueta.' del representante'" />
+                            <x-text-input :id="'representante_'.$campo.'_'.$operacion" :name="'representante_'.$campo" :type="$tipo" :maxlength="$maximo"
                                 x-model="representante.{{ $campo }}" x-bind:disabled="origen === 'sin_representante'" x-bind:required="origen !== 'sin_representante' && @js(in_array($campo, ['nombre', 'rut']))" @input="if (usarContacto) copiarContacto()" class="mt-1 block w-full" />
                             <x-input-error :messages="$errors->get('representante_'.$campo)" class="mt-2" />
                         </div>
@@ -96,8 +101,8 @@
                 <div class="grid gap-4 sm:grid-cols-2">
                     @foreach (['nombre' => ['Nombre', 'text', 255], 'correo' => ['Correo', 'email', 255], 'telefono' => ['Teléfono', 'tel', 20], 'direccion' => ['Dirección', 'text', 255]] as $campo => [$etiqueta, $tipo, $maximo])
                         <div>
-                            <x-input-label :for="'grupo_contacto_'.$campo" :value="$etiqueta.' de contacto'" />
-                            <x-text-input :id="'grupo_contacto_'.$campo" :name="'contacto_'.$campo" :type="$tipo" :maxlength="$maximo"
+                            <x-input-label :for="'grupo_contacto_'.$campo.'_'.$operacion" :value="$etiqueta.' de contacto'" />
+                            <x-text-input :id="'grupo_contacto_'.$campo.'_'.$operacion" :name="'contacto_'.$campo" :type="$tipo" :maxlength="$maximo"
                                 x-model="contacto.{{ $campo }}" x-bind:readonly="usarContacto" class="mt-1 block w-full read-only:bg-gray-50 read-only:text-gray-500 dark:read-only:bg-gray-800 dark:read-only:text-gray-400" />
                             <x-input-error :messages="$errors->get('contacto_'.$campo)" class="mt-2" />
                         </div>
@@ -112,9 +117,9 @@
         </div>
 
         <div class="flex items-center justify-between gap-3 border-t border-gray-200 p-6 dark:border-gray-800">
-            <x-secondary-button x-bind:disabled="paso === 0 || guardando" @click="paso--; $nextTick(() => $refs.tituloPaso.focus())">Anterior</x-secondary-button>
-            <x-primary-button type="button" x-show="paso < 3" @click="avanzar()">Siguiente</x-primary-button>
-            <x-primary-button x-cloak x-show="paso === 3" x-bind:disabled="guardando">Aceptar</x-primary-button>
+            <span><x-secondary-button x-show="paso > 0" x-bind:disabled="guardando" @click="paso--; $nextTick(() => $refs.tituloPaso.focus())">Anterior</x-secondary-button>@if($esEdicion)<x-secondary-button x-show="paso === 0" @click="$el.closest('details').open = false">Cancelar</x-secondary-button>@else<a x-show="paso === 0" href="{{ route('grupos.index') }}" class="ui-button ui-button-secondary">Cancelar</a>@endif</span>
+            <x-primary-button type="button" x-show="paso < 3" @click="avanzar()">Continuar</x-primary-button>
+            <x-primary-button x-cloak x-show="paso === 3" x-bind:disabled="guardando">Guardar agrupación</x-primary-button>
         </div>
     </form>
 </section>

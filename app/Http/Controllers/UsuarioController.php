@@ -33,7 +33,7 @@ class UsuarioController extends Controller
 
     public function index(Request $request)
     {
-        $usuarios = User::query()
+        $usuarios = User::with('socio')
             ->when($request->rol, fn ($q, $rol) => $q->where('role', $rol))
             ->when($request->buscar, fn ($q, $texto) => $q->where(function ($q) use ($texto) {
                 $q->where('name', 'like', "%{$texto}%")

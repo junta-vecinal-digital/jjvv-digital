@@ -87,6 +87,7 @@ Route::middleware(['auth', 'role:vecino,presidente,secretario,tesorero'])->group
     Route::put('/socios/solicitud', [SocioController::class, 'reenviar'])->name('socios.reenviar');
 
     // Reserva de hora para firmar el libro
+    Route::get('/mi-ficha/documentos/{tipo}', [SocioController::class, 'documentoPropio'])->name('socios.documento-propio');
     Route::get('/mi-cita', [CitaController::class, 'index'])->name('citas.index');
     Route::post('/mi-cita/{cita}', [CitaController::class, 'reservar'])->name('citas.reservar');
     Route::delete('/mi-cita', [CitaController::class, 'cancelar'])->name('citas.cancelar');
@@ -168,6 +169,7 @@ Route::middleware('auth')->prefix('solicitudes-insumos')->name('insumos.')->grou
 Route::middleware(['auth', 'role:presidente,secretario'])->group(function () {
 
     // Inventario
+    Route::get('/socios/archivo', [SocioController::class, 'index'])->name('socios.archivo');
     Route::get('/reservas', [ReservaController::class, 'gestion'])->name('reservas.index');
     Route::get('/inventario', [InventarioController::class, 'index'])->name('inventario.index');
     Route::post('/inventario', [InventarioController::class, 'store'])->name('inventario.store');

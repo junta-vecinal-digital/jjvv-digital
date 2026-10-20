@@ -79,8 +79,12 @@ class SocioController extends Controller
 
     public function index(Request $request)
     {
-        $socios = Socio::query()
-            ->when($request->estado, fn ($q, $estado) => $q->where('estado', $estado))
+        $archivo = $request->routeIs('socios.archivo') || $request->query('seccion') === 'archivo';
+        $estado = $request->query('estado', $archivo ? 'rechazado' : 'activo');
+        $estados = $archivo ? ['rechazado', 'inactivo'] : ['activo', 'pendientes', 'pendiente', 'por_firmar'];
+        abort_unless(in_array($estado, $estados, true), 422);
+        $socios = Socio::with(['user', 'revisor', 'cita'])
+            ->whereIn('estado', in_array($estado, ['pendientes', 'pendiente', 'por_firmar']) ? ['pendiente', 'por_firmar'] : [$estado])
             ->when($request->buscar, function ($q, $texto) {
                 $q->where(function ($q) use ($texto) {
                     $q->where('nombre_completo', 'like', "%{$texto}%")
@@ -91,7 +95,7 @@ class SocioController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        return view('socios.index', compact('socios'));
+        return view('socios.index', compact('socios', 'archivo', 'estado'));
     }
 
     public function show(Socio $socio)
@@ -126,7 +130,7 @@ class SocioController extends Controller
 
         $socio->forceFill(['user_id' => $usuario->id])->save();
 
-        return redirect()->route('socios.show', $socio)->with('status', 'cuenta-creada');
+        return ($request->filled('operacion') ? back()->withInput($request->only('operacion')) : redirect()->route('socios.show', $socio))->with('status', 'cuenta-creada');
     }
 
 
@@ -143,7 +147,7 @@ class SocioController extends Controller
         abort_if($destino === 'inactivo' && $socio->user?->esDirigente(), 403, 'Solo el administrador puede dar de baja la ficha de un dirigente.');
 
         if (! $socio->puedePasarA($destino)) {
-            return back()->withErrors([
+            return back()->withInput()->withErrors([
                 'estado' => 'No se puede pasar la ficha de «'.Socio::ETIQUETAS[$socio->estado].'» a «'.Socio::ETIQUETAS[$destino].'».',
             ]);
         }
@@ -176,7 +180,13 @@ class SocioController extends Controller
 
         $socio->update($cambios + ['revisado_por' => $request->user()->id]);
 
-        return redirect()->route('socios.show', $socio)->with('status', 'socio-'.$destino);
+        return ($request->filled('operacion') ? back()->withInput($request->only('operacion')) : redirect()->route('socios.show', $socio))->with('status', 'socio-'.$destino);
+    }
+
+    public function documentoPropio(Request $request, string $tipo)
+    {
+        abort_unless($request->user()->socio, 404);
+        return $this->documento($request->user()->socio, $tipo);
     }
 
     public function documento(Socio $socio, string $tipo)
@@ -224,7 +234,7 @@ class SocioController extends Controller
             'revisado_por' => $request->user()->id,
         ]);
 
-        return redirect()->route('socios.show', $socio)->with('status', 'socio-creado');
+        return redirect()->route('socios.index', ['estado' => $socio->estado === 'activo' ? 'activo' : 'pendientes'])->withInput(['operacion' => 'socio_'.$socio->id])->with('status', 'socio-creado');
     }
 
     public function editar(Socio $socio)
@@ -253,7 +263,7 @@ class SocioController extends Controller
 
         $socio->update($cambios);
 
-        return redirect()->route('socios.show', $socio)->with('status', 'socio-editado');
+        return ($request->filled('operacion') ? back()->withInput($request->only('operacion')) : redirect()->route('socios.show', $socio))->with('status', 'socio-editado');
     }
 
     // ---------- Apoyo ----------

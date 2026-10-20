@@ -6,7 +6,7 @@ window.Alpine = Alpine;
 
 function resumirFormulario(formulario) {
     return [...formulario.querySelectorAll('input, select, textarea')]
-        .filter(campo => !campo.disabled && (campo.name || campo.dataset.resumen)
+        .filter(campo => !campo.matches(':disabled') && (campo.name || campo.dataset.resumen)
             && !['hidden', 'password', 'submit', 'button'].includes(campo.type)
             && !/password|clave/i.test(campo.name)
             && (campo.type !== 'radio' || campo.checked))
@@ -50,7 +50,7 @@ function validarRut(campo) {
 }
 
 function prepararValidacion(campos) {
-    [...campos].filter(campo => !campo.disabled).forEach(campo => {
+    [...campos].filter(campo => !campo.matches(':disabled')).forEach(campo => {
         if (['rut', 'rut_solicitante', 'responsable_rut', 'representante_rut', 'solicitante_rut'].includes(campo.name)) validarRut(campo);
         campo.dispatchEvent(new Event('validar-fecha'));
     });
@@ -59,7 +59,6 @@ function prepararValidacion(campos) {
 Alpine.data('appShell', () => ({
     sidebarOpen: false,
     desktop: window.innerWidth >= 1280,
-    dark: document.documentElement.classList.contains('dark'),
     onResize: null,
     init() {
         this.onResize = () => {
@@ -70,13 +69,6 @@ Alpine.data('appShell', () => ({
     },
     destroy() {
         window.removeEventListener('resize', this.onResize);
-    },
-    toggleTheme() {
-        this.dark = !this.dark;
-        document.documentElement.classList.toggle('dark', this.dark);
-        try {
-            localStorage.setItem('theme', this.dark ? 'dark' : 'light');
-        } catch (_) {}
     },
 }));
 
@@ -157,6 +149,11 @@ Alpine.data('formWizard', (pasos, primerPaso) => ({
             this.enfocarPaso();
         }
     },
+    cancelar() {
+        this.formulario.reset();
+        const panel = this.$el.closest('details');
+        if (panel) { panel.open = false; panel.querySelector('summary')?.focus(); }
+    },
     retroceder() {
         this.paso = Math.max(0, this.paso - 1);
         this.enfocarPaso();
@@ -176,25 +173,18 @@ Alpine.data('formWizard', (pasos, primerPaso) => ({
 Alpine.data('claveCuenta', () => ({
     clave: '',
     confirmacion: '',
-    mostrarClave: false,
     generarClave() {
         const bytes = crypto.getRandomValues(new Uint8Array(12));
         this.clave = 'Aa1!' + [...bytes].map(byte => byte.toString(16).padStart(2, '0')).join('');
         this.confirmacion = this.clave;
-        this.mostrarClave = true;
     },
 }));
 
-Alpine.data('arriendoFormulario', (estado, representantes) => ({
+Alpine.data('arriendoFormulario', estado => ({
     ...estado,
-    representantes,
-    elegirGrupo() {
-        const persona = this.representantes[this.grupoId];
-        if (!persona) return;
-        this.socioId = String(persona.socioId ?? '');
-        this.modalidad = persona.socioId ? 'socio' : 'manual';
-        this.persona = { nombre: persona.nombre, rut: persona.rut, direccion: persona.direccion, telefono: persona.telefono };
-    },
+    opciones() { return this.personas.filter(p => this.tipoActividad === 'actividad' ? p.dirigente : this.tipoActividad === 'grupo' ? !!p.grupo_id : p.activo); },
+    cambiarActividad() { this.seleccion = ''; this.grupoId = ''; this.persona = { nombre: '', rut: '', direccion: '', telefono: '' }; },
+    elegirSolicitante() { const p = this.personas.find(p => p.clave === this.seleccion); this.persona = { nombre: p?.nombre || '', rut: p?.rut || '', direccion: p?.direccion || '', telefono: p?.telefono || '' }; },
 }));
 
 // La validación del servidor se mantiene; el navegador la anticipa al salir del campo.

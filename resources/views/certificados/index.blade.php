@@ -1,9 +1,8 @@
 <x-app-layout>
-    <x-slot name="header">
-        <h2 class="text-2xl font-semibold text-gray-900 dark:text-white leading-tight">Mis certificados</h2>
-    </x-slot>
+    <x-slot name="header"><x-page-heading title="Mis certificados" description="Consulta tus certificados y realiza trámites con los datos de tu ficha activa.">@unless(request('crear'))<a class="ui-button ui-button-primary" href="{{ route('certificados.index',['crear'=>1]) }}">Nuevo certificado</a>@endunless</x-page-heading></x-slot>
 
     @php
+        if (old('tipo') === 'socio' && $errors->getBag('certificadoSocio')->any()) $errors->put('default', $errors->getBag('certificadoSocio'));
         $cls = 'mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-brand-500 dark:focus:border-brand-400 focus:ring-brand-500 dark:focus:ring-brand-400 rounded-md shadow-sm';
     @endphp
 
@@ -19,51 +18,38 @@
             @if (session('status') === 'certificado-socio-emitido')
                 <p class="ui-panel p-4 text-green-700 dark:text-green-400">Tu certificado de socio ya fue emitido. Puedes descargarlo desde el listado.</p>
             @endif
-            <section class="ui-panel p-6 space-y-4">
-                <h3 class="text-lg font-semibold">Emitir mi certificado de socio</h3>
-                <p>Para socios activos. Se emite inmediatamente, sin aporte ni revisión de la directiva, con los datos de tu ficha.</p>
-                <p>{{ $socio->nombre_completo }} · {{ $socio->rut }} · {{ $socio->direccion }}</p>
-                <x-input-error :messages="$errors->getBag('certificadoSocio')->get('otorgante')" />
-                <form method="POST" action="{{ route('certificados.store') }}" class="space-y-3" x-data="{ enviando: false }" @submit="if (enviando) $event.preventDefault(); else enviando = true">
-                    @csrf
-                    <input type="hidden" name="tipo" value="socio">
-                    <x-input-label for="socio_dirigido_a" value="¿Dónde o ante quién lo presentarás?" />
-                    <x-text-input id="socio_dirigido_a" name="dirigido_a" list="destinatarios-certificado" :value="old('tipo') === 'socio' ? old('dirigido_a') : ''" maxlength="255" required class="w-full" />
-                    <x-input-error :messages="$errors->getBag('certificadoSocio')->get('dirigido_a')" />
-                    <x-primary-button x-bind:disabled="enviando">Emitir certificado de socio</x-primary-button>
-                </form>
-            </section>
-
+            <x-operation-notice />
+            @if(request('crear'))
             <div class="p-4 sm:p-8 ui-panel">
-                <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Solicitar certificado de residencia</h3>
+                <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Nuevo certificado</h3>
                 <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
                     Para el certificado de residencia debes presentar en la sede tu carnet de identidad y una boleta de luz o agua.
                     Puedes aportar voluntariamente para mejorar la comunidad. El monto sugerido es ${{ number_format(\App\Models\Parametro::entero('certificado_residencia_valor'), 0, ',', '.') }}; puedes elegir $0 y continuar sin comprobante.
                 </p>
 
                 <x-form-wizard :steps="['Datos', 'Destino', 'Aporte voluntario']" :fields="[['tipo','nombre_solicitante','rut_solicitante','direccion'],['dirigido_a'],['aporte','numero_transaccion','comprobante']]">
-                    <form novalidate method="POST" action="{{ route('certificados.store') }}" enctype="multipart/form-data" class="mt-6 space-y-6" x-data="{ aporte: @js(old('aporte', \App\Models\Parametro::entero('certificado_residencia_valor'))) }">
+                    <form novalidate method="POST" action="{{ route('certificados.store') }}" enctype="multipart/form-data" class="mt-6 space-y-6" x-data="{ tipo: @js(old('tipo','socio')), nombre: @js(old('nombre_solicitante',$socio->nombre_completo)), rut: @js(old('rut_solicitante',$socio->rut)), direccion: @js(old('direccion',$socio->direccion)), original: @js(['nombre'=>$socio->nombre_completo,'rut'=>$socio->rut,'direccion'=>$socio->direccion]), aporte: @js(old('aporte', \App\Models\Parametro::entero('certificado_residencia_valor'))) }">
                         @csrf
-                        <input type="hidden" name="tipo" value="residencia">
 
-                        <x-form-step number="0">
+
+                        <x-form-step number="0"><div><x-input-label for="tipo" value="Tipo de certificado" /><select id="tipo" name="tipo" x-model="tipo" @change="if (tipo === 'socio') { nombre = original.nombre; rut = original.rut; direccion = original.direccion; }" class="ui-input w-full" required><option value="socio">Socio</option><option value="residencia">Residencia</option></select></div><p class="text-sm text-gray-500">Los datos se completan desde tu ficha activa. El certificado de socio se emite inmediatamente, sin aporte ni revisión.</p>
                             <div class="space-y-6">
                                 <div>
                                     <x-input-label for="nombre_solicitante" value="Nombre completo" />
-                                    <input id="nombre_solicitante" name="nombre_solicitante" autocomplete="name" type="text" required class="{{ $cls }}"
+                                    <input id="nombre_solicitante" name="nombre_solicitante" x-model="nombre" autocomplete="name" type="text" required :readonly="tipo === 'socio'" class="{{ $cls }}"
                                            value="{{ old('nombre_solicitante', $socio?->nombre_completo ?? auth()->user()->name) }}">
                                     <x-input-error class="mt-2" :messages="$errors->get('nombre_solicitante')" />
                                 </div>
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                     <div>
                                         <x-input-label for="rut_solicitante" value="RUT" />
-                                        <input id="rut_solicitante" name="rut_solicitante" type="text" required class="{{ $cls }}" placeholder="12345678-5"
+                                        <input id="rut_solicitante" name="rut_solicitante" x-model="rut" type="text" required :readonly="tipo === 'socio'" class="{{ $cls }}" placeholder="12345678-5"
                                                value="{{ old('rut_solicitante', $socio?->rut) }}">
                                         <x-input-error class="mt-2" :messages="$errors->get('rut_solicitante')" />
                                     </div>
                                     <div>
                                         <x-input-label for="direccion" value="Dirección" />
-                                        <input id="direccion" name="direccion" autocomplete="street-address" type="text" required class="{{ $cls }}"
+                                        <input id="direccion" name="direccion" x-model="direccion" autocomplete="street-address" type="text" required :readonly="tipo === 'socio'" class="{{ $cls }}"
                                                value="{{ old('direccion', $socio?->direccion) }}">
                                         <x-input-error class="mt-2" :messages="$errors->get('direccion')" />
                                     </div>
@@ -81,7 +67,7 @@
                             </div>
 
                         </x-form-step>
-                        <x-form-step number="2">
+                        <x-form-step number="2"><p x-show="tipo === 'socio'" class="ui-notice">El certificado de socio no requiere aporte. Puedes continuar.</p><fieldset x-show="tipo === 'residencia'" :disabled="tipo !== 'residencia'" class="space-y-5">
                             <div><x-input-label for="aporte" value="Aporte voluntario (CLP)" /><x-text-input id="aporte" name="aporte" type="number" x-model="aporte" min="0" max="100000000" step="1" required /><x-input-error :messages="$errors->get('aporte')" /></div>
                             <div x-show="Number(aporte) > 0">
                                 <x-input-label for="numero_transaccion" value="Número de transacción del aporte" />
@@ -95,63 +81,22 @@
                                 <x-input-error :messages="$errors->get('comprobante')" class="mt-2" />
                             </div>
 
-                        </x-form-step>
+                        </fieldset></x-form-step>
 
-                        <x-wizard-actions />
+                        <x-wizard-actions :cancel="route('certificados.index')" submit-label="Confirmar trámite" />
                     </form>
                 </x-form-wizard>
             </div>
 
-            <div class="ui-panel overflow-x-auto">
-                <table class="ui-table divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead class="bg-gray-50 dark:bg-gray-700/50 text-left text-gray-600 dark:text-gray-300">
-                        <tr>
-                            <th class="px-4 py-3 font-medium">Certificado</th>
-                            <th class="px-4 py-3 font-medium">Presentado ante</th>
-                            <th class="px-4 py-3 font-medium">Folio</th>
-                            <th class="px-4 py-3 font-medium">Estado</th>
-                            <th class="px-4 py-3"></th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700 text-gray-800 dark:text-gray-200">
-                        @forelse ($certificados as $c)
-                            <tr>
-                                <td class="px-4 py-3">{{ $c->etiquetaTipo() }}<div class="text-xs text-gray-500">{{ $c->created_at->format('d/m/Y') }}</div></td>
-                                <td class="px-4 py-3">{{ $c->dirigido_a }}</td>
-                                <td class="px-4 py-3">{{ $c->folio ?? '—' }}</td>
-                                <td class="px-4 py-3">
-                                    <x-estado-certificado :estado="$c->estado" />
-                                    @if ($c->estado === 'emitido')
-                                        <div class="text-xs text-gray-500 mt-1">Vence {{ $c->fecha_vencimiento->format('d/m/Y') }}</div>
-                                    @elseif ($c->observaciones && in_array($c->estado, ['rechazado', 'anulado']))
-                                        <div class="text-xs text-gray-500 mt-1">{{ $c->observaciones }}</div>
-                                    @endif
-                                </td>
-                                <td class="px-4 py-3 text-right">
-                                    @if ($c->puedeDescargarse())
-                                        <a href="{{ route('certificados.descargar', $c) }}" target="_blank" class="underline text-brand-600 dark:text-brand-400">
-                                            Descargar PDF
-                                        </a>
-                                        @if ($c->tipo === 'residencia')
-                                            <span class="block text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                                Disponible hasta {{ $c->descarga_disponible_hasta->format('d/m/Y H:i') }}
-                                            </span>
-                                        @endif
-                                    @elseif ($c->tipo === 'residencia' && $c->estado === 'emitido')
-                                        <span class="text-xs text-gray-500 dark:text-gray-400">
-                                            Plazo de descarga vencido. Puedes retirarlo en la sede.
-                                        </span>
-                                    @else
-                                        <span class="text-xs text-gray-500 dark:text-gray-400">—</span>
-                                    @endif
-                                </td>
-                            </tr>
-                        @empty
-                            <tr><td colspan="5" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">Aún no has solicitado certificados.</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
+            @else
+            <p class="ui-notice">Tus trámites personales utilizan tu ficha activa. El certificado de socio se emite directamente; el de residencia requiere revisión.</p>
+            <section class="ui-panel overflow-x-auto"><table class="ui-table"><thead><tr><th>Certificado / fecha</th><th>Presentado ante</th><th>Estado</th><th>Detalle</th></tr></thead>
+            @forelse($certificados as $c)<x-record-row :id="'personal_'.$c->id" :columns="4"><x-slot name="summary"><td><strong>{{ $c->etiquetaTipo() }}</strong><span class="ui-sub">{{ $c->created_at->format('d/m/Y') }}</span></td><td>{{ $c->dirigido_a }}</td><td><x-estado-certificado :estado="$c->estado" /></td></x-slot><h2 class="text-xl font-semibold">Certificado de {{ $c->etiquetaTipo() }}</h2><dl class="ui-meta"><div><dt>Titular</dt><dd>{{ $c->nombre_solicitante }}</dd></div><div><dt>RUT</dt><dd>{{ $c->rut_solicitante }}</dd></div><div><dt>Dirección</dt><dd>{{ $c->direccion }}</dd></div><div><dt>Folio</dt><dd>{{ $c->folio ?? 'Sin folio' }}</dd></div><div><dt>Presentado ante</dt><dd>{{ $c->dirigido_a }}</dd></div><div><dt>Vigencia</dt><dd>{{ $c->fecha_vencimiento?->format('d/m/Y') ?? 'Sin emitir' }}</dd></div></dl>
+            @if($c->puedeDescargarse())<a href="{{ route('certificados.descargar',$c) }}" class="ui-button ui-button-primary" target="_blank" rel="noopener">Descargar PDF</a>@if($c->tipo === 'residencia')<p class="text-sm text-gray-500">Disponible hasta {{ $c->descarga_disponible_hasta->format('d/m/Y H:i') }}.</p>@endif
+            @elseif($c->tipo === 'residencia' && $c->estado === 'emitido')<p class="ui-notice">{{ $c->descargas->isEmpty() ? 'El plazo de descarga venció. Puedes retirarlo en la sede.' : 'El plazo de descarga venció y existe una descarga registrada. Corresponde solicitar un nuevo certificado.' }}</p>
+            @elseif($c->observaciones)<p class="ui-notice">{{ $c->observaciones }}</p>@else<p>Solicitud pendiente de revisión de antecedentes y del aporte, si corresponde.</p>@endif
+            </x-record-row>@empty<tbody><tr><td colspan="4">Aún no tienes certificados.</td></tr></tbody>@endforelse</table></section>
+            @endif
         </div>
     </div>
 </x-app-layout>

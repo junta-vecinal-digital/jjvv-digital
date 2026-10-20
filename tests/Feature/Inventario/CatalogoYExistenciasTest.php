@@ -21,10 +21,10 @@ test('el catálogo inicial contiene las cuatro categorías y los insumos acordad
 });
 
 test('solo el administrador amplía el catálogo desde parámetros y el insumo aparece en inventario', function () {
-    $this->actingAs(User::factory()->create(['role' => 'admin']))->get(route('parametros.index'))->assertOk()
+    $this->actingAs(User::factory()->create(['role' => 'admin']))->get(route('parametros.index', ['tab' => 'insumos']))->assertOk()
         ->assertSee('Catálogo de insumos');
-    $this->post(route('parametros.insumos.store'), ['nombre_insumo' => 'Proyector', 'categoria_insumo' => 'equipamiento'])
-        ->assertSessionHasNoErrors()->assertRedirect(route('parametros.index'));
+    $this->post(route('parametros.insumos.store'), ['nombre_insumo' => 'Proyector', 'categoria_insumo' => 'equipamiento', 'tab' => 'insumos'])
+        ->assertSessionHasNoErrors()->assertRedirect(route('parametros.index', ['tab' => 'insumos']));
     $tipo = TipoInsumo::where('nombre', 'Proyector')->sole();
     $this->actingAs(User::factory()->create(['role' => 'presidente']))->get(route('inventario.index'))->assertOk()
         ->assertViewHas('tiposInsumo', fn ($lista) => $lista->contains('id', $tipo->id));

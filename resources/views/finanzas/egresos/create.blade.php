@@ -10,7 +10,7 @@
                     <form novalidate method="POST" action="{{ route('egresos.store') }}" enctype="multipart/form-data" class="space-y-4" x-data="{ pagador: @js(old('pagado_por') ? ($pagadores->contains(old('pagado_por')) ? old('pagado_por') : '__otro') : ''), otro: @js(old('pagado_por', '')) }">
                         @csrf
 
-                        <x-form-step number="0">
+                        <x-form-step number="0" class="ui-form-grid">
                             <div>
                                 <x-input-label for="concepto" value="Concepto" />
                                 <select id="concepto" name="concepto" required class="mt-1 block w-full rounded-md border-gray-300">
@@ -35,7 +35,7 @@
                             </div>
 
                         </x-form-step>
-                        <x-form-step number="1">
+                        <x-form-step number="1" class="ui-form-grid">
                             <div>
                                 <x-input-label for="numero_transaccion" value="Número de transacción" />
                                 <x-text-input id="numero_transaccion" name="numero_transaccion" type="text" required maxlength="50" class="mt-1 block w-full" :value="old('numero_transaccion')" />
@@ -73,7 +73,7 @@
 
                         </x-form-step>
 
-                        <x-wizard-actions />
+                        <x-wizard-actions :cancel="route('egresos.index')" />
                     </form>
                 </x-form-wizard>
             </div>

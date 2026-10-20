@@ -59,7 +59,7 @@ class EgresoController extends Controller
         ]);
 
         if ($egreso->estaAnulado()) {
-            return back()->withErrors(['egreso' => 'Este egreso ya está anulado.']);
+            return back()->withInput()->withErrors(['egreso' => 'Este egreso ya está anulado.']);
         }
 
         $egreso->anular($datos['motivo_anulacion'], $request->user());

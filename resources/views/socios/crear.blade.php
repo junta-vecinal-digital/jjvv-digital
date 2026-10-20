@@ -18,14 +18,14 @@
                     carnet de identidad y boleta de un servicio básico con la dirección. Marca "Activo" solo si ya firmó el libro de registro.
                 </p>
 
-                <x-form-wizard :steps="['Identidad', 'Residencia', 'Documentos', 'Inscripción']" :fields="[['nombre_completo','rut','email'],['direccion','telefono','residente_desde'],['carnet','boleta'],['estado','fecha_ingreso']]">
+                <x-form-wizard :steps="['Datos del socio', 'Antecedentes', 'Ingreso']" :fields="[['nombre_completo','rut','email','direccion','telefono'],['residente_desde','carnet','boleta'],['estado','fecha_ingreso']]">
                     <form novalidate method="POST" action="{{ route('socios.guardar') }}" enctype="multipart/form-data"
                           class="mt-6 space-y-6" x-data="{ estado: @js(old('estado', 'por_firmar')) }">
                         @csrf
 
                         @include('socios._datos', ['socio' => null])
 
-                        <x-form-step number="3">
+                        <x-form-step number="2">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                 <div>
                                     <x-input-label for="estado" value="Estado de la inscripción" />
@@ -45,7 +45,7 @@
 
                         </x-form-step>
 
-                        <x-wizard-actions />
+                        <x-wizard-actions :cancel="route('socios.index')" />
                     </form>
                 </x-form-wizard>
             </div>

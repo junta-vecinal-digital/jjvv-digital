@@ -103,7 +103,9 @@ test('reserva gratuita de ventanilla confirma sin pago ni garantía y nunca gene
     $this->actingAs($this->directivaAporte)->post(route('finanzas.arriendos.registrar', $reserva), [
         'fecha_pago' => now()->toDateString(), 'medio_pago' => 'transferencia',
     ])->assertSessionHasErrors('finanzas');
-    $this->get(route('finanzas.arriendos.index'))->assertOk()->assertSee('Gratuita');
+    $this->get(route('finanzas.arriendos.index'))->assertOk()
+        ->assertViewHas('garantias', fn ($lista) => $lista->isEmpty());
+    $this->get(route('arriendos.show', $reserva))->assertOk()->assertSee('$0 · Reserva sin aporte');
     $this->assertDatabaseCount('ingresos', 0);
 })->with(['presidente', 'secretario']);
 

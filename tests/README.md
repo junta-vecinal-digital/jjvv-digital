@@ -92,3 +92,13 @@ Todos los destinos de esta tabla son relativos a `tests/Feature`. Los seis archi
 Correcciones del 19/10/2026: Integracion/VentanillaInventarioYProteccionDeDirigentesTest.php cubre restricciones de bajas/cuentas, ventanilla sin ficha, historial de consulta y actividad privada. Aplicar las migraciones antes de comprobar manualmente el catálogo.
 
 Finanzas/PendientesYGarantiasDeSedeTest.php: regresión de responsable automático, garantías opcionales de sede e ingresos por aprobar. Preparado el 19/10/2026; ejecutar las migraciones antes de la revisión manual. Los tests los ejecuta el usuario.
+
+## Adaptación al diseño del 19/10/2026
+
+Se actualizaron las expectativas de redirección de Reportes, Proyectos y Parámetros, la apertura del formulario de reservas con `crear=1`, los enlaces del panel y los avisos accesibles del menú. Los pendientes financieros se comprueban en `ingresos.index`; las entradas anteriores mantienen comprobaciones de redirección y permisos. Las reservas sin garantía se consultan desde su operación y los ingresos, ya que Registro garantías reúne exclusivamente garantías de sede e insumos.
+
+Se añadió cobertura para el listado conjunto de garantías sin alterar el saldo, la separación de socios activos/pendientes/archivo y la recuperación de valores de una edición en fila con errores sin mezclarlos con otro proyecto. Se conservan los casos de negocio y de autorización existentes. Sintaxis y diferencias revisadas; suite sin ejecutar por el agente, pendiente del usuario:
+
+```cmd
+php artisan test
+```

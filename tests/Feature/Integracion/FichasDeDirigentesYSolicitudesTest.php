@@ -37,7 +37,7 @@ function horarioCierre(array $cambios = []): array
 
 test('dirigentes completan la inscripción y otro dirigente valida sin cambiar su cargo', function (string $rol) {
     $usuario = User::factory()->create(['role' => $rol]);
-    $this->actingAs($usuario)->get(route('dashboard'))->assertOk()->assertSee('Completa y valida tu ficha');
+    $this->actingAs($usuario)->get(route('dashboard'))->assertOk()->assertSee(route('socios.create'));
     $this->get(route('socios.create'))->assertOk();
     $this->post(route('socios.store'), [
         'nombre_completo' => $usuario->name, 'rut' => '12.345.678-5', 'direccion' => 'Calle Vecinal 123',

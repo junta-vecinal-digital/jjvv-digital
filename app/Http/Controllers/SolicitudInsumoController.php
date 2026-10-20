@@ -26,7 +26,7 @@ class SolicitudInsumoController extends Controller
             'personas' => $this->personas($request),
             'items' => ItemInventario::with('tipoInsumo')->conExistencias()->whereNotNull('tipo_insumo_id')->orderBy('nombre')->get(),
             'horarios' => HorarioAtencion::orderBy('dia_semana')->orderBy('hora_inicio')->get(),
-            'solicitudes' => SolicitudInsumo::query()
+            'solicitudes' => SolicitudInsumo::with('lineas.prestamo')
                 ->when($gestion, fn ($q) => $q->whereIn('estado', ['pendiente', 'aprobado', 'entregado']))
                 ->when(! $gestion, fn ($q) => $q->where('solicitante_id', $request->user()->id))
                 ->latest('id')->paginate(20),
@@ -88,7 +88,7 @@ class SolicitudInsumoController extends Controller
                     'item_inventario_id' => $item->id, 'nombre_insumo' => $item->nombre, 'cantidad' => $linea['cantidad'],
                 ]);
             }
-            return redirect()->route('insumos.show', $solicitud)->with('status', 'Solicitud de insumos registrada. Aún no reserva existencias.');
+            return redirect()->route('insumos.index')->withInput(['operacion' => 'insumo_'.$solicitud->id])->with('status', 'Solicitud de insumos registrada. Aún no reserva existencias.');
         });
     }
 
@@ -141,7 +141,7 @@ class SolicitudInsumoController extends Controller
                 'estado' => 'aprobado',
                 'aprobado_por' => $request->user()->id, 'aprobado_en' => now(),
             ]);
-            return back()->with('status', 'Solicitud aprobada. Todas las unidades quedaron reservadas.');
+            return back()->withInput($request->only('operacion'))->with('status', 'Solicitud aprobada. Todas las unidades quedaron reservadas.');
         });
     }
 
@@ -170,7 +170,7 @@ class SolicitudInsumoController extends Controller
                 $linea->update(['prestamo_id' => $prestamo->id]);
             }
             $solicitud->update(['estado' => 'entregado', 'fecha_entrega' => $datos['fecha_entrega'], 'entregado_por' => $request->user()->id]);
-            return back()->with('status', 'Entrega completa registrada. Las unidades siguen ocupadas hasta su devolución.');
+            return back()->withInput($request->only('operacion'))->with('status', 'Entrega completa registrada. Las unidades siguen ocupadas hasta su devolución.');
         });
     }
 
@@ -201,7 +201,7 @@ class SolicitudInsumoController extends Controller
             $solicitud->update(['estado' => 'devuelto', 'fecha_devolucion' => $datos['fecha_devolucion'], 'devuelto_por' => $request->user()->id]);
             $garantia = $solicitud->garantiaRecibida()->first();
             if ($garantia?->estado === 'recibida') $garantia->update(['estado' => 'por_devolver']);
-            return back()->with('status', 'Devolución completa registrada. Las unidades dañadas quedan fuera de servicio.');
+            return back()->withInput($request->only('operacion'))->with('status', 'Devolución completa registrada. Las unidades dañadas quedan fuera de servicio.');
         });
     }
 

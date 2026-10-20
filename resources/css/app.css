@@ -8,10 +8,14 @@
 
 /* TailAdmin: colores y navegación adaptados. Véase THIRD_PARTY_NOTICES.md. */
 @theme {
-    --color-brand-50: #ecf3ff;
-    --color-brand-400: #7592ff;
-    --color-brand-500: #465fff;
-    --color-brand-600: #3641f5;
+    --color-brand-50: #e8f1ed;
+    --color-brand-400: #629c87;
+    --color-brand-500: #286456;
+    --color-brand-600: #205346;
+    --color-gray-100: #eef1f4;
+    --color-gray-200: #d9dfe6;
+    --color-gray-500: #596675;
+    --color-gray-900: #202b38;
 }
 
 @layer base {
@@ -29,11 +33,11 @@
 }
 
 @utility menu-item {
-    @apply relative flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors;
+    @apply relative flex w-full items-center gap-3 rounded-md border-l-3 border-transparent px-3 py-2.5 text-sm font-medium transition-colors;
 }
 
 @utility menu-item-active {
-    @apply bg-brand-50 font-semibold text-brand-600 ring-1 ring-inset ring-brand-400/40 dark:bg-brand-500/15 dark:text-brand-400;
+    @apply border-brand-500 bg-brand-50 font-semibold text-brand-600 dark:bg-brand-500/15 dark:text-brand-400;
 }
 
 @utility menu-item-inactive {
@@ -41,11 +45,11 @@
 }
 
 @utility ui-panel {
-    @apply rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900;
+    @apply rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900;
 }
 
 @utility ui-button {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-md border px-4 py-2.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 disabled:cursor-not-allowed disabled:opacity-50;
 }
 
 @utility ui-button-primary {
@@ -61,7 +65,7 @@
 }
 
 @utility ui-input {
-    @apply rounded-lg border border-gray-300 bg-transparent px-3 py-2.5 text-sm text-gray-800 shadow-xs placeholder:text-gray-400 focus:border-brand-500 focus:ring-brand-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:focus:border-brand-400 dark:focus:ring-brand-400;
+    @apply rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:border-brand-500 focus:ring-brand-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:focus:border-brand-400 dark:focus:ring-brand-400;
 }
 
 @utility ui-table {
@@ -84,7 +88,93 @@
     }
 }
 
+@utility ui-link {
+    @apply inline-flex items-center gap-2 rounded-sm py-1 text-sm font-medium text-brand-600 hover:underline;
+}
+
+@utility ui-notice {
+    @apply rounded-r-md border-l-3 border-brand-500 bg-brand-50 px-5 py-4 text-sm;
+}
+
+@utility ui-tabs {
+    @apply flex flex-wrap gap-x-6 gap-y-2 border-b border-gray-200;
+
+    & a {
+        @apply border-b-2 border-transparent px-0 py-3 text-sm font-medium text-gray-500;
+    }
+
+    & a[aria-current='page'] {
+        @apply border-brand-500 text-brand-600;
+    }
+}
+
+@utility ui-meta {
+    @apply grid gap-x-6 gap-y-5 sm:grid-cols-2;
+
+    & dt { @apply text-xs text-gray-500; }
+    & dd { @apply mt-1 text-sm; }
+}
+
+@utility ui-balance {
+    @apply flex flex-wrap items-center justify-between gap-3 rounded-lg bg-gray-100 px-6 py-5;
+
+    & span { @apply text-sm font-medium text-gray-500; }
+    & strong { @apply text-3xl font-semibold tracking-tight text-gray-900 tabular-nums; }
+}
+
 @layer components {
+    .ui-page { @apply mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8; }
+    .ui-tools { @apply flex flex-wrap items-end gap-4; }
+    .ui-sub { @apply mt-1 block text-xs text-gray-500; }
+    .ui-menu-label { @apply px-3 pb-2 pt-6 text-[11px] font-semibold uppercase tracking-wider text-gray-500; }
+    .ui-form-grid { @apply grid gap-6 sm:grid-cols-2; }
+    .ui-form-grid > p, .ui-form-grid > fieldset { @apply sm:col-span-2; }
+    .ui-form-actions { @apply mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-gray-200 pt-5; }
+    .ui-calendar { @apply w-full table-fixed border-collapse text-left; }
+    .ui-calendar th { @apply border-b border-gray-200 bg-gray-100 px-3 py-3 text-xs font-medium text-gray-500; }
+    .ui-calendar th:first-child { width: 70px; }
+    .ui-calendar td { @apply h-16 border-b border-l border-gray-200 p-1 align-top; }
+    .ui-calendar-fixed { background: repeating-linear-gradient(135deg, #eef1f4, #eef1f4 4px, #d9dfe6 4px, #d9dfe6 5px); }
+    .ui-calendar-event { @apply w-full rounded-md border border-gray-200 bg-white p-2 text-left text-xs font-semibold hover:border-brand-500 focus-visible:outline-brand-500; }
+    .app-content h2 { @apply tracking-tight; }
+    .ui-detail-content > details { @apply border-t border-gray-200 pt-4; }
+    .app-shell {
+        color-scheme: only light;
+        font-family: 'Segoe UI', Arial, sans-serif;
+        background: #f4f5f7;
+        color: #202b38;
+        line-height: 1.6;
+    }
+
+    .app-shell .ui-table th {
+        background: #eef1f4;
+        color: #596675;
+        font-size: 0.75rem;
+        padding: 14px 16px;
+    }
+
+    .app-shell .ui-table td {
+        padding: 20px 16px;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .app-shell .ui-table td a { text-decoration: none; }
+    .app-shell .ui-table td a:hover { text-decoration: underline; }
+    .app-shell .ui-table .ui-detail-row > td { background: #eef1f4; padding: 20px; }
+    .app-shell .ui-table .ui-detail-row:hover > td { background: #eef1f4; }
+    .ui-detail-content { @apply min-w-0 rounded-lg border border-gray-200 bg-white p-6; }
+    .ui-detail-content > .ui-panel { @apply rounded-none border-0 p-0; }
+    .ui-detail-content > .ui-panel + .ui-panel { @apply border-t pt-6; }
+    .ui-detail-content .ui-table { min-width: 0; }
+    .ui-detail-content .ui-table td { padding: 12px 16px; }
+    .ui-detail-content form { @apply space-y-4; }
+    .ui-detail-content summary { @apply cursor-pointer py-2 font-medium; }
+
+    @media (max-width: 640px) {
+        .app-shell .ui-table .ui-detail-row > td { padding: 12px; }
+        .ui-detail-content { padding: 16px; }
+    }
+
     .app-content {
         min-width: 0;
         overflow-wrap: anywhere;

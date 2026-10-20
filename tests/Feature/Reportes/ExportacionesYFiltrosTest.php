@@ -169,7 +169,7 @@ test('PDFs se descargan como archivos PDF con acceso autorizado', function (stri
 test('permisos de reportes distinguen finanzas socios y roles sin acceso', function (string $rol, bool $finanzas, bool $socios) {
     $this->actingAs(User::factory()->create(['role' => $rol]));
     $respuesta = $this->get(route('reportes.index'));
-    if ($finanzas || $socios) $respuesta->assertOk(); else $respuesta->assertForbidden();
+    if ($finanzas || $socios) $respuesta->assertRedirect(route($finanzas ? 'reportes.financieros' : 'reportes.socios')); else $respuesta->assertForbidden();
     $respuesta = $this->get(route('reportes.financieros'));
     if ($finanzas) $respuesta->assertOk(); else $respuesta->assertForbidden();
     if (! $finanzas) $this->get(route('reportes.financieros.pdf'))->assertForbidden();

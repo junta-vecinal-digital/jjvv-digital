@@ -1,7 +1,7 @@
 <x-app-layout>
-    <x-slot name="header"><h1 class="text-2xl font-semibold">Listado de socios activos</h1></x-slot>
+    <x-slot name="header"><x-page-heading title="Reportes" description="Consulta resultados y prepara las exportaciones según los permisos de tu cargo." /></x-slot>
     <div class="max-w-5xl mx-auto px-4 py-6 space-y-6">
-        <a class="underline" href="{{ route('reportes.index') }}">Volver a reportes</a>
+        <x-reportes-tabs />
         <p>Solo socios activos. Se exportan nombre, RUT, estado y fecha de ingreso, sin datos de contacto.</p>
         <form method="GET" action="{{ route('reportes.socios') }}" class="ui-panel p-4 flex flex-wrap gap-3 items-end">
             <div><x-input-label for="buscar" value="Buscar por nombre o RUT" /><x-text-input id="buscar" name="buscar" :value="$buscar" maxlength="100" /></div><button class="ui-button ui-button-primary">Buscar</button><a class="underline" href="{{ route('reportes.socios') }}">Limpiar</a>

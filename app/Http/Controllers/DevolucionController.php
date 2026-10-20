@@ -22,7 +22,7 @@ class DevolucionController extends Controller
             $ingreso->refresh();
 
             if (! $ingreso->puedeDevolverse()) {
-                return back()->withErrors(['devolucion' => 'Este ingreso no se puede devolver.']);
+                return back()->withInput()->withErrors(['devolucion' => 'Este ingreso no se puede devolver.']);
             }
 
             Devolucion::create([

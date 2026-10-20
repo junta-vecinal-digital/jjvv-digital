@@ -15,7 +15,8 @@ test('la gestión se separa del calendario y guarda en Reservas con las mismas v
     $this->actingAs(User::factory()->create(['role' => $rol]));
     $this->get(route('calendario.index'))->assertOk()
         ->assertDontSee('action="'.route('reservas.store').'"', false)->assertDontSee('Cancelar reserva');
-    $this->get(route('reservas.index'))->assertOk()->assertSee('action="'.route('arriendos.store').'"', false)
+    $this->get(route('reservas.index'))->assertOk()->assertSee(route('reservas.index', ['crear' => 1]));
+    $this->get(route('reservas.index', ['crear' => 1]))->assertOk()->assertSee('action="'.route('arriendos.store').'"', false)
         ->assertSee(route('inventario.index'));
     $fecha = now()->addDay();
     $this->post(route('reservas.store'), [
@@ -88,4 +89,44 @@ test('el detalle de arriendo vuelve a la gestión cuando se abrió desde Reserva
     $this->actingAs($this->presidenteInterfaz)->get(route('arriendos.show', [$reserva, 'desde' => 'reservas']))
         ->assertOk()->assertViewHas('volverReservas', true)->assertSee('Volver a reservas');
     $this->get(route('arriendos.show', $reserva))->assertOk()->assertViewHas('volverReservas', false);
+});
+
+test('socios separa activos pendientes y archivo sin perder la búsqueda', function (string $rol) {
+    foreach (['activo', 'pendiente', 'por_firmar', 'rechazado', 'inactivo'] as $indice => $estado) {
+        Socio::create([
+            'nombre_completo' => 'Ficha '.$estado, 'rut' => ['12345678-5', '11111111-1', '22222222-2', '33333333-3', '44444444-4'][$indice], 'direccion' => 'Pasaje 123',
+            'telefono' => '912345678', 'residente_desde' => '2020-01-01', 'estado' => $estado,
+        ]);
+    }
+    $this->actingAs(User::factory()->create(['role' => $rol]));
+    $this->get(route('socios.index'))->assertOk()
+        ->assertViewHas('socios', fn ($lista) => $lista->pluck('estado')->all() === ['activo']);
+    $this->get(route('socios.index', ['estado' => 'pendientes']))->assertOk()
+        ->assertViewHas('socios', fn ($lista) => $lista->total() === 2 && $lista->every(fn ($socio) => in_array($socio->estado, ['pendiente', 'por_firmar'], true)));
+    $this->get(route('socios.index', ['estado' => 'pendientes', 'buscar' => 'Ficha por_firmar']))->assertOk()
+        ->assertViewHas('socios', fn ($lista) => $lista->pluck('estado')->all() === ['por_firmar']);
+    foreach (['rechazado', 'inactivo'] as $estado) {
+        $this->get(route('socios.archivo', ['estado' => $estado]))->assertOk()
+            ->assertViewHas('socios', fn ($lista) => $lista->pluck('estado')->all() === [$estado]);
+    }
+})->with(['presidente', 'secretario']);
+
+test('la edición en fila recupera los valores solo del proyecto con errores', function () {
+    $datos = ['organismo' => 'Municipalidad', 'fecha_postulacion' => '2026-01-01',
+        'estado' => 'postulado', 'postulado_por' => 'Nombre histórico', 'registrado_por' => $this->presidenteInterfaz->id];
+    $proyecto = Proyecto::create(['titulo' => 'Proyecto que se edita'] + $datos);
+    $otro = Proyecto::create(['titulo' => 'Proyecto que se conserva'] + $datos);
+    $operacion = 'proyecto_'.$proyecto->id;
+    $this->actingAs($this->presidenteInterfaz)->from(route('proyectos.index'))
+        ->put(route('proyectos.update', $proyecto), [
+            'operacion' => $operacion, 'titulo' => '', 'organismo' => 'Organismo corregido en la fila',
+            'fecha_postulacion' => '2026-01-01', 'estado' => 'adjudicado', 'postulador_id' => '__conservar',
+        ])->assertRedirect(route('proyectos.index'))->assertSessionHasErrors('titulo')
+        ->assertSessionHas('_old_input.operacion', $operacion);
+    $respuesta = $this->get(route('proyectos.index'))->assertOk()
+        ->assertSee('Organismo corregido en la fila')->assertSee($otro->titulo);
+    expect(substr_count($respuesta->getContent(), 'value="Organismo corregido en la fila"'))->toBe(1);
+    expect($proyecto->fresh()->titulo)->toBe('Proyecto que se edita')
+        ->and($proyecto->fresh()->estado)->toBe('postulado')
+        ->and($otro->fresh()->organismo)->toBe('Municipalidad');
 });

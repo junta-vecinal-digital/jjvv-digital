@@ -1,13 +1,8 @@
 <x-app-layout>
-    <x-slot name="header">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-            <h2 class="text-2xl font-semibold text-gray-900 dark:text-white leading-tight">Usuarios del sistema</h2>
-            <a href="{{ route('usuarios.create') }}"
+    <x-slot name="header"><x-page-heading title="Usuarios del sistema" description="Gestiona cuentas, roles y accesos."><a href="{{ route('usuarios.create') }}"
                class="ui-button ui-button-primary">
                 Crear usuario
-            </a>
-        </div>
-    </x-slot>
+            </a></x-page-heading></x-slot>
 
     <div class="py-6">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
@@ -50,44 +45,11 @@
                 @endif
             </form>
 
-            <div class="ui-panel overflow-x-auto">
-                <table class="ui-table divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead class="bg-gray-50 dark:bg-gray-700/50 text-left text-gray-600 dark:text-gray-300">
-                        <tr>
-                            <th class="px-4 py-3 font-medium">Nombre</th>
-                            <th class="px-4 py-3 font-medium">Correo</th>
-                            <th class="px-4 py-3 font-medium">Rol</th>
-                            <th class="px-4 py-3 font-medium">Creado</th>
-                            <th class="px-4 py-3"></th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700 text-gray-800 dark:text-gray-200">
-                        @forelse ($usuarios as $usuario)
-                            <tr>
-                                <td class="px-4 py-3">
-                                    {{ $usuario->name }}
-                                    @if ($usuario->is(auth()->user()))
-                                        <span class="text-xs text-gray-500 dark:text-gray-400">(tú)</span>
-                                    @endif
-                                </td>
-                                <td class="px-4 py-3">{{ $usuario->email }}</td>
-                                <td class="px-4 py-3"><x-rol-usuario :rol="$usuario->role" /></td>
-                                <td class="px-4 py-3">{{ $usuario->created_at->format('d/m/Y') }}</td>
-                                <td class="px-4 py-3 text-right">
-                                    <a href="{{ route('usuarios.edit', $usuario) }}" class="underline text-brand-600 dark:text-brand-400">Editar</a>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="5" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-                                    No se encontraron usuarios.
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-
+            <x-operation-notice />
+            <section class="ui-panel overflow-x-auto"><table class="ui-table"><thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Creado</th><th>Gestión</th></tr></thead>
+                @forelse($usuarios as $usuario)<x-record-row :id="'usuario_'.$usuario->id" :columns="5" label="Editar usuario"><x-slot name="summary"><td>{{ $usuario->name }}{{ $usuario->is(auth()->user()) ? ' · tú' : '' }}</td><td>{{ $usuario->email }}</td><td>{{ $usuario->nombreRol() }}</td><td>{{ $usuario->created_at->format('d/m/Y') }}</td></x-slot>@include('usuarios._editar')</x-record-row>
+                @empty<tbody><tr><td colspan="5">No se encontraron usuarios.</td></tr></tbody>@endforelse
+            </table></section>
             <div class="px-4 sm:px-0">{{ $usuarios->links() }}</div>
         </div>
     </div>

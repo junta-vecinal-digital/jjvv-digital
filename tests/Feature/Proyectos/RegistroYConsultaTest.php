@@ -31,7 +31,7 @@ test('el presidente registra con monto opcional y autor del sistema distinto del
         'monto' => $monto, 'registrado_por' => $otro->id,
     ]))->assertSessionHasNoErrors();
     $proyecto = Proyecto::latest('id')->first();
-    $respuesta->assertRedirect(route('proyectos.show', $proyecto));
+    $respuesta->assertRedirect(route('proyectos.index'))->assertSessionHas('_old_input.operacion', 'proyecto_'.$proyecto->id);
     expect($proyecto->registrado_por)->toBe($this->presidenteProyectos->id)
         ->and($proyecto->postulado_por)->toBe('Encargada de postulación externa')
         ->and($proyecto->monto)->toBe($monto);

@@ -1,5 +1,5 @@
-<x-guest-layout>
-    <h1 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">Verificar un certificado</h1>
+<x-public-layout><section class="ui-panel p-6 sm:p-8">
+    <h1 class="text-3xl font-semibold tracking-tight mb-3">Verificar un certificado</h1>
     <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
         Ingresa el código que aparece al pie del certificado para comprobar que es auténtico y está vigente.
     </p>
@@ -9,7 +9,7 @@
         <x-text-input name="codigo" type="text" class="block w-full font-mono uppercase" placeholder="ABCDE-FGHJK" required
                       :value="old('codigo')" />
         <x-input-error :messages="$errors->get('codigo')" />
-        <x-primary-button>Verificar</x-primary-button>
+        <div class="flex gap-4"><x-primary-button>Verificar</x-primary-button><a href="{{ url('/') }}" class="ui-button ui-button-secondary">Volver</a></div>
     </form>
 
     @if ($consultado)
@@ -46,10 +46,10 @@
                     <div><dt class="text-gray-500 dark:text-gray-400">Emitido el</dt><dd>{{ $certificado->fecha_emision->format('d/m/Y') }}</dd></div>
                     <div><dt class="text-gray-500 dark:text-gray-400">Válido hasta</dt><dd>{{ $certificado->fecha_vencimiento->format('d/m/Y') }}</dd></div>
                     @if ($certificado->otorgante_nombre)
-                        <div><dt class="text-gray-500 dark:text-gray-400">Otorgado por</dt><dd>{{ $certificado->otorgante_nombre }}</dd></div>
+                        <div><dt class="text-gray-500 dark:text-gray-400">Otorgado por</dt><dd>{{ $certificado->otorgante_nombre }}@if($certificado->otorgante_cargo) · {{ $certificado->otorgante_cargo }}@endif</dd></div>
                     @endif
                 </dl>
             @endif
         </div>
     @endif
-</x-guest-layout>
+</section><x-public-hours :horarios="$horariosAtencion" /></x-public-layout>

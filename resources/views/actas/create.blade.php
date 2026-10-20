@@ -11,7 +11,7 @@
             <x-form-wizard :steps="['Reunión', 'Acuerdos y escaneo']" :fields="[['fecha', 'tipo'], ['acuerdos', 'escaneo']]">
                 <form novalidate method="POST" action="{{ route('actas.store') }}" enctype="multipart/form-data" class="space-y-4">
                     @csrf
-                    <x-form-step number="0">
+                    <x-form-step number="0" class="ui-form-grid">
                         <div>
                             <x-input-label for="fecha" value="Fecha de la reunión" />
                             <x-date-input id="fecha" name="fecha" :value="old('fecha', now()->toDateString())" class="mt-1" required />
@@ -29,8 +29,8 @@
                         </div>
                         <p class="text-sm text-gray-500 dark:text-gray-400">Las actas de asamblea son visibles para socios activos y dirigentes. Las de directiva son exclusivas de presidente, secretario y tesorero.</p>
                     </x-form-step>
-                    <x-form-step number="1">
-                        <div>
+                    <x-form-step number="1" class="ui-form-grid">
+                        <div class="sm:col-span-2">
                             <x-input-label for="acuerdos" value="Acuerdos" />
                             <textarea id="acuerdos" name="acuerdos" rows="8" class="mt-1 block w-full" required>{{ old('acuerdos') }}</textarea>
                             <x-input-error :messages="$errors->get('acuerdos')" class="mt-2" />
@@ -44,7 +44,7 @@
                             @endif
                         </div>
                     </x-form-step>
-                    <x-wizard-actions />
+                    <x-wizard-actions :cancel="route('actas.index')" />
                 </form>
             </x-form-wizard>
         </div>

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Ingreso;
+use App\Models\Reserva;
+use App\Models\SolicitudInsumo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -14,8 +16,17 @@ class IngresoController extends Controller
     public function index()
     {
         return view('finanzas.ingresos.index', [
-            'ingresos' => Ingreso::with(['registrador', 'devolucion', 'reserva', 'garantia'])->latest('fecha_pago')->latest('id')->paginate(20),
+            'ingresos' => Ingreso::with(['registrador', 'devolucion', 'reserva.ingresos', 'reserva.garantia', 'garantia.ingresos', 'solicitudInsumo.ingresos'])->latest('fecha_pago')->latest('id')->paginate(20)->withQueryString(),
             'saldo' => Ingreso::saldoCaja(),
+            'reservas' => Reserva::with(['socio', 'garantia', 'ingresos'])->where('tipo', 'arriendo')->whereNotNull('validado_en')
+                ->where(fn ($q) => $q->where(fn ($q) => $q->where('valor_arriendo', '>', 0)->whereDoesntHave('ingresos', fn ($q) => $q->vigentes()))
+                    ->orWhereHas('garantia', fn ($q) => $q->where('monto', '>', 0)->whereNull('registrada_en')))
+                ->oldest('validado_en')->paginate(15, ['*'], 'reservas')->withQueryString(),
+            'prestamos' => SolicitudInsumo::with(['ingresos', 'lineas'])->whereIn('estado', ['aprobado', 'entregado', 'devuelto'])
+                ->where(fn ($q) => $q->where('monto', '>', 0)->orWhere('garantia', '>', 0))
+                ->where(fn ($q) => $q->whereNull('pago_registrado_en')
+                    ->orWhere(fn ($q) => $q->where('monto', '>', 0)->whereDoesntHave('ingresos', fn ($q) => $q->vigentes())))
+                ->oldest('aprobado_en')->paginate(15, ['*'], 'prestamos')->withQueryString(),
         ]);
     }
 
@@ -74,12 +85,12 @@ class IngresoController extends Controller
             $ingreso->refresh();
 
             if ($ingreso->estaAnulado()) {
-                return back()->withErrors(['ingreso' => 'Este ingreso ya está anulado.']);
+                return back()->withInput()->withErrors(['ingreso' => 'Este ingreso ya está anulado.']);
             }
 
             // Si ya tiene devolución, anularlo descontaría el dinero dos veces del saldo.
             if ($ingreso->devolucion()->exists()) {
-                return back()->withErrors(['ingreso' => 'Este ingreso ya fue devuelto y no se puede anular.']);
+                return back()->withInput()->withErrors(['ingreso' => 'Este ingreso ya fue devuelto y no se puede anular.']);
             }
 
             $ingreso->anular($datos['motivo_anulacion'], $request->user());

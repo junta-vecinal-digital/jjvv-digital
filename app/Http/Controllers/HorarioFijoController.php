@@ -32,7 +32,7 @@ class HorarioFijoController extends Controller
 
             $grupo->horariosFijos()->create($datos);
 
-            return redirect()->route('grupos.show', $grupo)->with('status', 'horario-guardado');
+            return ($request->filled('operacion') ? back()->withInput($request->only('operacion')) : redirect()->route('grupos.show', $grupo))->with('status', 'horario-guardado');
         });
     }
 
@@ -51,20 +51,20 @@ class HorarioFijoController extends Controller
 
             $horario->update($datos);
 
-            return redirect()->route('grupos.show', $horario->grupo_id)->with('status', 'horario-guardado');
+            return ($request->filled('operacion') ? back()->withInput($request->only('operacion')) : redirect()->route('grupos.show', $horario->grupo_id))->with('status', 'horario-guardado');
         });
     }
 
     /** Las reservas ya generadas se mantienen (horario_fijo_id queda en null). */
-    public function destroy(HorarioFijo $horario)
+    public function destroy(Request $request, HorarioFijo $horario)
     {
-        return DB::transaction(function () use ($horario) {
+        return DB::transaction(function () use ($request, $horario) {
             // La escritura sin cambios serializa reservas y horarios también en SQLite.
             DB::table('parametros')->where('clave', 'sede_hora_inicio')->update(['valor' => DB::raw('valor')]);
 
             $horario->delete();
 
-            return redirect()->route('grupos.show', $horario->grupo_id)->with('status', 'horario-guardado');
+            return ($request->filled('operacion') ? back()->withInput($request->only('operacion')) : redirect()->route('grupos.show', $horario->grupo_id))->with('status', 'horario-guardado');
         });
     }
 
@@ -157,7 +157,7 @@ class HorarioFijoController extends Controller
                 $mensaje .= " {$existentes} ya estaban generadas.";
             }
 
-            return redirect()->route('grupos.show', $grupo)
+            return ($request->filled('operacion') ? back()->withInput($request->only('operacion')) : redirect()->route('grupos.show', $grupo))
                 ->with('mensaje', $mensaje)
                 ->with('omitidas', $omitidas);
         });
@@ -174,6 +174,6 @@ class HorarioFijoController extends Controller
 
     private function rechazar(string $mensaje)
     {
-        return back()->withErrors(['horario' => $mensaje]);
+        return back()->withInput()->withErrors(['horario' => $mensaje]);
     }
 }

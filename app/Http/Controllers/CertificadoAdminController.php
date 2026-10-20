@@ -15,7 +15,7 @@ class CertificadoAdminController extends Controller
 {
     public function index(Request $request)
     {
-        $certificados = Certificado::query()
+        $certificados = Certificado::with(['socio', 'descargas.usuario'])
             ->when($request->estado, fn ($q, $v) => $q->where('estado', $v))
             ->when($request->tipo, fn ($q, $v) => $q->where('tipo', $v))
             ->when($request->buscar, function ($q, $texto) {
@@ -76,7 +76,7 @@ class CertificadoAdminController extends Controller
         $certificado->emitir($request->user());
         $certificado->registrarIngreso($request->user());
 
-        return redirect()->route('admin.certificados.show', $certificado)->with('status', 'certificado-emitido');
+        return ($request->filled('operacion') ? back()->withInput($request->only('operacion')) : redirect()->route('admin.certificados.index')->withInput(['operacion' => 'certificado_'.$certificado->id]))->with('status', 'certificado-emitido');
     }
 
     public function show(Certificado $certificado)
@@ -111,7 +111,7 @@ class CertificadoAdminController extends Controller
         $certificado->emitir($request->user());
         $certificado->registrarIngreso($request->user());
 
-        return redirect()->route('admin.certificados.show', $certificado)->with('status', 'certificado-emitido');
+        return ($request->filled('operacion') ? back()->withInput($request->only('operacion')) : redirect()->route('admin.certificados.show', $certificado))->with('status', 'certificado-emitido');
     }
 
     /** Registra el retiro presencial de un certificado que no fue descargado (RFS-26, RFS-32). */
@@ -136,7 +136,7 @@ class CertificadoAdminController extends Controller
         // El retiro no cambia la vigencia (RFS-31): solo se registra la fecha.
         $certificado->forceFill(['fecha_retiro' => $datos['fecha_retiro']])->save();
 
-        return redirect()->route('admin.certificados.show', $certificado)->with('status', 'certificado-retirado');
+        return ($request->filled('operacion') ? back()->withInput($request->only('operacion')) : redirect()->route('admin.certificados.show', $certificado))->with('status', 'certificado-retirado');
     }
 
     public function rechazar(Request $request, Certificado $certificado)
@@ -147,7 +147,7 @@ class CertificadoAdminController extends Controller
 
         $certificado->forceFill(['estado' => 'rechazado', 'observaciones' => $datos['observaciones']])->save();
 
-        return redirect()->route('admin.certificados.show', $certificado)->with('status', 'certificado-rechazado');
+        return ($request->filled('operacion') ? back()->withInput($request->only('operacion')) : redirect()->route('admin.certificados.show', $certificado))->with('status', 'certificado-rechazado');
     }
 
     public function anular(Request $request, Certificado $certificado)
@@ -158,7 +158,7 @@ class CertificadoAdminController extends Controller
 
         $certificado->forceFill(['estado' => 'anulado', 'observaciones' => $datos['observaciones']])->save();
 
-        return redirect()->route('admin.certificados.show', $certificado)->with('status', 'certificado-anulado');
+        return ($request->filled('operacion') ? back()->withInput($request->only('operacion')) : redirect()->route('admin.certificados.show', $certificado))->with('status', 'certificado-anulado');
     }
 
     /** PDF para revisión (borrador con marca de agua) o definitivo si ya fue emitido (RFS-36). */

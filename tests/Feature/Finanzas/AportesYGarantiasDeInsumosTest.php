@@ -4,6 +4,7 @@ use App\Models\Auditoria;
 use App\Models\Garantia;
 use App\Models\Ingreso;
 use App\Models\ItemInventario;
+use App\Models\Reserva;
 use App\Models\SolicitudInsumo;
 use App\Models\TipoInsumo;
 use App\Models\User;
@@ -54,6 +55,28 @@ function devolverFinInsumos($caso, SolicitudInsumo $solicitud, User $presidente)
     ])->assertSessionHasNoErrors();
 }
 
+test('el registro de garantías reúne sede e insumos sin sumar sus montos al saldo', function () {
+    $solicitud = solicitudFinInsumos($this->presidenteFinInsumos);
+    $this->post(route('finanzas.insumos.registrar', $solicitud), pagoFinInsumos())->assertSessionHasNoErrors();
+    $garantiaInsumos = Garantia::sole();
+    $reserva = Reserva::create([
+        'tipo' => 'arriendo', 'estado' => 'confirmada', 'inicio' => now()->addDay()->setTime(10, 0),
+        'fin' => now()->addDay()->setTime(11, 0), 'motivo' => 'Reserva con garantía',
+        'responsable_nombre' => 'Solicitante de sede', 'valor_arriendo' => 0, 'valor_garantia' => 8000,
+    ]);
+    $garantiaSede = Garantia::create([
+        'reserva_id' => $reserva->id, 'monto' => 8000, 'estado' => 'recibida',
+        'recibida_en' => now(), 'validado_por' => $this->presidenteFinInsumos->id,
+    ]);
+    $this->actingAs($this->tesoreroFinInsumos)->get(route('finanzas.arriendos.index'))->assertOk()
+        ->assertViewHas('garantias', fn ($lista) => $lista->total() === 2
+            && $lista->contains('id', $garantiaInsumos->id) && $lista->contains('id', $garantiaSede->id))
+        ->assertSee(route('finanzas.insumos.show', $solicitud))
+        ->assertSee(route('arriendos.show', ['reserva' => $reserva, 'desde' => 'finanzas']));
+    expect(Ingreso::saldoCaja())->toBe(7000);
+    $this->assertDatabaseCount('ingresos', 1);
+});
+
 test('registra cobro vinculado y garantía separada con monto y autor del servidor', function (string $rol) {
     $solicitud = solicitudFinInsumos($this->presidenteFinInsumos);
     $usuario = $rol === 'presidente' ? $this->presidenteFinInsumos : $this->tesoreroFinInsumos;
@@ -69,7 +92,7 @@ test('registra cobro vinculado y garantía separada con monto y autor del servid
         ->and($garantia->reserva_id)->toBeNull()->and($garantia->solicitud_insumo_id)->toBe($solicitud->id)
         ->and($garantia->registrada_por)->toBe($usuario->id)->and(Ingreso::saldoCaja())->toBe(7000);
     Storage::disk('local')->assertExists($solicitud->fresh()->comprobante_path);
-    $this->get(route('finanzas.insumos.index'))->assertOk();
+    $this->get(route('finanzas.insumos.index'))->assertRedirect(route('finanzas.arriendos.index'));
     $this->get(route('finanzas.insumos.show', $solicitud))->assertOk();
     $this->get(route('finanzas.insumos.comprobante', $solicitud))->assertOk();
     if ($rol === 'tesorero') {
@@ -166,7 +189,7 @@ test('retención parcial o total genera solo lo retenido y reingreso no repite d
     $this->post(route('finanzas.garantias.registrar-retencion', $garantia))->assertSessionHasErrors('finanzas');
     expect($garantia->fresh()->getAttributes())->toBe($resolucion)->and($garantia->ingresos()->vigentes()->count())->toBe(1)
         ->and(Ingreso::saldoCaja())->toBe(7000 + $retenido);
-    $this->get(route('ingresos.index'))->assertOk()->assertSee('Préstamo y comprobante');
+    $this->get(route('ingresos.index'))->assertOk()->assertSee(route('finanzas.insumos.show', $solicitud));
     $this->get(route('finanzas.insumos.show', $solicitud))->assertOk();
 })->with([5000, 12000]);
 

@@ -27,6 +27,7 @@ function crearFichaPermisos(User $usuario, string $estado, string $rut): void
 $modulos = [
     'usuarios' => 'usuarios.index',
     'socios' => 'socios.index',
+    'archivo de socios' => 'socios.archivo',
     'certificados (gestión)' => 'admin.certificados.index',
     'agenda' => 'agenda.index',
     'auditoría' => 'auditoria.index',
@@ -50,8 +51,8 @@ it('limita cada rol a sus módulos', function (string $rol, array $permitidos) u
     }
 })->with([
     'administrador' => ['admin', ['usuarios', 'parámetros', 'proyectos']],
-    'presidente' => ['presidente', ['socios', 'certificados (gestión)', 'agenda', 'auditoría', 'finanzas', 'actas', 'proyectos', 'inventario']],
-    'secretario' => ['secretario', ['socios', 'certificados (gestión)', 'agenda', 'actas', 'proyectos', 'inventario']],
+    'presidente' => ['presidente', ['socios', 'archivo de socios', 'certificados (gestión)', 'agenda', 'auditoría', 'finanzas', 'actas', 'proyectos', 'inventario']],
+    'secretario' => ['secretario', ['socios', 'archivo de socios', 'certificados (gestión)', 'agenda', 'actas', 'proyectos', 'inventario']],
     'tesorero' => ['tesorero', ['finanzas', 'actas', 'proyectos']],
     'vecino' => ['vecino', ['proyectos']],
 ]);

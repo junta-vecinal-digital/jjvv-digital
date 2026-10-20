@@ -1,12 +1,7 @@
 <x-app-layout>
-    <x-slot name="header">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-            <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Actas</h1>
-            @if (Auth::user()->hasRole('presidente', 'secretario'))
+    <x-slot name="header"><x-page-heading title="Actas" description="Consulta los acuerdos de asamblea y directiva.">@if (Auth::user()->hasRole('presidente', 'secretario'))
                 <a href="{{ route('actas.create') }}" class="ui-button ui-button-primary">Registrar acta</a>
-            @endif
-        </div>
-    </x-slot>
+            @endif</x-page-heading></x-slot>
 
     <div class="mx-auto max-w-5xl space-y-4 px-4 py-6 sm:px-6 lg:px-8">
         @if (Auth::user()->esDirigente())
@@ -30,18 +25,13 @@
         <div class="ui-panel overflow-x-auto">
             <table class="ui-table">
                 <thead><tr><th>Fecha de reunión</th><th>Tipo</th><th>Escaneo</th><th>Consulta</th></tr></thead>
-                <tbody>
+
                     @forelse ($actas as $acta)
-                        <tr>
-                            <td>{{ $acta->fecha->format('d/m/Y') }}</td>
-                            <td>{{ \App\Models\Acta::TIPOS[$acta->tipo] }}</td>
-                            <td>{{ $acta->escaneo_path ? 'Adjunto' : 'Sin escaneo' }}</td>
-                            <td><a href="{{ route('actas.show', $acta) }}" class="text-brand-500 underline">Ver acta</a></td>
-                        </tr>
+                        <x-record-row :id="'acta_'.$acta->id" :columns="4" label="Ver acta"><x-slot name="summary"><td>{{ $acta->fecha->format('d/m/Y') }}</td><td>{{ \App\Models\Acta::TIPOS[$acta->tipo] }}</td><td>{{ $acta->escaneo_path ? 'Adjunto' : 'Sin escaneo' }}</td></x-slot>@include('actas._detalle')</x-record-row>
                     @empty
-                        <tr><td colspan="4">No hay actas para mostrar.</td></tr>
+                        <tbody><tr><td colspan="4">No hay actas para mostrar.</td></tr></tbody>
                     @endforelse
-                </tbody>
+
             </table>
         </div>
         {{ $actas->links() }}

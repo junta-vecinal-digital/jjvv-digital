@@ -17,7 +17,7 @@ class ReporteController extends Controller
 {
     public function index()
     {
-        return view('reportes.index');
+        return redirect()->route(auth()->user()->hasRole('presidente', 'tesorero') ? 'reportes.financieros' : 'reportes.socios');
     }
 
     public function financieros(Request $request)

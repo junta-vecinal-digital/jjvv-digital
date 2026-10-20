@@ -1,94 +1,85 @@
 <x-app-layout>
-    <x-slot name="header">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-            <h2 class="text-2xl font-semibold text-gray-900 dark:text-white leading-tight">Calendario de la sede</h2>
-            @if ($esDirigente)
-                <a href="{{ route('reservas.index', ['semana' => $lunes->toDateString()]) }}" class="ui-button ui-button-primary">Gestionar reservas</a>
-            @endif
-        </div>
-    </x-slot>
-
-    <div class="py-6">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-
-            {{-- Navegación entre semanas --}}
-            <div class="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-0">
-                <h3 class="font-medium text-gray-900 dark:text-gray-100">
-                    Semana del {{ $dias->first()->translatedFormat('j \d\e F') }}
-                    al {{ $dias->last()->translatedFormat('j \d\e F \d\e Y') }}
-                </h3>
-                <div class="flex gap-4 text-sm">
-                    <a href="{{ route('calendario.index', ['semana' => $lunes->copy()->subWeek()->toDateString()]) }}"
-                       class="underline text-gray-600 dark:text-gray-400">← Anterior</a>
-                    <a href="{{ route('calendario.index') }}"
-                       class="underline text-gray-600 dark:text-gray-400">Esta semana</a>
-                    <a href="{{ route('calendario.index', ['semana' => $lunes->copy()->addWeek()->toDateString()]) }}"
-                       class="underline text-gray-600 dark:text-gray-400">Siguiente →</a>
-                </div>
-            </div>
-
-            {{-- Grilla semanal --}}
-            @if ($esDirigente)
-                <form method="GET" action="{{ route('calendario.imprimir') }}" target="_blank" class="ui-panel p-4 flex flex-wrap items-end gap-3">
-                    <div>
-                        <x-input-label for="fecha_impresion" value="Fecha del período" />
-                        <x-date-input id="fecha_impresion" name="fecha" :value="$lunes->toDateString()" required />
-                    </div>
-                    <div>
-                        <x-input-label for="periodo_impresion" value="Imprimir" />
-                        <select id="periodo_impresion" name="periodo" class="ui-input w-full sm:min-w-72" required>
-                            <option value="semana">Semana de la fecha elegida</option>
-                            <option value="mes">Mes de la fecha elegida</option>
-                        </select>
-                    </div>
-                    <x-primary-button>Ver horario imprimible</x-primary-button>
-                </form>
-            @endif
-            <div class="ui-panel overflow-x-auto">
-                <table class="min-w-full text-xs border-collapse">
-                    <thead class="bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300">
-                        <tr>
-                            <th class="px-3 py-2 w-16"></th>
-                            @foreach ($dias as $dia)
-                                <th class="px-3 py-2 font-medium text-left {{ $dia->isToday() ? 'text-brand-600 dark:text-brand-400' : '' }}">
-                                    {{ ucfirst($dia->translatedFormat('D j')) }}
-                                </th>
-                            @endforeach
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                        @foreach ($horas as $hora)
-                            <tr>
-                                <td class="px-3 py-2 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">{{ $hora }}</td>
-                                @foreach ($dias as $dia)
-                                    @php
-                                        $celda = $celdas[$dia->toDateString()][$hora] ?? null;
-                                        if (! $celda) {
-                                            $clase = 'text-gray-400 dark:text-gray-500';
-                                        } elseif (! $esDirigente) {
-                                            $clase = 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200';
-                                        } elseif ($celda['tipo'] === 'fijo') {
-                                            $clase = 'bg-amber-100 dark:bg-amber-900/40 text-amber-900 dark:text-amber-100';
-                                        } else {
-                                            $clase = 'bg-brand-50 dark:bg-brand-500/15 text-brand-600 dark:text-brand-400';
-                                        }
-                                    @endphp
-                                    <td class="px-2 py-2 border-l border-gray-200 dark:border-gray-700 {{ $clase }}">
-                                        {{ $celda['texto'] ?? 'Libre' }}
-                                    </td>
-                                @endforeach
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-
-            @if ($esDirigente)
-                <p class="px-4 sm:px-0 text-xs text-gray-500 dark:text-gray-400">
-                    Azul: reserva. Ámbar: horario fijo de grupo aún sin generar para esa semana.
-                </p>
-
-            @endif
-        </div>
-    </div>
+<x-slot name="header">
+<x-page-heading title="Calendario de la sede" description="Consulta la ocupación de la sede y los horarios disponibles.">
+@if($esDirigente)<a href="{{ route('reservas.index') }}" class="ui-button ui-button-primary">Gestionar reservas</a>
+@endif
+</x-page-heading>
+</x-slot>
+<div class="ui-page" x-data="{ dia: 0, detalle: null, imprimir: false }">
+<div class="flex flex-wrap items-center justify-between gap-4">
+<h2 class="text-xl font-semibold">{{ $dias->first()->format('d/m/Y') }} al {{ $dias->last()->format('d/m/Y') }}</h2>
+<div class="flex flex-wrap gap-3">
+<a class="ui-button ui-button-secondary" href="{{ route('calendario.index',['semana'=>$lunes->copy()->subWeek()->toDateString()]) }}">← Anterior</a>
+<a class="ui-button ui-button-secondary" href="{{ route('calendario.index') }}">Esta semana</a>
+<a class="ui-button ui-button-secondary" href="{{ route('calendario.index',['semana'=>$lunes->copy()->addWeek()->toDateString()]) }}">Siguiente →</a>
+</div>
+</div>
+<div class="flex flex-wrap gap-6 text-sm text-gray-500">
+<span>□ Libre</span>
+<span>■ Reserva confirmada o pendiente</span>
+<span>▧ Horario fijo de agrupación</span>
+</div>
+<div class="hidden md:block">@include('calendario._grilla',['diasVisibles'=>$dias])</div>
+<div class="space-y-4 md:hidden">
+<div class="flex flex-wrap gap-2" aria-label="Día de la semana">
+@foreach($dias as $indice=>$dia)<button type="button" class="ui-button ui-button-secondary" @click="dia = {{ $indice }}" :aria-pressed="dia === {{ $indice }}">{{ ucfirst($dia->translatedFormat('D j')) }}</button>
+@endforeach
+</div>
+@foreach($dias as $indice=>$dia)<div x-show="dia === {{ $indice }}">@include('calendario._grilla',['diasVisibles'=>collect([$dia])])</div>
+@endforeach
+</div>
+<p class="text-sm text-gray-500">Las solicitudes pendientes y los horarios fijos también ocupan la sede.</p>
+@if($esDirigente)<section x-cloak x-show="detalle" class="ui-panel p-6 space-y-6" aria-live="polite">
+<h2 class="text-xl font-semibold" x-text="detalle?.titulo">
+</h2>
+<dl class="ui-meta">
+<div>
+<dt>Fecha y horario</dt>
+<dd x-text="detalle?.horario">
+</dd>
+</div>
+<div>
+<dt>Estado</dt>
+<dd x-text="detalle?.estado">
+</dd>
+</div>
+<div>
+<dt>Responsable / representante</dt>
+<dd x-text="detalle?.persona">
+</dd>
+</div>
+<div>
+<dt>Registrado por</dt>
+<dd x-text="detalle?.autor">
+</dd>
+</div>
+</dl>
+<p x-show="detalle?.fijo" class="ui-notice">Este horario ocupa la sede aunque su reserva aún no se haya generado.</p>
+<button class="ui-button ui-button-secondary" type="button" @click="detalle = null">Cerrar detalle</button>
+</section>
+<details class="ui-panel p-6">
+<summary class="cursor-pointer font-semibold">Imprimir horario semanal o mensual</summary>
+<form method="GET" action="{{ route('calendario.imprimir') }}" target="horario-imprimible" class="ui-tools mt-6" @submit="imprimir = true">
+<div>
+<x-input-label for="fecha_impresion" value="Fecha del período" />
+<x-date-input id="fecha_impresion" name="fecha" :value="$lunes->toDateString()" required />
+</div>
+<div>
+<x-input-label for="periodo_impresion" value="Período" />
+<select id="periodo_impresion" name="periodo" class="ui-input">
+<option value="semana">Semana de la fecha elegida</option>
+<option value="mes">Mes de la fecha elegida</option>
+</select>
+</div>
+<x-primary-button>Ver horario imprimible</x-primary-button>
+</form>
+</details>
+<section x-cloak x-show="imprimir" class="ui-panel p-6 space-y-4">
+<h2 class="text-xl font-semibold">Vista previa del horario</h2>
+<iframe title="Horario imprimible" name="horario-imprimible" class="h-[640px] w-full border-0">
+</iframe>
+<button type="button" class="ui-button ui-button-secondary" @click="imprimir = false">Cerrar vista previa</button>
+</section>
+@endif
+</div>
 </x-app-layout>

@@ -17,7 +17,7 @@
         </details>
     @endforeach
     <form method="POST" action="{{ route('parametros.insumos.store') }}" class="space-y-4 border-t border-gray-200 pt-4 dark:border-gray-700">
-        @csrf
+        @csrf<input type="hidden" name="tab" value="insumos">
         <div>
             <x-input-label for="nombre_insumo" value="Nuevo insumo" />
             <x-text-input id="nombre_insumo" name="nombre_insumo" :value="old('nombre_insumo')" maxlength="255" required class="mt-1 block w-full" />

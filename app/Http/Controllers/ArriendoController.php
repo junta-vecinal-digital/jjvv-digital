@@ -8,6 +8,7 @@ use App\Models\Parametro;
 use App\Models\Reserva;
 use App\Models\Socio;
 use App\Models\TipoActividad;
+use App\Models\User;
 use App\Rules\RutChileno;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -27,8 +28,7 @@ class ArriendoController extends Controller
 
         return view('arriendos.index', [
             'esDirigente' => $esDirigente,
-            'socios' => $esDirigente ? Socio::where('estado', 'activo')->orderBy('nombre_completo')
-                ->get(['id', 'user_id', 'nombre_completo', 'rut', 'direccion', 'telefono']) : collect(),
+            'solicitantes' => $esDirigente ? $this->solicitantesDisponibles() : [],
             'grupos' => Grupo::with('representante')
                 ->when(! $esDirigente, fn ($q) => $q->where(fn ($q) => $q->where('representante_id', $usuario->socio->id)
                     ->orWhere('representante_usuario_id', $usuario->id)))
@@ -36,7 +36,7 @@ class ArriendoController extends Controller
             'bloques' => Reserva::bloquesDeLaSede(),
             'tiposActividad' => TipoActividad::where('activo', true)->orderBy('id')->get(),
             'plazoHoras' => Parametro::entero('arriendo_plazo_confirmacion_horas'),
-            'arriendos' => Reserva::with(['socio', 'grupo', 'garantia'])
+            'arriendos' => Reserva::with(['socio', 'grupo', 'garantia.ingresos', 'ingresos'])
                 ->when(! $esDirigente, fn ($q) => $q->where('socio_id', $usuario->socio->id))
                 ->latest('id')->paginate(15),
         ]);
@@ -47,6 +47,26 @@ class ArriendoController extends Controller
         $usuario = $request->user();
         $esDirigente = $usuario->hasRole('presidente', 'secretario');
         abort_unless($esDirigente || $usuario->esSocioActivo(), 403);
+        if ($esDirigente && $request->input('operacion') === 'crear-reserva') $request->validate(['solicitante' => ['required', 'string']]);
+        if ($esDirigente && $request->filled('solicitante')) {
+            $seleccion = $request->string('solicitante')->toString();
+            $actividadSeleccionada = $request->input('actividad_reserva');
+            $persona = collect($this->solicitantesDisponibles())->firstWhere('clave', $seleccion);
+            $manualPermitido = ! in_array($actividadSeleccionada, ['actividad', 'grupo'], true);
+            if ($seleccion !== 'manual' && ! $persona) throw ValidationException::withMessages(['solicitante' => 'Selecciona un solicitante vigente.']);
+            if ($seleccion === 'manual' && ! $manualPermitido) throw ValidationException::withMessages(['solicitante' => 'Esta actividad requiere seleccionar un solicitante.']);
+            if ($persona && ($actividadSeleccionada === 'actividad' ? ! $persona['dirigente'] : ($actividadSeleccionada === 'grupo' ? ! $persona['grupo_id'] : ! $persona['activo']))) {
+                throw ValidationException::withMessages(['solicitante' => 'El solicitante no corresponde a esta actividad.']);
+            }
+            if ($persona) $request->merge([
+                'socio_id' => $persona['socio_id'], 'grupo_id' => $persona['grupo_id'],
+                'modalidad_solicitante' => $persona['socio_id'] ? 'socio' : 'manual',
+                'responsable_nombre' => $persona['nombre'], 'responsable_rut' => $persona['rut'],
+                'responsable_direccion' => $persona['direccion'], 'responsable_telefono' => $persona['telefono'],
+            ]);
+            else $request->merge(['modalidad_solicitante' => 'manual', 'grupo_id' => null]);
+            if ($actividadSeleccionada !== 'grupo') $request->request->remove('grupo_id');
+        }
         if ($esDirigente && $request->filled('actividad_reserva') && $request->actividad_reserva !== 'particular') {
             $request->validate([
                 'actividad_reserva' => ['required', 'string', Rule::exists('tipos_actividad', 'clave')->where('activo', true)],
@@ -145,7 +165,7 @@ class ArriendoController extends Controller
                     ? $datos['comprobante']->store('comprobantes/arriendos', 'local') : null,
             ]);
 
-            return redirect()->route('arriendos.show', $reserva)->with('status', 'arriendo-solicitado');
+            return redirect()->route($esDirigente ? 'reservas.index' : 'arriendos.index')->withInput(['operacion' => 'reserva_'.$reserva->id])->with('status', 'arriendo-solicitado');
         });
     }
 
@@ -176,7 +196,7 @@ class ArriendoController extends Controller
             $reserva->refresh();
             abort_unless($reserva->tipo === 'arriendo', 404);
             if (! $reserva->aporte_variable || $reserva->estado !== 'pendiente' || $reserva->valor_arriendo !== null) {
-                return back()->withErrors(['arriendo' => 'El aporte solo puede definirse una vez, en una solicitud nueva pendiente y dentro de su plazo.']);
+                return back()->withInput()->withErrors(['arriendo' => 'El aporte solo puede definirse una vez, en una solicitud nueva pendiente y dentro de su plazo.']);
             }
             $reserva->update([
                 'valor_arriendo' => $datos['valor_arriendo'],
@@ -185,7 +205,7 @@ class ArriendoController extends Controller
                 'aporte_definido_en' => now(),
             ]);
 
-            return back()->with('status', 'aporte-definido');
+            return back()->withInput($request->only('operacion'))->with('status', 'aporte-definido');
         });
     }
 
@@ -205,11 +225,11 @@ class ArriendoController extends Controller
             $this->autorizarConsulta($request, $reserva);
             if (! $reserva->aporte_variable || $reserva->estado !== 'pendiente'
                 || $reserva->valor_arriendo === null || ($reserva->valor_arriendo <= 0 && $reserva->valor_garantia <= 0) || $reserva->comprobante_arriendo_path) {
-                return back()->withErrors(['arriendo' => 'Solo puedes adjuntar el comprobante a una solicitud pendiente con montos definidos, total mayor que $0 y sin comprobante previo.']);
+                return back()->withInput()->withErrors(['arriendo' => 'Solo puedes adjuntar el comprobante a una solicitud pendiente con montos definidos, total mayor que $0 y sin comprobante previo.']);
             }
             $reserva->update(['comprobante_arriendo_path' => $datos['comprobante']->store('comprobantes/arriendos', 'local')]);
 
-            return back()->with('status', 'comprobante-adjuntado');
+            return back()->withInput($request->only('operacion'))->with('status', 'comprobante-adjuntado');
         });
     }
 
@@ -222,16 +242,16 @@ class ArriendoController extends Controller
             abort_unless($reserva->tipo === 'arriendo', 404);
 
             if ($reserva->estado !== 'pendiente') {
-                return back()->withErrors(['arriendo' => 'Solo se puede confirmar una solicitud pendiente y dentro de su plazo.']);
+                return back()->withInput()->withErrors(['arriendo' => 'Solo se puede confirmar una solicitud pendiente y dentro de su plazo.']);
             }
 
             if ($reserva->aporte_variable) {
                 if ($reserva->valor_arriendo === null) {
-                    return back()->withErrors(['arriendo' => 'Define el aporte antes de confirmar la reserva.']);
+                    return back()->withInput()->withErrors(['arriendo' => 'Define el aporte antes de confirmar la reserva.']);
                 }
                 if (($reserva->valor_arriendo > 0 || $reserva->valor_garantia > 0) && (! $reserva->comprobante_arriendo_path
                     || ! Storage::disk('local')->exists($reserva->comprobante_arriendo_path))) {
-                    return back()->withErrors(['arriendo' => 'Adjunta el comprobante del total antes de confirmar.']);
+                    return back()->withInput()->withErrors(['arriendo' => 'Adjunta el comprobante del total antes de confirmar.']);
                 }
             }
             $request->validate([
@@ -252,7 +272,7 @@ class ArriendoController extends Controller
                 'validado_por' => $request->user()->id,
             ]);
 
-            return back()->with('status', 'arriendo-confirmado');
+            return back()->withInput($request->only('operacion'))->with('status', 'arriendo-confirmado');
         });
     }
 
@@ -272,5 +292,28 @@ class ArriendoController extends Controller
         abort_unless($usuario->hasRole('presidente', 'secretario')
             || ($usuario->hasRole('tesorero') && $reserva->validado_en)
             || ($usuario->esSocioActivo() && $reserva->socio_id === $usuario->socio->id), 403);
+    }
+
+    private function solicitantesDisponibles(): array
+    {
+        $personas = [];
+        foreach (User::with('socio')->whereIn('role', ['presidente', 'secretario', 'tesorero'])->orderBy('name')->get() as $usuario) {
+            $socio = $usuario->socio;
+            $personas[] = ['clave' => 'usuario:'.$usuario->id, 'etiqueta' => $usuario->name.' · '.$usuario->nombreRol(),
+                'dirigente' => true, 'activo' => $socio?->estado === 'activo', 'socio_id' => $socio?->estado === 'activo' ? $socio->id : null, 'grupo_id' => null,
+                'nombre' => $socio?->nombre_completo ?? $usuario->name, 'rut' => $socio?->rut ?? '', 'direccion' => $socio?->direccion ?? '', 'telefono' => $socio?->telefono ?? ''];
+        }
+        foreach (Socio::with('user')->where('estado', 'activo')->orderBy('nombre_completo')->get() as $socio) {
+            if ($socio->user?->esDirigente()) continue;
+            $personas[] = ['clave' => 'socio:'.$socio->id, 'etiqueta' => $socio->nombre_completo.' · Socio', 'dirigente' => false, 'activo' => true,
+                'socio_id' => $socio->id, 'grupo_id' => null, 'nombre' => $socio->nombre_completo, 'rut' => $socio->rut, 'direccion' => $socio->direccion, 'telefono' => $socio->telefono];
+        }
+        foreach (Grupo::with('representante')->orderBy('nombre')->get() as $grupo) {
+            if (! $grupo->tieneRepresentanteVigente()) continue;
+            $persona = $grupo->datosRepresentante();
+            $personas[] = ['clave' => 'grupo:'.$grupo->id, 'etiqueta' => $persona['nombre'].' · '.$grupo->nombre, 'dirigente' => false, 'activo' => false,
+                'socio_id' => $grupo->representante_id, 'grupo_id' => $grupo->id, 'nombre' => $persona['nombre'], 'rut' => $persona['rut'] ?? '', 'direccion' => $persona['direccion'] ?? '', 'telefono' => $persona['telefono'] ?? ''];
+        }
+        return $personas;
     }
 }

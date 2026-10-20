@@ -1,54 +1,45 @@
 <x-app-layout>
-    <x-slot name="header">
-        <x-page-heading title="Gestión de agrupaciones" description="Consulta agrupaciones, representantes y horarios fijos de uso de la sede." />
-    </x-slot>
-
-    <div class="py-6">
-        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-
-            @if (session('status') === 'grupo-creado')
-                <p class="px-4 sm:px-0 text-green-700 dark:text-green-400">Grupo creado.</p>
-            @endif
-
-            <details class="ui-panel" open>
-                <summary class="cursor-pointer p-4 font-medium">Grupos registrados ({{ $grupos->count() }})</summary>
-                <div class="max-h-96 overflow-auto">
-                <table class="ui-table divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead class="bg-gray-50 dark:bg-gray-700/50 text-left text-gray-600 dark:text-gray-300">
-                        <tr>
-                            <th class="px-4 py-3 font-medium">Grupo</th>
-                            <th class="px-4 py-3 font-medium">Representante</th>
-                            <th class="px-4 py-3 font-medium">Estado</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700 text-gray-800 dark:text-gray-200">
-                        @forelse ($grupos as $grupo)
-                            <tr>
-                                <td class="px-4 py-3">
-                                    <a href="{{ route('grupos.show', $grupo) }}" class="underline">{{ $grupo->nombre }}</a>
-                                </td>
-                                <td class="px-4 py-3">{{ $grupo->datosRepresentante()['nombre'] ?? '—' }}</td>
-                                <td class="px-4 py-3">
-                                    @if ($grupo->tieneRepresentanteVigente())
-                                        Con representante
-                                    @else
-                                        <span class="text-red-600 dark:text-red-400">Sin representante vigente</span>
-                                    @endif
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="3" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-                                    Aún no hay grupos registrados.
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-                </div>
-            </details>
-
-            @include('grupos._form', ['grupo' => null])
-        </div>
-    </div>
+<x-slot name="header">
+<x-page-heading title="Gestión de agrupaciones" description="Consulta representantes, contactos y horarios fijos de uso de la sede.">
+@unless(request('crear'))<a href="{{ route('grupos.index', ['crear' => 1]) }}" class="ui-button ui-button-primary">Registrar agrupación</a>
+@endunless
+</x-page-heading>
+</x-slot>
+<div class="ui-page">
+<x-operation-notice />
+@if(request('crear')) @include('grupos._form', ['grupo' => null]) @else
+<section class="ui-panel overflow-x-auto">
+<table class="ui-table">
+<thead>
+<tr>
+<th>Agrupación</th>
+<th>Representante</th>
+<th>Estado</th>
+<th>Horarios fijos</th>
+<th>Gestión</th>
+</tr>
+</thead>
+@forelse($grupos as $grupo)<x-record-row :id="'grupo_'.$grupo->id" :columns="5" label="Ver detalles y gestionar">
+<x-slot name="summary">
+<td>
+<strong>{{ $grupo->nombre }}</strong>
+</td>
+<td>{{ $grupo->datosRepresentante()['nombre'] ?? 'Sin representante' }}</td>
+<td>{{ $grupo->tieneRepresentanteVigente() ? 'Con representante' : 'Sin representante vigente' }}</td>
+<td>
+@forelse($grupo->horariosFijos as $horario){{ \App\Models\HorarioFijo::DIAS[$horario->dia_semana] }} · {{ substr($horario->hora_inicio,0,5) }}–{{ substr($horario->hora_fin,0,5) }}<br>
+@empty Sin horarios @endforelse
+</td>
+</x-slot>@include('grupos._detalle')</x-record-row>
+@empty
+<tbody>
+<tr>
+<td colspan="5">No hay agrupaciones registradas.</td>
+</tr>
+</tbody>
+@endforelse
+</table>
+</section>
+@endif
+</div>
 </x-app-layout>

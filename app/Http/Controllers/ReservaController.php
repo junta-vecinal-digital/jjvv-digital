@@ -55,6 +55,13 @@ class ReservaController extends Controller
 
                 if ($ocupantes->isNotEmpty()) {
                     $celdas[$dia->toDateString()][$hora] = [
+                        'detalles' => $esDirigente ? $ocupantes->map(fn ($r) => [
+                            'titulo' => trim(($r->grupo ? $r->grupo->nombre.' · ' : '').$r->motivo),
+                            'horario' => $r->inicio->format('d/m/Y H:i').'–'.$r->fin->format('H:i'),
+                            'estado' => Reserva::ESTADOS[$r->estado] ?? $r->estado,
+                            'persona' => $r->responsable_nombre ?? $r->socio?->nombre_completo ?? 'Sin registrar',
+                            'autor' => $r->creador?->name ?? 'Sin cuenta vinculada', 'fijo' => false,
+                        ])->values()->all() : [],
                         'tipo' => 'reserva',
                         'texto' => $esDirigente
                             ? $ocupantes->map(fn ($r) => trim(($r->grupo ? $r->grupo->nombre.' · ' : '').$r->motivo))->implode(' / ')
@@ -73,6 +80,12 @@ class ReservaController extends Controller
 
                 if ($fijos->isNotEmpty()) {
                     $celdas[$dia->toDateString()][$hora] = [
+                        'detalles' => $esDirigente ? $fijos->map(fn ($hf) => [
+                            'titulo' => $hf->grupo->nombre.' · Horario fijo',
+                            'horario' => $dia->format('d/m/Y').' '.substr($hf->hora_inicio,0,5).'–'.substr($hf->hora_fin,0,5),
+                            'estado' => 'Programado', 'persona' => $hf->grupo->datosRepresentante()['nombre'] ?? 'Sin representante',
+                            'autor' => 'Horario fijo de agrupación', 'fijo' => true,
+                        ])->values()->all() : [],
                         'tipo' => 'fijo',
                         'texto' => $esDirigente
                             ? $fijos->map(fn ($hf) => $hf->grupo->nombre.' · horario fijo')->implode(' / ')
@@ -155,6 +168,10 @@ class ReservaController extends Controller
                 'fecha' => ['required', 'date', 'after_or_equal:today', 'before_or_equal:'.now()->addMonths(6)->toDateString()],
                 'hora_inicio' => ['required', 'date_format:H:i'],
                 'hora_fin' => ['required', 'date_format:H:i', 'after:hora_inicio'],
+                'responsable_nombre' => ['nullable', 'string', 'max:255'],
+                'responsable_rut' => ['nullable', 'string', 'max:12', new RutChileno],
+                'responsable_direccion' => ['nullable', 'string', 'max:255'],
+                'responsable_telefono' => ['nullable', 'string', 'max:20'],
                 'tipo' => ['required', 'string', 'max:20', Rule::exists('tipos_actividad', 'clave')->where('activo', true)],
                 'grupo_id' => ['exclude_unless:tipo,grupo', 'required', 'exists:grupos,id'],
                 'socio_id' => ['exclude_unless:tipo,particular', 'required', Rule::exists('socios', 'id')->where('estado', 'activo')],
@@ -176,7 +193,7 @@ class ReservaController extends Controller
 
             $grupoId = null;
             $socioId = $datos['tipo'] === 'particular' ? $datos['socio_id'] : null;
-            $responsable = $socioId ? Socio::findOrFail($socioId)->nombre_completo : $request->user()->name;
+            $responsable = $datos['responsable_nombre'] ?? ($socioId ? Socio::findOrFail($socioId)->nombre_completo : $request->user()->name);
 
             if ($datos['tipo'] === 'grupo') {
                 $grupo = Grupo::findOrFail($datos['grupo_id']);
@@ -209,7 +226,9 @@ class ReservaController extends Controller
                 'motivo' => $tipoActividad->nombre,
                 'tipo_nombre' => $tipoActividad->nombre,
                 'responsable_nombre' => $responsable,
-                'responsable_rut' => $grupoId ? $grupo->datosRepresentante()['rut'] : ($socioId ? Socio::findOrFail($socioId)->rut : $request->user()->socio?->rut),
+                'responsable_direccion' => $datos['responsable_direccion'] ?? null,
+                'responsable_telefono' => $datos['responsable_telefono'] ?? null,
+                'responsable_rut' => $datos['responsable_rut'] ?? ($grupoId ? $grupo->datosRepresentante()['rut'] : ($socioId ? Socio::findOrFail($socioId)->rut : $request->user()->socio?->rut)),
                 'grupo_id' => $grupoId,
                 'socio_id' => $socioId,
                 'creado_por' => $request->user()->id,
@@ -235,7 +254,7 @@ class ReservaController extends Controller
             $reserva->refresh();
 
             if (! in_array($reserva->estado, Reserva::ESTADOS_OCUPAN, true)) {
-                return back()->withErrors(['reserva' => 'Esta reserva ya está cancelada o vencida.']);
+                return back()->withInput()->withErrors(['reserva' => 'Esta reserva ya está cancelada o vencida.']);
             }
 
             $reserva->update([
@@ -248,7 +267,7 @@ class ReservaController extends Controller
                 $reserva->garantia->update(['estado' => 'por_devolver']);
             }
 
-            return back()->with('status', 'reserva-cancelada');
+            return back()->withInput($request->only('operacion'))->with('status', 'reserva-cancelada');
         });
     }
 

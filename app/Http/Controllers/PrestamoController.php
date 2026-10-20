@@ -19,7 +19,7 @@ class PrestamoController extends Controller
                 ->when(($filtros['estado'] ?? null) === 'prestado', fn ($q) => $q->whereNull('fecha_devolucion'))
                 ->when(($filtros['estado'] ?? null) === 'devuelto', fn ($q) => $q->whereNotNull('fecha_devolucion'))
                 ->latest('fecha_prestamo')->paginate(20, ['*'], 'historicos')->withQueryString(),
-            'solicitudes' => SolicitudInsumo::whereIn('estado', ['entregado', 'devuelto'])
+            'solicitudes' => SolicitudInsumo::with('lineas.prestamo')->whereIn('estado', ['entregado', 'devuelto'])
                 ->when(($filtros['estado'] ?? null) === 'prestado', fn ($q) => $q->where('estado', 'entregado'))
                 ->when(($filtros['estado'] ?? null) === 'devuelto', fn ($q) => $q->where('estado', 'devuelto'))
                 ->latest('id')->paginate(20, ['*'], 'entregas')->withQueryString(),

@@ -16,8 +16,10 @@ class GrupoController extends Controller
     public function index()
     {
         return view('grupos.index', [
-            'grupos' => Grupo::with('representante')->orderBy('nombre')->get(),
+            'grupos' => Grupo::with(['representante', 'horariosFijos'])->orderBy('nombre')->get(),
             'personas' => $this->personasDisponibles(),
+            'horas' => Reserva::bloquesDeLaSede()['inicios'],
+            'horasFin' => Reserva::bloquesDeLaSede()['fines'],
         ]);
     }
 
@@ -25,7 +27,7 @@ class GrupoController extends Controller
     {
         $grupo = Grupo::create($this->validarGrupo($request));
 
-        return redirect()->route('grupos.show', $grupo)->with('status', 'grupo-creado');
+        return redirect()->route('grupos.index')->withInput(['operacion' => 'grupo_'.$grupo->id])->with('status', 'grupo-creado');
     }
 
     public function show(Grupo $grupo)
@@ -47,7 +49,7 @@ class GrupoController extends Controller
     {
         $grupo->update($this->validarGrupo($request, $grupo));
 
-        return redirect()->route('grupos.show', $grupo)->with('status', 'grupo-actualizado');
+        return ($request->filled('operacion') ? back()->withInput($request->only('operacion')) : redirect()->route('grupos.show', $grupo))->with('status', 'grupo-actualizado');
     }
 
     /** Conserva el acceso de asignación desde una ficha; la cuenta ya no es obligatoria. */
@@ -59,7 +61,7 @@ class GrupoController extends Controller
 
         $socio = Socio::findOrFail($datos['socio_id']);
         if (! RutChileno::esValido($socio->rut)) {
-            return back()->withErrors(['socio_id' => 'Completa un RUT válido en la ficha antes de asignar al representante.']);
+            return back()->withInput()->withErrors(['socio_id' => 'Completa un RUT válido en la ficha antes de asignar al representante.']);
         }
 
         $grupo->update([
@@ -76,7 +78,7 @@ class GrupoController extends Controller
             'contacto_direccion' => $socio->direccion,
         ]);
 
-        return redirect()->route('grupos.show', $grupo)->with('status', 'representante-asignado');
+        return ($request->filled('operacion') ? back()->withInput($request->only('operacion')) : redirect()->route('grupos.show', $grupo))->with('status', 'representante-asignado');
     }
 
     /** RFS-40: editar el contacto del grupo sin alterar la ficha del representante. */
@@ -91,7 +93,7 @@ class GrupoController extends Controller
 
         $grupo->update($datos);
 
-        return redirect()->route('grupos.show', $grupo)->with('status', 'contacto-actualizado');
+        return ($request->filled('operacion') ? back()->withInput($request->only('operacion')) : redirect()->route('grupos.show', $grupo))->with('status', 'contacto-actualizado');
     }
 
     private function personasDisponibles(): array

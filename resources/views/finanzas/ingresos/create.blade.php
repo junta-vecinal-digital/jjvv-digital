@@ -12,7 +12,7 @@
                           x-data="{ concepto: @js(old('concepto', '')), medio: @js(old('medio_pago', 'efectivo')), archivo: false }" @change="if ($event.target.name === 'comprobante') archivo = $event.target.files.length > 0">
                         @csrf
 
-                        <x-form-step number="0">
+                        <x-form-step number="0" class="ui-form-grid">
                             <div>
                                 <x-input-label for="concepto" value="Concepto" />
                                 <select id="concepto" name="concepto" required x-model="concepto" class="mt-1 block w-full rounded-md border-gray-300">
@@ -48,7 +48,7 @@
                             </div>
 
                         </x-form-step>
-                        <x-form-step number="1">
+                        <x-form-step number="1" class="ui-form-grid">
                             <div>
                                 <x-input-label for="medio_pago" value="Medio del aporte" />
                                 <select id="medio_pago" name="medio_pago" x-model="medio" required class="mt-1 block w-full rounded-md border-gray-300">
@@ -85,7 +85,7 @@
 
                         </x-form-step>
 
-                        <x-wizard-actions />
+                        <x-wizard-actions :cancel="route('ingresos.index')" />
                     </form>
                 </x-form-wizard>
             </div>

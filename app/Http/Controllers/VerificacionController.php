@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Certificado;
+use App\Models\HorarioAtencion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -11,7 +12,7 @@ class VerificacionController extends Controller
 {
     public function formulario()
     {
-        return view('verificar', ['consultado' => false, 'certificado' => null, 'estado' => null, 'rutEnmascarado' => null]);
+        return view('verificar', ['horariosAtencion' => HorarioAtencion::orderBy('dia_semana')->orderBy('hora_inicio')->get()->groupBy('dia_semana'), 'consultado' => false, 'certificado' => null, 'estado' => null, 'rutEnmascarado' => null]);
     }
 
     public function buscar(Request $request)
@@ -34,7 +35,7 @@ class VerificacionController extends Controller
             $certificado = null;
         }
 
-        return view('verificar', [
+        return view('verificar', ['horariosAtencion' => HorarioAtencion::orderBy('dia_semana')->orderBy('hora_inicio')->get()->groupBy('dia_semana'),
             'consultado' => true,
             'certificado' => $certificado,
             'estado' => $estado,

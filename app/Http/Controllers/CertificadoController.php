@@ -19,7 +19,7 @@ class CertificadoController extends Controller
 
         return view('certificados.index', [
             'socio' => $usuario->socio,
-            'certificados' => Certificado::delUsuario($usuario)->latest()->get(),
+            'certificados' => Certificado::delUsuario($usuario)->with('descargas')->latest()->get(),
             'destinatarios' => Certificado::delUsuario($usuario)
                 ->distinct()->orderBy('dirigido_a')->limit(50)->pluck('dirigido_a'),
         ]);

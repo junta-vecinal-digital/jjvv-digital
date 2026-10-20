@@ -13,14 +13,14 @@
                     Cada modificación queda registrada con tu nombre y la fecha. El estado de la inscripción se cambia desde la ficha del socio.
                 </p>
 
-                <x-form-wizard :steps="['Identidad', 'Residencia', 'Documentos']" :fields="[['nombre_completo','rut','email'],['direccion','telefono','residente_desde'],['carnet','boleta']]">
+                <x-form-wizard :steps="['Datos del socio', 'Antecedentes']" :fields="[['nombre_completo','rut','email','direccion','telefono'],['residente_desde','carnet','boleta']]">
                     <form novalidate method="POST" action="{{ route('socios.actualizar', $socio) }}" enctype="multipart/form-data" class="mt-6 space-y-6">
-                        @csrf
+                        @csrf<input type="hidden" name="operacion" value="socio_{{ $socio->id }}">
                         @method('PUT')
 
                         @include('socios._datos', ['socio' => $socio])
 
-                        <x-wizard-actions />
+                        <x-wizard-actions :cancel="route('socios.index')" />
                     </form>
                 </x-form-wizard>
             </div>

@@ -58,7 +58,7 @@ class ParametroController extends Controller
             }
         }
 
-        return redirect()->route('parametros.index')->with('status', 'parametros-guardados');
+        return redirect()->route('parametros.index', ['tab' => $request->input('tab', 'general')])->with('status', 'parametros-guardados');
     }
 
     public function crearActividad(Request $request)
@@ -66,7 +66,7 @@ class ParametroController extends Controller
         $datos = $request->validate(['nombre_actividad' => ['required', 'string', 'max:120', Rule::unique('tipos_actividad', 'nombre')]]);
         TipoActividad::create(['clave' => 'act_'.Str::lower(Str::random(12)), 'nombre' => $datos['nombre_actividad'], 'activo' => true]);
 
-        return redirect()->route('parametros.index')->with('status', 'actividad-guardada');
+        return redirect()->route('parametros.index', ['tab' => $request->input('tab', 'general')])->with('status', 'actividad-guardada');
     }
 
     public function crearInsumo(Request $request)
@@ -77,7 +77,7 @@ class ParametroController extends Controller
         ]);
         TipoInsumo::create(['nombre' => $datos['nombre_insumo'], 'categoria' => $datos['categoria_insumo']]);
 
-        return redirect()->route('parametros.index')->with('status', 'insumo-agregado');
+        return redirect()->route('parametros.index', ['tab' => $request->input('tab', 'general')])->with('status', 'insumo-agregado');
     }
 
     public function actualizarActividad(Request $request, TipoActividad $tipoActividad)
@@ -91,7 +91,7 @@ class ParametroController extends Controller
             ]);
             $tipoActividad->update(['nombre' => $datos['nombre_actividad'], 'activo' => $datos['activo']]);
 
-            return redirect()->route('parametros.index')->with('status', 'actividad-guardada');
+            return redirect()->route('parametros.index', ['tab' => $request->input('tab', 'general')])->with('status', 'actividad-guardada');
         });
     }
 }

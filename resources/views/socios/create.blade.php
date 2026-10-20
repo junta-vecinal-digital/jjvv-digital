@@ -1,9 +1,5 @@
 <x-app-layout>
-    <x-slot name="header">
-        <h2 class="text-2xl font-semibold text-gray-900 dark:text-white leading-tight">
-            Solicitud de inscripción como socio
-        </h2>
-    </x-slot>
+    <x-slot name="header"><x-page-heading title="Mi ficha de socio" description="Consulta tu inscripción y los antecedentes de tu ficha." /></x-slot>
 
     @php
         // Se puede editar la solicitud mientras esté pendiente (incluye las reabiertas tras un rechazo).
@@ -65,6 +61,9 @@
                 </div>
             @endif
 
+            @if($socio && ! $mostrarFormulario)
+            <section class="ui-panel p-6 space-y-6"><dl class="ui-meta"><div><dt>Nombre</dt><dd>{{ $socio->nombre_completo }}</dd></div><div><dt>RUT</dt><dd>{{ $socio->rut }}</dd></div><div><dt>Dirección</dt><dd>{{ $socio->direccion }}</dd></div><div><dt>Teléfono</dt><dd>{{ $socio->telefono }}</dd></div><div><dt>Residencia desde</dt><dd>{{ $socio->residente_desde->format('d/m/Y') }}</dd></div></dl><details><summary class="cursor-pointer font-medium">Documentos de mi ficha</summary><div class="mt-4 flex flex-wrap gap-4">@foreach(['carnet'=>'Carnet de identidad','boleta'=>'Boleta de servicio básico'] as $tipo=>$texto)@if($socio->{$tipo.'_path'})<a href="{{ route('socios.documento-propio',$tipo) }}" class="ui-link" target="_blank" rel="noopener">{{ $texto }}</a>@endif @endforeach</div></details></section>
+            @endif
             @if ($mostrarFormulario)
                 <div class="p-4 sm:p-8 ui-panel">
                     <header>

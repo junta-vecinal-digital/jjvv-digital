@@ -22,7 +22,7 @@ test('el administrador puede cambiar un parámetro y queda registrado', function
                 'arriendo_garantia' => '40000',
             ],
         ])
-        ->assertRedirect('/parametros');
+        ->assertRedirect(route('parametros.index', ['tab' => 'general']));
 
     expect(Parametro::valor('sede_hora_inicio'))->toBe('08:00');
     expect(\App\Models\Auditoria::where('auditable_type', Parametro::class)->count())->toBeGreaterThan(0);

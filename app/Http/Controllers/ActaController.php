@@ -18,7 +18,7 @@ class ActaController extends Controller
         $filtros = $request->validate(['tipo' => ['nullable', Rule::in(array_keys($tipos))]]);
 
         return view('actas.index', [
-            'actas' => Acta::whereIn('tipo', array_keys($tipos))
+            'actas' => Acta::with('registrador')->whereIn('tipo', array_keys($tipos))
                 ->when($filtros['tipo'] ?? null, fn ($q, $tipo) => $q->where('tipo', $tipo))
                 ->orderByDesc('fecha')->orderByDesc('id')->paginate(20)->withQueryString(),
             'tipos' => $tipos,
@@ -47,7 +47,7 @@ class ActaController extends Controller
 
         $acta = Acta::create($datos);
 
-        return redirect()->route('actas.show', $acta)->with('status', 'acta-registrada');
+        return redirect()->route('actas.index')->withInput(['operacion' => 'acta_'.$acta->id])->with('status', 'acta-registrada');
     }
 
     public function show(Request $request, Acta $acta)

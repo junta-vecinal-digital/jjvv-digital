@@ -178,15 +178,15 @@ test('horarios y puntos rojos muestran pendientes y atrasos solo a la directiva'
     $this->get(route('insumos.index'))->assertOk()->assertSee('Lunes: 10:00 a 12:00');
     $this->post(route('insumos.store'), datosSolicitudInsumos($this->sillasInsumos, $this->mesasInsumos))->assertSessionHasNoErrors();
     $solicitud = SolicitudInsumo::sole();
-    $this->actingAs($this->directivaInsumos)->get(route('dashboard'))->assertSee('data-pendiente="insumos"', false);
+    $this->actingAs($this->directivaInsumos)->get(route('dashboard'))->assertSee('Hay solicitudes pendientes de revisión');
     aprobarSolicitudInsumos($this, $solicitud, $this->directivaInsumos);
     entregarSolicitudInsumos($this, $solicitud);
-    $this->get(route('dashboard'))->assertDontSee('data-pendiente="prestamos"', false);
+    $this->get(route('dashboard'))->assertDontSee('Hay solicitudes pendientes de revisión');
     $this->travelTo(Carbon::parse('2026-10-21 10:00:00'));
     expect($solicitud->fresh()->atrasado())->toBeTrue();
-    $this->get(route('dashboard'))->assertSee('data-pendiente="prestamos"', false);
+    $this->get(route('dashboard'))->assertSee('Hay solicitudes pendientes de revisión');
     $this->actingAs($this->vecinoInsumos)->get(route('insumos.show', $solicitud))->assertOk()->assertSee('Atrasado')
-        ->assertDontSee('data-pendiente="prestamos"', false);
+        ->assertDontSee('Hay solicitudes pendientes de revisión');
 });
 
 test('la aprobación no acepta montos negativos', function (array $cambios, string $campo) {
