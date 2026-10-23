@@ -4,6 +4,10 @@ use App\Models\Auditoria;
 use App\Models\Ingreso;
 use App\Models\Parametro;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+
+beforeEach(fn () => Storage::fake('local'));
 
 test('el administrador puede cambiar un parámetro y queda registrado', function () {
     $administrador = User::factory()->create(['role' => 'admin']);
@@ -43,6 +47,7 @@ test('el tesorero registra un ingreso en efectivo con talonario', function () {
         'monto' => 1000,
         'medio_pago' => 'efectivo',
         'talonario' => 'T-0042',
+        'comprobante' => UploadedFile::fake()->create('pago.pdf', 10, 'application/pdf'),
     ])->assertRedirect('/ingresos');
 
     expect(Ingreso::where('talonario', 'T-0042')->exists())->toBeTrue();

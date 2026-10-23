@@ -39,6 +39,17 @@ class AppServiceProvider extends ServiceProvider
                     'prestamos' => SolicitudInsumo::where('estado', 'entregado')->whereDate('fecha_comprometida', '<', today())->exists(),
                 ];
             }
+            $pendientesMenu['finanzas'] = false;
+            if (Auth::user()?->hasRole('presidente', 'tesorero')) {
+                $pendientesMenu['finanzas'] = Reserva::where('tipo', 'arriendo')->whereNotNull('validado_en')
+                    ->where(fn ($q) => $q->where(fn ($q) => $q->where('valor_arriendo', '>', 0)->whereDoesntHave('ingresos', fn ($q) => $q->vigentes()))
+                        ->orWhereHas('garantia', fn ($q) => $q->where('monto', '>', 0)->whereNull('registrada_en')))->exists()
+                    || SolicitudInsumo::whereNotNull('pago_validado_en')->whereIn('estado', ['aprobado', 'entregado', 'devuelto'])
+                        ->where(fn ($q) => $q->where('monto', '>', 0)->orWhere('garantia', '>', 0))
+                        ->where(fn ($q) => $q->whereNull('pago_registrado_en')
+                            ->orWhere(fn ($q) => $q->where('monto', '>', 0)->whereDoesntHave('ingresos', fn ($q) => $q->vigentes())))->exists()
+                    || Certificado::where('tipo', 'residencia')->where('estado', 'emitido')->where('aporte', '>', 0)->whereDoesntHave('ingresos')->exists();
+            }
             $view->with('pendientesMenu', $pendientesMenu);
         });
     }

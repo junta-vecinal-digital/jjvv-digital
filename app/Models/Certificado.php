@@ -124,9 +124,10 @@ class Certificado extends Model
         return $this->descarga_disponible_hasta?->isFuture() ?? false;
     }
 
-    /** Registra el pago de la solicitud como ingreso, sin requerir acceso a finanzas (RFS-37). */
+    /** Registra contablemente un certificado emitido desde Ingresos. */
     public function registrarIngreso(User $por): void
     {
+        abort_unless($por->hasRole('presidente', 'tesorero'), 403);
         $aporte = $this->aporte ?? Parametro::entero('certificado_residencia_valor');
         if ($this->tipo !== 'residencia' || $aporte <= 0 || $this->ingresos()->exists()) {
             return;
@@ -134,11 +135,12 @@ class Certificado extends Model
 
         Ingreso::create([
             'concepto' => 'certificados',
-            'fecha_pago' => now()->toDateString(),
+            'fecha_pago' => $this->fecha_emision->toDateString(),
             'monto' => $aporte,
             'medio_pago' => $this->medio_pago ?? 'transferencia',
             'talonario' => $this->talonario,
             'numero_transaccion' => $this->numero_transaccion,
+            'comprobante_path' => $this->comprobante_path,
             'certificado_id' => $this->id,
             'registrado_por' => $por->id,
         ]);

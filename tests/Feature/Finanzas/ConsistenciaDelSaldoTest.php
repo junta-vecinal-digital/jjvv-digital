@@ -5,9 +5,12 @@ use App\Models\Devolucion;
 use App\Models\Egreso;
 use App\Models\Ingreso;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 
 beforeEach(function () {
+    Storage::fake('local');
     $this->withoutVite();
     $this->travelTo(Carbon::parse('2026-10-17 10:00:00'));
     $this->autorCierre = User::factory()->create(['role' => 'presidente']);
@@ -100,6 +103,7 @@ test('cuotas y aportes se registran clasificados con autor real e ignoran víncu
     $this->post(route('ingresos.store'), [
         'concepto' => $concepto, 'tipo_cuota' => $tipo, 'monto' => 5000,
         'fecha_pago' => now()->toDateString(), 'medio_pago' => 'transferencia', 'numero_transaccion' => 'TRX-CUOTA',
+        'comprobante' => UploadedFile::fake()->create('pago.pdf', 10, 'application/pdf'),
         'registrado_por' => 999999, 'reserva_id' => 999999, 'garantia_id' => 999999, 'solicitud_insumo_id' => 999999,
     ])->assertSessionHasNoErrors();
     $ingreso = Ingreso::sole();

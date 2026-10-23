@@ -7,7 +7,7 @@
 @if ($gestion && in_array($solicitud->estado, ['pendiente', 'aprobado', 'entregado']))
     <aside class="ui-notice" aria-label="Siguiente paso">
         <h2 class="font-semibold">Siguiente paso</h2>
-        <p class="mt-1">{{ match ($solicitud->estado) { 'pendiente' => 'Revisa los datos y las unidades. Más abajo puedes definir las condiciones y aprobar el préstamo.', 'aprobado' => 'Las unidades están reservadas. Registra su entrega cuando el solicitante las retire.', 'entregado' => 'Al recibir todos los insumos, registra la devolución y las unidades dañadas, si corresponde.' } }}</p>
+        <p class="mt-1">{{ match ($solicitud->estado) { 'pendiente' => 'Revisa los datos y las unidades. Más abajo puedes definir las condiciones y aprobar el préstamo.', 'aprobado' => $solicitud->puedeEntregarse() ? 'Las unidades están reservadas. Registra su entrega cuando el solicitante las retire.' : 'Las unidades están reservadas. Adjunta y valida el comprobante antes de registrar la entrega.', 'entregado' => 'Al recibir todos los insumos, registra la devolución y las unidades dañadas, si corresponde.' } }}</p>
     </aside>
 @endif
 <section class="ui-panel p-6 space-y-3">
@@ -22,7 +22,7 @@
         <div><dt>Devolución comprometida</dt><dd>{{ $solicitud->fecha_comprometida->format('d/m/Y') }}</dd></div>
         @if ($solicitud->responsable_nombre)<div><dt>Dirigente responsable</dt><dd>{{ $solicitud->responsable_nombre }}@if ($solicitud->responsable_cargo) · {{ \App\Models\User::ROLES[$solicitud->responsable_cargo] ?? $solicitud->responsable_cargo }}@endif</dd></div>@endif
         @if ($solicitud->monto !== null)
-            <div><dt>Aporte voluntario del préstamo</dt><dd>${{ number_format($solicitud->monto, 0, ',', '.') }}</dd></div>
+            <div><dt>Aporte del préstamo</dt><dd>${{ number_format($solicitud->monto, 0, ',', '.') }}</dd></div>
             <div><dt>Garantía acordada</dt><dd>${{ number_format($solicitud->garantia, 0, ',', '.') }}</dd></div>
         @endif
         @if ($solicitud->fecha_entrega)<div><dt>Entrega</dt><dd>{{ $solicitud->fecha_entrega->format('d/m/Y') }}</dd></div>@endif
@@ -44,19 +44,17 @@
         <input type="hidden" name="operacion" value="{{ $operacion }}">
                 <div class="ui-form-grid">
                     <div class="grid gap-4 sm:grid-cols-2 mt-4">
-                        <div><x-input-label for="monto_{{ $solicitud->id }}" value="Aporte voluntario del préstamo (CLP)" /><x-text-input id="monto_{{ $solicitud->id }}" name="monto" type="number" min="0" max="4294967295" step="1" :value="$valor('monto', 0)" required class="w-full" /></div>
+                        <div><x-input-label for="monto_{{ $solicitud->id }}" value="Aporte del préstamo (CLP)" /><x-text-input id="monto_{{ $solicitud->id }}" name="monto" type="number" min="0" max="4294967295" step="1" :value="$valor('monto', 0)" required class="w-full" /></div>
                         <div><x-input-label for="garantia_{{ $solicitud->id }}" value="Garantía total acordada (CLP)" /><x-text-input id="garantia_{{ $solicitud->id }}" name="garantia" type="number" min="0" max="4294967295" step="1" :value="$valor('garantia', 0)" required class="w-full" /></div>
-                        <div><x-input-label for="fecha_comprometida_{{ $solicitud->id }}" value="Devolución comprometida" /><x-date-input id="fecha_comprometida_{{ $solicitud->id }}" name="fecha_comprometida" :value="$valor('fecha_comprometida', $solicitud->fecha_comprometida->toDateString())" :min="now()->toDateString()" required /></div>
                     </div>
-                    <p class="mt-4">Los montos corresponden al préstamo completo; no se multiplican por unidades ni por días. La aprobación reserva todas las unidades o se rechaza completa si faltan existencias.</p>
                 </div>
-                <p class="text-sm text-gray-500">Responsable asignado automáticamente: {{ $solicitud->responsable_nombre ?? auth()->user()->name }} · {{ \App\Models\User::ROLES[$solicitud->responsable_cargo ?? auth()->user()->role] }}</p>
                 <div class="ui-form-actions"><span></span><x-primary-button>Aprobar y reservar todas las unidades</x-primary-button></div>
             </form>
         
     </section>
 @endif
-@if ($gestion && $solicitud->estado === 'aprobado')
+@include('insumos._pago')
+@if ($gestion && $solicitud->puedeEntregarse())
     <section class="ui-panel p-6">
         <h2 class="font-semibold mb-4">Registrar entrega completa</h2>
         

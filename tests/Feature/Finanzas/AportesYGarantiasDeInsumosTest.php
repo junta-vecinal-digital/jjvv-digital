@@ -23,14 +23,18 @@ beforeEach(function () {
 
 afterEach(function () { $this->travelBack(); });
 
-function solicitudFinInsumos(User $responsable, array $cambios = []): SolicitudInsumo
+function solicitudFinInsumos(User $responsable, array $cambios = [], bool $validado = true): SolicitudInsumo
 {
+    if ($validado) Storage::disk('local')->put('comprobantes/insumos/validado.pdf', 'Respaldo histórico de prueba');
     $solicitud = SolicitudInsumo::create(array_replace([
         'estado' => 'aprobado', 'solicitante_id' => $responsable->id, 'solicitante_nombre' => $responsable->name,
         'telefono_contacto' => '912345678', 'canal' => 'en_linea', 'fecha_comprometida' => '2026-10-20',
         'responsable_id' => $responsable->id, 'responsable_nombre' => $responsable->name,
         'monto' => 7000, 'garantia' => 12000, 'registrado_por' => $responsable->id,
         'aprobado_por' => $responsable->id, 'aprobado_en' => now(),
+        'pago_validado_en' => $validado ? now() : null, 'pago_validado_por' => $validado ? $responsable->id : null,
+        'fecha_pago' => $validado ? '2026-10-17' : null, 'medio_pago' => $validado ? 'transferencia' : null,
+        'numero_transaccion' => $validado ? 'TRX-INSUMOS' : null, 'comprobante_path' => $validado ? 'comprobantes/insumos/validado.pdf' : null,
     ], $cambios));
     $item = ItemInventario::firstOrCreate(['nombre' => 'Sillas financieras'], [
         'cantidad' => 10, 'tipo_insumo_id' => TipoInsumo::where('nombre', 'Sillas')->value('id'),
@@ -118,26 +122,30 @@ test('operaciones de cero no crean ingresos y sin garantía no crean garantías'
     expect(Ingreso::saldoCaja())->toBe($monto);
 })->with([[0, 0], [0, 12000], [7000, 0]]);
 
-test('la recepción valida talonario transferencia archivo y fecha sin dejar movimientos parciales', function (string $caso) {
-    $solicitud = solicitudFinInsumos($this->presidenteFinInsumos);
+test('la carga del pago valida talonario comprobante y fecha sin dejar movimientos parciales', function (string $caso) {
+    $solicitud = solicitudFinInsumos($this->presidenteFinInsumos, [], false);
     $datos = pagoFinInsumos();
     if ($caso === 'efectivo') $datos = ['fecha_pago' => '2026-10-17', 'medio_pago' => 'efectivo'];
-    if ($caso === 'sin respaldo') $datos['numero_transaccion'] = null;
+    $datos['comprobante'] = UploadedFile::fake()->create('pago.pdf', 10, 'application/pdf');
+    if ($caso === 'sin respaldo') unset($datos['comprobante']);
     if ($caso === 'archivo') $datos['comprobante'] = UploadedFile::fake()->create('archivo.txt', 10, 'text/plain');
     if ($caso === 'tamaño') $datos['comprobante'] = UploadedFile::fake()->create('archivo.pdf', 5121, 'application/pdf');
     if ($caso === 'futura') $datos['fecha_pago'] = '2026-10-18';
     if ($caso === 'anterior') $datos['fecha_pago'] = '2026-10-16';
-    $this->post(route('finanzas.insumos.registrar', $solicitud), $datos)->assertSessionHasErrors();
+    $campo = match ($caso) { 'efectivo' => 'talonario', 'sin respaldo', 'archivo', 'tamaño' => 'comprobante', default => 'fecha_pago' };
+    $this->post(route('insumos.pago', $solicitud), $datos)->assertSessionHasErrors($campo);
     expect($solicitud->fresh()->pago_registrado_en)->toBeNull()->and(Storage::disk('local')->allFiles())->toBe([]);
     $this->assertDatabaseCount('ingresos', 0);
     $this->assertDatabaseCount('garantias', 0);
 })->with(['efectivo', 'sin respaldo', 'archivo', 'tamaño', 'futura', 'anterior']);
 
-test('transferencia admite comprobante sin número y efectivo se respalda con talonario', function (string $medio) {
-    $solicitud = solicitudFinInsumos($this->presidenteFinInsumos);
+test('ambos medios exigen comprobante y efectivo también exige talonario', function (string $medio) {
+    $solicitud = solicitudFinInsumos($this->presidenteFinInsumos, [], false);
     $datos = ['fecha_pago' => '2026-10-17', 'medio_pago' => $medio];
-    if ($medio === 'transferencia') $datos['comprobante'] = UploadedFile::fake()->create('pago.pdf', 10, 'application/pdf');
-    else $datos['talonario'] = 'T-INSUMOS';
+    $datos['comprobante'] = UploadedFile::fake()->create('pago.pdf', 10, 'application/pdf');
+    if ($medio === 'efectivo') $datos['talonario'] = 'T-INSUMOS';
+    $this->post(route('insumos.pago', $solicitud), $datos)->assertSessionHasNoErrors();
+    $this->post(route('insumos.validar-pago', $solicitud), ['pago_verificado' => 1])->assertSessionHasNoErrors();
     $this->post(route('finanzas.insumos.registrar', $solicitud), $datos)->assertSessionHasNoErrors();
     expect(Ingreso::sole()->medio_pago)->toBe($medio)->and(Garantia::sole()->medio_pago)->toBe($medio);
 })->with(['efectivo', 'transferencia']);
@@ -236,3 +244,21 @@ test('resolución rechaza fechas anteriores a la devolución y retenciones invá
     [['monto_retenido' => 12001], 'monto_retenido'], [['monto_retenido' => 0], 'monto_retenido'],
     [['monto_retenido' => -1], 'monto_retenido'], [['motivo_retencion' => ''], 'motivo_retencion'],
 ]);
+
+test('validar y sustituir un comprobante ya validado no altera el pago recibido', function () {
+    $solicitud = solicitudFinInsumos($this->presidenteFinInsumos);
+    $antes = $solicitud->fresh()->getAttributes();
+    $archivos = Storage::disk('local')->allFiles();
+    $this->post(route('insumos.validar-pago', $solicitud), ['pago_verificado' => 1])->assertSessionHasErrors('pago');
+    $this->post(route('insumos.pago', $solicitud), pagoFinInsumos([
+        'comprobante' => UploadedFile::fake()->create('sustituto.pdf', 10, 'application/pdf'),
+    ]))->assertSessionHasErrors('pago');
+    expect($solicitud->fresh()->getAttributes())->toBe($antes)->and(Storage::disk('local')->allFiles())->toBe($archivos);
+    $this->assertDatabaseCount('ingresos', 0);
+});
+
+test('tesorero administrador y vecino no obtienen permiso para validar pagos de insumos', function (string $rol) {
+    $solicitud = solicitudFinInsumos($this->presidenteFinInsumos, [], false);
+    $this->actingAs(User::factory()->create(['role' => $rol]))->post(route('insumos.validar-pago', $solicitud), ['pago_verificado' => 1])->assertForbidden();
+    expect($solicitud->fresh()->pago_validado_en)->toBeNull();
+})->with(['tesorero', 'admin', 'vecino']);

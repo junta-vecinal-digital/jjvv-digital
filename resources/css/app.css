@@ -220,3 +220,6 @@ select:not([multiple]):not([size]), select:not([multiple])[size='1'] {
     padding-right: 2.75rem;
     background-position: right 0.75rem center;
 }
+
+#sidebar a.menu-item { font-weight: 700; }
+#sidebar summary.menu-item { font-weight: 400; }

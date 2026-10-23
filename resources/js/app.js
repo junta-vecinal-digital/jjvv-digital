@@ -257,7 +257,7 @@ Alpine.data('fechaEspanol', (valor, minimo, maximo) => ({
         campo.setCustomValidity(mensaje);
         campo.setAttribute('aria-invalid', String(Boolean(mensaje)));
     },
-    elegir(iso) {
+    seleccionarFecha(iso) {
         this.iso = iso;
         this.texto = this.mostrar(iso);
         this.abierto = false;

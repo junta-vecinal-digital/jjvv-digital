@@ -8,7 +8,7 @@
             <p>Estado: {{ \App\Models\SolicitudInsumo::ESTADOS[$solicitud->estado] }}</p>
             <p>Solicitante: {{ $solicitud->solicitante_nombre }} · {{ $solicitud->grupo_nombre ?? 'Particular' }}</p>
             <p>Dirigente responsable: {{ $solicitud->responsable_nombre }}@if ($solicitud->responsable_cargo) · {{ \App\Models\User::ROLES[$solicitud->responsable_cargo] ?? $solicitud->responsable_cargo }}@endif</p>
-            <p>Aporte voluntario por el préstamo completo: <strong>${{ number_format($solicitud->monto, 0, ',', '.') }}</strong></p>
+            <p>Aporte por el préstamo completo: <strong>${{ number_format($solicitud->monto, 0, ',', '.') }}</strong></p>
             <p>Garantía separada: <strong>${{ number_format($solicitud->garantia, 0, ',', '.') }}</strong></p>
             <p>Total a recibir: ${{ number_format($solicitud->monto + $solicitud->garantia, 0, ',', '.') }}</p>
             @foreach ($solicitud->lineas as $linea)<p>{{ $linea->nombre_insumo }} · {{ $linea->cantidad }} unidades</p>@endforeach

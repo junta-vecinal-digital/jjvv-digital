@@ -8,7 +8,6 @@ use App\Models\SolicitudInsumo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class PrestamoFinancieroController extends Controller
@@ -26,15 +25,7 @@ class PrestamoFinancieroController extends Controller
 
     public function registrar(Request $request, SolicitudInsumo $solicitud)
     {
-        $datos = $request->validate([
-            'fecha_pago' => ['required', 'date_format:Y-m-d', 'after_or_equal:'.$solicitud->created_at->toDateString(), 'before_or_equal:today'],
-            'medio_pago' => ['required', Rule::in(array_keys(Ingreso::MEDIOS))],
-            'talonario' => ['nullable', 'required_if:medio_pago,efectivo', 'string', 'max:30'],
-            'numero_transaccion' => ['nullable', Rule::requiredIf($request->input('medio_pago') === 'transferencia' && ! $request->hasFile('comprobante')), 'string', 'max:50'],
-            'comprobante' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
-        ]);
-
-        return DB::transaction(function () use ($request, $solicitud, $datos) {
+        return DB::transaction(function () use ($request, $solicitud) {
             $this->bloquear($solicitud);
             if ($solicitud->pago_registrado_en || $solicitud->ingresos()->exists() || $solicitud->garantiaRecibida()->exists()) {
                 throw ValidationException::withMessages(['finanzas' => 'La recepción ya fue registrada. Si anulaste el ingreso, usa Volver a registrar cobro.']);
@@ -42,25 +33,22 @@ class PrestamoFinancieroController extends Controller
             if ($solicitud->monto == 0 && $solicitud->garantia == 0) {
                 throw ValidationException::withMessages(['finanzas' => 'Un préstamo gratuito sin garantía no genera movimientos financieros.']);
             }
-            $solicitud->update([
-                'pago_registrado_en' => now(), 'pago_registrado_por' => $request->user()->id,
-                'fecha_pago' => $datos['fecha_pago'], 'medio_pago' => $datos['medio_pago'],
-                'talonario' => $datos['medio_pago'] === 'efectivo' ? $datos['talonario'] : null,
-                'numero_transaccion' => $datos['medio_pago'] === 'transferencia' ? ($datos['numero_transaccion'] ?? null) : null,
-                'comprobante_path' => isset($datos['comprobante']) ? $datos['comprobante']->store('comprobantes/insumos', 'local') : null,
-            ]);
+            if (! $solicitud->pago_validado_en) {
+                throw ValidationException::withMessages(['finanzas' => 'Presidente o secretario debe validar primero el pago.']);
+            }
+            $solicitud->update(['pago_registrado_en' => now(), 'pago_registrado_por' => $request->user()->id]);
             if ($solicitud->monto > 0) $this->crearIngreso($solicitud, $request->user()->id);
             if ($solicitud->garantia > 0) {
                 Garantia::create([
                     'solicitud_insumo_id' => $solicitud->id, 'monto' => $solicitud->garantia,
                     'estado' => $solicitud->estado === 'devuelto' ? 'por_devolver' : 'recibida',
-                    'recibida_en' => now(), 'validado_por' => $request->user()->id,
+                    'recibida_en' => $solicitud->pago_validado_en, 'validado_por' => $solicitud->pago_validado_por,
                     'registrada_en' => now(), 'registrada_por' => $request->user()->id,
-                    'fecha_pago' => $datos['fecha_pago'], 'medio_pago' => $datos['medio_pago'],
+                    'fecha_pago' => $solicitud->fecha_pago, 'medio_pago' => $solicitud->medio_pago,
                     'talonario' => $solicitud->talonario,
                 ]);
             }
-            return back()->with('status', 'Recepción registrada: el aporte voluntario es ingreso y la garantía se conserva separada.');
+            return back()->with('status', 'Recepción registrada: el aporte es ingreso y la garantía se conserva separada.');
         });
     }
 
@@ -69,7 +57,7 @@ class PrestamoFinancieroController extends Controller
         return DB::transaction(function () use ($request, $solicitud) {
             $this->bloquear($solicitud);
             if (! $solicitud->pago_registrado_en || $solicitud->monto <= 0 || $solicitud->ingresos()->vigentes()->exists()) {
-                throw ValidationException::withMessages(['finanzas' => 'Solo puedes volver a registrar un aporte voluntario positivo recibido cuyo ingreso esté anulado.']);
+                throw ValidationException::withMessages(['finanzas' => 'Solo puedes volver a registrar un aporte positivo recibido cuyo ingreso esté anulado.']);
             }
             $this->crearIngreso($solicitud, $request->user()->id);
             return back()->with('status', 'Aporte registrado nuevamente. La recepción original y la garantía se conservan.');
@@ -101,7 +89,8 @@ class PrestamoFinancieroController extends Controller
             'monto' => $solicitud->monto, 'fecha_pago' => $solicitud->fecha_pago,
             'medio_pago' => $solicitud->medio_pago, 'talonario' => $solicitud->talonario,
             'numero_transaccion' => $solicitud->numero_transaccion,
-            'observaciones' => 'Aporte voluntario por préstamo de insumos #'.$solicitud->id.'. Garantía separada de los ingresos.',
+            'comprobante_path' => $solicitud->comprobante_path,
+            'observaciones' => 'Aporte por préstamo de insumos #'.$solicitud->id.'. Garantía separada de los ingresos.',
             'registrado_por' => $autor,
         ]);
     }

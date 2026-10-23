@@ -115,6 +115,8 @@ Route::middleware(['auth', 'role:presidente,secretario'])->group(function () {
 
 // ---------- Finanzas: presidente y tesorero ----------
 Route::middleware(['auth', 'role:presidente,tesorero'])->group(function () {
+    Route::post('/ingresos/certificados/{certificado}', [IngresoController::class, 'registrarCertificado'])->whereNumber('certificado')->name('ingresos.certificados.registrar');
+    Route::get('/ingresos/certificados/{certificado}/comprobante', [IngresoController::class, 'comprobanteCertificado'])->whereNumber('certificado')->name('ingresos.certificados.comprobante');
     Route::get('/finanzas/pendientes', [\App\Http\Controllers\IngresoPendienteController::class, 'index'])->name('finanzas.pendientes.index');
     Route::get('/finanzas/insumos', [PrestamoFinancieroController::class, 'index'])->name('finanzas.insumos.index');
     Route::get('/finanzas/insumos/{solicitud}', [PrestamoFinancieroController::class, 'show'])->whereNumber('solicitud')->name('finanzas.insumos.show');
@@ -155,15 +157,20 @@ Route::middleware('auth')->prefix('arriendos')->name('arriendos.')->group(functi
 });
 
 Route::middleware('auth')->prefix('solicitudes-insumos')->name('insumos.')->group(function () {
+    Route::post('/{solicitud}/pago', [SolicitudInsumoController::class, 'adjuntarPago'])->whereNumber('solicitud')->name('pago');
+    Route::get('/{solicitud}/comprobante', [SolicitudInsumoController::class, 'comprobante'])->whereNumber('solicitud')->name('comprobante');
     Route::get('/', [SolicitudInsumoController::class, 'index'])->name('index');
     Route::post('/', [SolicitudInsumoController::class, 'store'])->name('store');
     Route::get('/{solicitud}', [SolicitudInsumoController::class, 'show'])->whereNumber('solicitud')->name('show');
     Route::middleware('role:presidente,secretario')->group(function () {
+        Route::post('/{solicitud}/validar-pago', [SolicitudInsumoController::class, 'validarPago'])->whereNumber('solicitud')->name('validar-pago');
         Route::post('/{solicitud}/aprobar', [SolicitudInsumoController::class, 'aprobar'])->whereNumber('solicitud')->name('aprobar');
         Route::post('/{solicitud}/entregar', [SolicitudInsumoController::class, 'entregar'])->whereNumber('solicitud')->name('entregar');
         Route::post('/{solicitud}/devolver', [SolicitudInsumoController::class, 'devolver'])->whereNumber('solicitud')->name('devolver');
     });
 });
+
+Route::middleware('auth')->post('/calendario/reservas/{reserva}/cancelar', [ReservaController::class, 'cancelar'])->whereNumber('reserva')->name('reservas.cancelar');
 
 // ---------- Presidente y secretario ----------
 Route::middleware(['auth', 'role:presidente,secretario'])->group(function () {
@@ -246,14 +253,11 @@ Route::middleware(['auth', 'role:presidente,secretario'])->group(function () {
         Route::post('/{certificado}/rechazar', [CertificadoAdminController::class, 'rechazar'])->whereNumber('certificado')->name('rechazar');
         Route::post('/{certificado}/anular', [CertificadoAdminController::class, 'anular'])->whereNumber('certificado')->name('anular');
         Route::get('/{certificado}/pdf', [CertificadoAdminController::class, 'pdf'])->whereNumber('certificado')->name('pdf');
-        Route::post('/{certificado}/retirar', [CertificadoAdminController::class, 'retirar'])
-            ->whereNumber('certificado')->name('retirar');
-    });
+        });
 
     // Calendario: ingreso de reservas
     Route::get('/calendario/imprimir', [ReservaController::class, 'imprimir'])->name('calendario.imprimir');
     Route::post('/calendario/reservas', [ReservaController::class, 'store'])->name('reservas.store');
-    Route::post('/calendario/reservas/{reserva}/cancelar', [ReservaController::class, 'cancelar'])->whereNumber('reserva')->name('reservas.cancelar');
     Route::post('/arriendos/{reserva}/confirmar', [ArriendoController::class, 'confirmar'])->whereNumber('reserva')->name('arriendos.confirmar');
     Route::post('/arriendos/{reserva}/aporte', [ArriendoController::class, 'definirAporte'])->whereNumber('reserva')->name('arriendos.aporte');
 });

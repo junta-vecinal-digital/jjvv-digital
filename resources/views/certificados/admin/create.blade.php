@@ -93,11 +93,11 @@
                             {{-- Solo residencia: pago y verificaciones --}}
                             <fieldset :disabled="tipo !== 'residencia'" x-show="tipo === 'residencia'" class="space-y-6 border-t border-gray-200 dark:border-gray-700 pt-6">
                                 <p class="text-sm text-gray-600 dark:text-gray-400">
-                                    El aporte es voluntario y se destina a mejorar la comunidad. Con $0 no se requiere comprobante ni verificación del aporte.
+                                    Con $0 no se requiere número de transacción ni verificación del aporte.
                                 </p>
 
                                 <div>
-                                    <x-input-label for="aporte" value="Aporte voluntario recibido (CLP)" />
+                                    <x-input-label for="aporte" value="Aporte recibido (CLP)" />
                                     <x-text-input id="aporte" name="aporte" type="number" x-model="aporte" min="0" max="100000000" step="1" x-bind:required="tipo === 'residencia'" />
                                     <x-input-error :messages="$errors->get('aporte')" />
                                 </div>
@@ -119,15 +119,14 @@
 
                                 <div x-show="Number(aporte) > 0 && medio === 'transferencia'">
                                     <x-input-label for="numero_transaccion" value="Número de transacción" />
-                                    <input id="numero_transaccion" name="numero_transaccion" type="text" :disabled="Number(aporte) <= 0 || medio !== 'transferencia'" :required="tipo === 'residencia' && Number(aporte) > 0 && medio === 'transferencia'" maxlength="50" class="{{ $cls }}" value="{{ old('numero_transaccion') }}">
+                                    <input id="numero_transaccion" name="numero_transaccion" type="text" x-bind:required="Number(aporte) > 0" :disabled="Number(aporte) <= 0 || medio !== 'transferencia'"  maxlength="50" class="{{ $cls }}" value="{{ old('numero_transaccion') }}">
                                     <x-input-error class="mt-2" :messages="$errors->get('numero_transaccion')" />
                                 </div>
-
                                 <div x-show="Number(aporte) > 0">
                                     <label class="inline-flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
                                         <input type="checkbox" name="pago_verificado" value="1" :disabled="Number(aporte) <= 0" :required="tipo === 'residencia' && Number(aporte) > 0" @checked(old('pago_verificado'))
                                                class="mt-0.5 rounded border-gray-300 dark:border-gray-700 dark:bg-gray-900 text-brand-600 shadow-sm focus:ring-brand-500">
-                                        <span>Confirmo que recibí el aporte voluntario indicado.</span>
+                                        <span>Confirmo que recibí el aporte indicado.</span>
                                     </label>
                                     <x-input-error class="mt-2" :messages="$errors->get('pago_verificado')" />
                                 </div>

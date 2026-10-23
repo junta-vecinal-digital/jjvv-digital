@@ -6,7 +6,6 @@
     <div class="py-6">
         <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="ui-panel p-6 ">
-                <p class="mb-4">Los ingresos corresponden a aportes voluntarios destinados a mejorar la comunidad.</p>
                 <x-form-wizard :steps="['Movimiento', 'Respaldo del aporte']" :fields="[['concepto','tipo_cuota','fecha_pago','monto'],['medio_pago','talonario','numero_transaccion','comprobante','observaciones']]">
                     <form novalidate method="POST" action="{{ route('ingresos.store') }}" enctype="multipart/form-data" class="space-y-4"
                           x-data="{ concepto: @js(old('concepto', '')), medio: @js(old('medio_pago', 'efectivo')), archivo: false }" @change="if ($event.target.name === 'comprobante') archivo = $event.target.files.length > 0">
@@ -42,7 +41,7 @@
                             </div>
 
                             <div>
-                                <x-input-label for="monto" value="Aporte voluntario (CLP)" />
+                                <x-input-label for="monto" value="Aporte (CLP)" />
                                 <x-text-input id="monto" name="monto" type="number" min="1" max="100000000" step="1" required class="mt-1 block w-full" :value="old('monto')" />
                                 <x-input-error :messages="$errors->get('monto')" class="mt-2" />
                             </div>
@@ -66,15 +65,15 @@
                             </div>
 
                             <div x-show="medio === 'transferencia'" x-cloak>
-                                <x-input-label for="numero_transaccion" value="Número de transacción (si es transferencia)" />
-                                <x-text-input id="numero_transaccion" name="numero_transaccion" type="text" x-bind:disabled="medio !== 'transferencia'" x-bind:required="medio === 'transferencia' && !archivo" class="mt-1 block w-full" :value="old('numero_transaccion')" />
+                                <x-input-label for="numero_transaccion" value="Número de transacción (opcional)" />
+                                <x-text-input id="numero_transaccion" name="numero_transaccion" type="text" x-bind:disabled="medio !== 'transferencia'"  class="mt-1 block w-full" :value="old('numero_transaccion')" />
                                 <x-input-error :messages="$errors->get('numero_transaccion')" class="mt-2" />
                             </div>
 
                             <div>
-                                <x-input-label for="comprobante" value="Adjuntar comprobante (opcional)" />
-                                <x-file-input id="comprobante" name="comprobante" accept=".pdf,.jpg,.jpeg,.png" />
-                                <p class="text-sm">PDF, JPG o PNG, máximo 5 MB. En transferencias, indica el número de transacción o adjunta el archivo.</p>
+                                <x-input-label for="comprobante" value="Adjuntar comprobante (obligatorio)" />
+                                <x-file-input id="comprobante" name="comprobante" required accept=".pdf,.jpg,.jpeg,.png" />
+                                <p class="text-sm">PDF, JPG o PNG, máximo 5 MB.</p>
                                 <x-input-error :messages="$errors->get('comprobante')" />
                             </div>
                             <div>

@@ -50,21 +50,17 @@ test('administrador elimina otra cuenta conserva ficha y no se elimina a si mism
     expect($dirigente->fresh())->toBeNull()->and($ficha->fresh()->user_id)->toBeNull();
 });
 
-test('ventanilla permite solicitar y aprobar insumos para vecino sin ficha ni agrupacion', function (string $rol) {
+test('ventanilla registra y aprueba insumos para vecino sin ficha ni agrupacion', function (string $rol) {
     $responsable = User::factory()->create(['role' => $rol]);
     $item = ItemInventario::create(['nombre' => 'Sillas', 'cantidad' => 5, 'tipo_insumo_id' => TipoInsumo::where('nombre', 'Sillas')->value('id')]);
     $this->actingAs($responsable)->post(route('insumos.store'), [
         'solicitante' => 'manual', 'solicitante_nombre' => 'Vecino de ventanilla', 'solicitante_rut' => '12345678-5',
-        'direccion_contacto' => 'Calle 123', 'telefono_contacto' => '912345678',
+        'direccion_contacto' => 'Calle 123', 'telefono_contacto' => '912345678', 'monto' => 0, 'garantia' => 0,
         'fecha_comprometida' => today()->addWeek()->toDateString(),
         'lineas' => [['item_inventario_id' => $item->id, 'cantidad' => 2]],
     ])->assertSessionHasNoErrors();
     $solicitud = SolicitudInsumo::sole();
     expect($solicitud->socio_id)->toBeNull()->and($solicitud->grupo_id)->toBeNull()->and($solicitud->canal)->toBe('ventanilla');
-    $this->post(route('insumos.aprobar', $solicitud), [
-        'responsable_id' => $responsable->id, 'monto' => 0, 'garantia' => 0,
-        'fecha_comprometida' => today()->addWeek()->toDateString(),
-    ])->assertSessionHasNoErrors();
     expect($solicitud->fresh()->estado)->toBe('aprobado');
     $this->get(route('insumos.show', $solicitud))->assertOk()->assertSee('action="'.route('insumos.entregar', $solicitud).'"', false);
     $this->get(route('insumos.show', [$solicitud, 'consulta' => 'historial']))->assertOk()

@@ -7,10 +7,10 @@ use App\Models\Parametro;
 use App\Models\Reserva;
 use App\Models\Socio;
 use App\Models\User;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
+    $this->withoutVite();
     Storage::fake('local');
     $this->travelTo(now()->startOfDay()->addHours(8));
     $this->presidente3b = User::factory()->create(['role' => 'presidente']);
@@ -45,7 +45,7 @@ function datosArriendoBloque3b(array $cambios = []): array
         'hora_fin' => '12:00',
         'valor_arriendo' => 40000,
         'valor_garantia' => 40000,
-        'comprobante' => UploadedFile::fake()->create('total.pdf', 100, 'application/pdf'),
+        'numero_transaccion' => 'TRX-SEDE-40000',
     ], $cambios);
 }
 
@@ -139,19 +139,30 @@ test('no se admite un grupo sin representante o con otro responsable', function 
     $this->assertDatabaseCount('reservas', 0);
 })->with([true, false]);
 
-test('el comprobante posterior es obligatorio privado y limitado a PDF o imágenes hasta 5 MB', function (string $caso) {
-    $archivo = match ($caso) {
+test('la transacción posterior es obligatoria de texto y de hasta 50 caracteres', function (string $caso) {
+    $transaccion = match ($caso) {
         'ausente' => null,
-        'tipo inválido' => UploadedFile::fake()->create('archivo.txt', 1, 'text/plain'),
-        'demasiado grande' => UploadedFile::fake()->create('total.pdf', 5121, 'application/pdf'),
+        'tipo inválido' => ['TRX-1'],
+        'demasiado larga' => str_repeat('A', 51),
     };
     $reserva = reservaBloque3b($this->socio3b, ['aporte_variable' => true, 'canal' => 'en_linea', 'valor_garantia' => null, 'comprobante_arriendo_path' => null]);
     Storage::disk('local')->delete('comprobantes/arriendos/total.pdf');
-    $this->actingAs($this->socio3b->user)->post(route('arriendos.comprobante.store', $reserva), ['comprobante' => $archivo])
-        ->assertRedirect()->assertSessionHasErrors('comprobante');
-    expect($reserva->fresh()->comprobante_arriendo_path)->toBeNull();
+    $this->actingAs($this->socio3b->user)->post(route('arriendos.comprobante.store', $reserva), ['numero_transaccion' => $transaccion])
+        ->assertRedirect()->assertSessionHasErrors('numero_transaccion');
+    expect($reserva->fresh()->numero_transaccion)->toBeNull()->and($reserva->comprobante_arriendo_path)->toBeNull();
     expect(Storage::disk('local')->allFiles())->toBe([]);
-})->with(['ausente', 'tipo inválido', 'demasiado grande']);
+})->with(['ausente', 'tipo inválido', 'demasiado larga']);
+
+test('el titular registra una transacción sin archivo y no puede reemplazarla', function () {
+    $reserva = reservaBloque3b($this->socio3b, ['aporte_variable' => true, 'canal' => 'en_linea', 'comprobante_arriendo_path' => null]);
+    Storage::disk('local')->delete('comprobantes/arriendos/total.pdf');
+    $this->actingAs($this->socio3b->user)->post(route('arriendos.comprobante.store', $reserva), [
+        'numero_transaccion' => str_repeat('A', 50),
+    ])->assertSessionHasNoErrors();
+    $this->post(route('arriendos.comprobante.store', $reserva), ['numero_transaccion' => 'OTRA'])->assertSessionHasErrors('arriendo');
+    expect($reserva->fresh()->numero_transaccion)->toBe(str_repeat('A', 50))->and($reserva->comprobante_arriendo_path)->toBeNull();
+    expect(Storage::disk('local')->allFiles())->toBe([]);
+});
 
 test('una solicitud pendiente bloquea la superposición pero permite el bloque contiguo', function () {
     reservaBloque3b($this->socio3b);
@@ -392,13 +403,26 @@ test('finanzas está restringido a presidente y tesorero', function (string $rol
     $this->assertDatabaseCount('ingresos', 0);
 })->with(['secretario', 'admin', 'vecino']);
 
-test('tesorero administrador y socio no pueden confirmar ni cancelar reservas', function (string $rol) {
+test('tesorero administrador y vecino ajeno no pueden confirmar ni cancelar reservas', function (string $rol) {
     $reserva = reservaBloque3b($this->socio3b);
-    $this->actingAs($rol === 'vecino' ? $this->socio3b->user : User::factory()->create(['role' => $rol]));
+    $this->actingAs($rol === 'vecino' ? socioBloque3b()->user : User::factory()->create(['role' => $rol]));
     $this->post(route('arriendos.confirmar', $reserva), ['pago_verificado' => 1, 'garantia_verificada' => 1])->assertForbidden();
     $this->post(route('reservas.cancelar', $reserva))->assertForbidden();
     expect($reserva->fresh()->estado)->toBe('pendiente');
 })->with(['tesorero', 'admin', 'vecino']);
+
+test('el socio titular puede cancelar su reserva pero no confirmarla', function () {
+    $reserva = reservaBloque3b($this->socio3b);
+    $this->actingAs($this->socio3b->user);
+    $this->post(route('arriendos.confirmar', $reserva), ['pago_verificado' => 1, 'garantia_verificada' => 1])->assertForbidden();
+    expect($reserva->fresh()->estado)->toBe('pendiente');
+    $this->post(route('reservas.cancelar', $reserva))->assertRedirect()->assertSessionHasNoErrors();
+    $reserva->refresh();
+    expect($reserva->estado)->toBe('cancelada')
+        ->and($reserva->cancelada_por)->toBe($this->socio3b->user_id)
+        ->and(Reserva::ocupan()->whereKey($reserva->id)->exists())->toBeFalse();
+    $this->assertDatabaseCount('ingresos', 0);
+});
 
 test('la garantía no se elimina', function () {
     $reserva = reservaBloque3b($this->socio3b);

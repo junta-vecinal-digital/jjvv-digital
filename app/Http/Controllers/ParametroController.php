@@ -34,6 +34,10 @@ class ParametroController extends Controller
             'arriendo_plazo_confirmacion_horas' => ['required', 'integer', 'min:1', 'max:336'],
         ];
 
+        foreach (['banco', 'titular', 'cuenta', 'rut', 'email'] as $campo) {
+            $reglas['transferencia_'.$campo] = ['sometimes', 'required', 'string', 'max:255'];
+        }
+
         $datos = $request->validate(
             collect($reglas)->mapWithKeys(fn ($regla, $clave) => ["valores.$clave" => $regla])->all()
         );

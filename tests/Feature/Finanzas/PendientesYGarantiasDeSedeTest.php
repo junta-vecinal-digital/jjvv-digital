@@ -24,7 +24,7 @@ beforeEach(function () {
     ]);
 });
 
-test('reserva con garantía exige comprobante y verificación y finanzas no duplica importes', function (int $aporte) {
+test('reserva con garantía exige transacción y verificación y finanzas no duplica importes', function (int $aporte) {
     $this->actingAs($this->vecinoPendientes)->post(route('arriendos.store'), [
         'actividad_reserva' => 'particular',
         'fecha' => today()->addDays(5)->toDateString(), 'hora_inicio' => '10:00', 'hora_fin' => '11:00',
@@ -33,7 +33,7 @@ test('reserva con garantía exige comprobante y verificación y finanzas no dupl
     $this->actingAs($this->presidentePendientes)->post(route('arriendos.aporte', $reserva), ['valor_arriendo' => $aporte, 'garantia_reserva' => 12000])->assertSessionHasNoErrors();
     $this->post(route('arriendos.confirmar', $reserva), ['pago_verificado' => 1, 'garantia_verificada' => 1])->assertSessionHasErrors('arriendo');
     $this->actingAs($this->vecinoPendientes)->post(route('arriendos.comprobante.store', $reserva), [
-        'comprobante' => UploadedFile::fake()->create('total.pdf', 10, 'application/pdf'),
+        'numero_transaccion' => 'TRX-TOTAL-SEDE',
     ])->assertSessionHasNoErrors();
     $this->actingAs($this->presidentePendientes)->post(route('arriendos.confirmar', $reserva), ['pago_verificado' => 1])->assertSessionHasErrors('garantia_verificada');
     $this->post(route('arriendos.confirmar', $reserva), ['pago_verificado' => 1, 'garantia_verificada' => 1])->assertSessionHasNoErrors();
@@ -67,16 +67,26 @@ test('responsable automático conserva registrador de ventanilla y usa aprobador
         'lineas' => [['item_inventario_id' => $item->id, 'cantidad' => 2]],
         'responsable_id' => $this->tesoreroPendientes->id,
     ];
+    if ($ventanilla) $datos += ['monto' => 5000, 'garantia' => 10000];
     $this->actingAs($ventanilla ? $this->presidentePendientes : $this->vecinoPendientes)->post(route('insumos.store'), $datos)->assertSessionHasNoErrors();
     $solicitud = SolicitudInsumo::sole();
-    $this->actingAs($this->secretarioPendientes)->post(route('insumos.aprobar', $solicitud), [
+    if (! $ventanilla) $this->actingAs($this->secretarioPendientes)->post(route('insumos.aprobar', $solicitud), [
         'responsable_id' => $this->tesoreroPendientes->id, 'monto' => 5000, 'garantia' => 10000,
         'fecha_comprometida' => today()->addWeek()->toDateString(),
     ])->assertSessionHasNoErrors();
     $solicitud->refresh();
     expect($solicitud->responsable_id)->toBe($ventanilla ? $this->presidentePendientes->id : $this->secretarioPendientes->id)
         ->and($solicitud->responsable_cargo)->toBe($ventanilla ? 'presidente' : 'secretario');
-    $this->get(route('insumos.show', $solicitud))->assertOk()->assertDontSee('name="responsable_id"', false);
+    $this->actingAs($this->secretarioPendientes)->get(route('insumos.show', $solicitud))->assertOk()->assertDontSee('name="responsable_id"', false);
+    $this->actingAs($this->tesoreroPendientes)->get(route('ingresos.index'))->assertOk()->assertViewHas('prestamos', fn ($lista) => $lista->isEmpty());
+    $this->actingAs($ventanilla ? $this->secretarioPendientes : $this->vecinoPendientes)->post(route('insumos.pago', $solicitud), [
+        'fecha_pago' => today()->toDateString(), 'medio_pago' => 'transferencia',
+        'comprobante' => UploadedFile::fake()->create('pago.pdf', 10, 'application/pdf'),
+    ])->assertSessionHasNoErrors();
+    $this->actingAs($this->secretarioPendientes)->post(route('insumos.validar-pago', $solicitud), ['pago_verificado' => 1])->assertSessionHasNoErrors();
+    $this->assertDatabaseCount('ingresos', 0);
+    $this->get(route('ingresos.index'))->assertForbidden();
+    $this->post(route('finanzas.insumos.registrar', $solicitud))->assertForbidden();
     $this->actingAs($this->tesoreroPendientes)->get(route('ingresos.index'))->assertOk()->assertViewHas('prestamos', fn ($lista) => $lista->contains('id', $solicitud->id));
     $pago = ['fecha_pago' => today()->toDateString(), 'medio_pago' => 'transferencia', 'numero_transaccion' => 'TRX-123'];
     $this->post(route('finanzas.insumos.registrar', $solicitud), $pago)->assertSessionHasNoErrors();

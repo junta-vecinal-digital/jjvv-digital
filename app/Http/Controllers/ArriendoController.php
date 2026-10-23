@@ -101,8 +101,8 @@ class ArriendoController extends Controller
             'hora_fin' => ['required', 'date_format:H:i', 'after:hora_inicio'],
             'valor_arriendo' => $esDirigente ? ['required', 'integer', 'min:0', 'max:4294967295'] : ['exclude'],
             'garantia_reserva' => $esDirigente ? ['nullable', 'integer', 'min:0', 'max:4294967295'] : ['exclude'],
-            'comprobante' => $esDirigente && ($request->integer('valor_arriendo') > 0 || $request->integer('garantia_reserva') > 0)
-                ? ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'] : ['exclude'],
+            'numero_transaccion' => $esDirigente && ($request->integer('valor_arriendo') > 0 || $request->integer('garantia_reserva') > 0)
+                ? ['nullable', 'string', 'max:50'] : ['exclude'],
         ]);
 
         $actividad = isset($datos['actividad_reserva']) ? TipoActividad::where('clave', $datos['actividad_reserva'])->firstOrFail() : null;
@@ -161,8 +161,7 @@ class ArriendoController extends Controller
                 'aporte_definido_en' => $esDirigente ? now() : null,
                 'valor_garantia' => $esDirigente ? ($datos['garantia_reserva'] ?? null) : null,
                 'vence_en' => now()->addHours(Parametro::entero('arriendo_plazo_confirmacion_horas')),
-                'comprobante_arriendo_path' => isset($datos['comprobante'])
-                    ? $datos['comprobante']->store('comprobantes/arriendos', 'local') : null,
+                'numero_transaccion' => $datos['numero_transaccion'] ?? null,
             ]);
 
             return redirect()->route($esDirigente ? 'reservas.index' : 'arriendos.index')->withInput(['operacion' => 'reserva_'.$reserva->id])->with('status', 'arriendo-solicitado');
@@ -215,7 +214,7 @@ class ArriendoController extends Controller
         abort_unless($reserva->canal === 'ventanilla' ? $request->user()->hasRole('presidente', 'secretario')
             : ($request->user()->esSocioActivo() && $reserva->socio_id === $request->user()->socio->id), 403);
         $datos = $request->validate([
-            'comprobante' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'numero_transaccion' => ['required', 'string', 'max:50'],
         ]);
 
         return DB::transaction(function () use ($request, $reserva, $datos) {
@@ -224,10 +223,10 @@ class ArriendoController extends Controller
             $reserva->refresh();
             $this->autorizarConsulta($request, $reserva);
             if (! $reserva->aporte_variable || $reserva->estado !== 'pendiente'
-                || $reserva->valor_arriendo === null || ($reserva->valor_arriendo <= 0 && $reserva->valor_garantia <= 0) || $reserva->comprobante_arriendo_path) {
-                return back()->withInput()->withErrors(['arriendo' => 'Solo puedes adjuntar el comprobante a una solicitud pendiente con montos definidos, total mayor que $0 y sin comprobante previo.']);
+                || $reserva->valor_arriendo === null || ($reserva->valor_arriendo <= 0 && $reserva->valor_garantia <= 0) || $reserva->comprobante_arriendo_path || $reserva->numero_transaccion) {
+                return back()->withInput()->withErrors(['arriendo' => 'Solo puedes registrar la transacción en una solicitud pendiente con montos definidos, total mayor que $0 y sin respaldo previo.']);
             }
-            $reserva->update(['comprobante_arriendo_path' => $datos['comprobante']->store('comprobantes/arriendos', 'local')]);
+            $reserva->update(['numero_transaccion' => $datos['numero_transaccion']]);
 
             return back()->withInput($request->only('operacion'))->with('status', 'comprobante-adjuntado');
         });
@@ -249,9 +248,9 @@ class ArriendoController extends Controller
                 if ($reserva->valor_arriendo === null) {
                     return back()->withInput()->withErrors(['arriendo' => 'Define el aporte antes de confirmar la reserva.']);
                 }
-                if (($reserva->valor_arriendo > 0 || $reserva->valor_garantia > 0) && (! $reserva->comprobante_arriendo_path
+                if (($reserva->valor_arriendo > 0 || $reserva->valor_garantia > 0) && ! $reserva->numero_transaccion && (! $reserva->comprobante_arriendo_path
                     || ! Storage::disk('local')->exists($reserva->comprobante_arriendo_path))) {
-                    return back()->withInput()->withErrors(['arriendo' => 'Adjunta el comprobante del total antes de confirmar.']);
+                    return back()->withInput()->withErrors(['arriendo' => 'Ingresa el número de transacción del total antes de confirmar.']);
                 }
             }
             $request->validate([

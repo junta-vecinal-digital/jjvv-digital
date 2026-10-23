@@ -12,8 +12,8 @@
 <button type="button" @click="sidebarOpen = false; $refs.menuButton.focus()" class="p-2 xl:hidden" aria-label="Cerrar menú">✕</button>
 </div>
 <nav class="flex-1 space-y-1 overflow-y-auto px-3 pb-6">
-<details class="mb-4 border-b border-gray-200 pb-4" @if(request()->routeIs('profile.*', 'socios.create', 'certificados.*')) open @endif>
-<summary class="menu-item cursor-pointer">Mi cuenta <span class="ml-auto" aria-hidden="true">⌄</span>
+<details class="group mb-4 border-b border-gray-200 pb-4" @if(request()->routeIs('profile.*', 'socios.create', 'certificados.*')) open @endif>
+<summary class="menu-item cursor-pointer"><span class="text-black transition-transform group-open:rotate-90" aria-hidden="true">▶</span>Mi cuenta
 </summary>
 <p class="px-4 py-2 text-xs text-gray-500">{{ Auth::user()->name }} · {{ Auth::user()->nombreRol() }}</p>
 <x-sidebar-link :href="route('profile.edit')" :active="request()->routeIs('profile.*')">Mi perfil</x-sidebar-link>
@@ -56,7 +56,7 @@
         @endif
         @if(Auth::user()->hasRole('presidente', 'tesorero'))
             <p class="ui-menu-label">Gestión financiera</p>
-<x-sidebar-group label="Finanzas" :active="$enFinanzas">
+<x-sidebar-group label="Finanzas" :active="$enFinanzas" :pending="$pendientesMenu['finanzas']">
 <x-sidebar-link :href="route('ingresos.index')" :active="request()->routeIs('ingresos.*', 'egresos.*', 'finanzas.pendientes.*')">Ingresos y egresos</x-sidebar-link>
 <x-sidebar-link :href="route('finanzas.arriendos.index')" :active="$enFinanzas && !request()->routeIs('ingresos.*', 'egresos.*', 'finanzas.pendientes.*')">Registro garantías</x-sidebar-link>
 </x-sidebar-group>

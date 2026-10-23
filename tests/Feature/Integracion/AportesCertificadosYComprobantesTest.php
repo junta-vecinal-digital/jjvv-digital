@@ -30,6 +30,7 @@ function datosCertificadoAporte(array $cambios = []): array
 }
 
 test('residencia sin aporte se solicita y emite sin respaldo ni ingreso', function () {
+    Parametro::where('clave', 'certificado_residencia_valor')->update(['valor' => '0']);
     $this->actingAs($this->vecinoAporte)->post(route('certificados.store'), datosCertificadoAporte())->assertSessionHasNoErrors();
     $certificado = Certificado::sole();
     expect((int) $certificado->aporte)->toBe(0)->and($certificado->comprobante_path)->toBeNull()->and($certificado->medio_pago)->toBeNull();
@@ -47,14 +48,18 @@ test('ventanilla permite residencia con aporte cero conservando verificación de
     $this->assertDatabaseCount('ingresos', 0);
 });
 
-test('el aporte elegido no cambia al modificar la sugerencia y exige respaldo y verificación si es positivo', function () {
-    $datos = datosCertificadoAporte(['aporte' => 2500, 'numero_transaccion' => 'TRX-2500']);
-    $this->actingAs($this->vecinoAporte)->post(route('certificados.store'), $datos)->assertSessionHasErrors('comprobante');
-    $this->post(route('certificados.store'), $datos + ['comprobante' => UploadedFile::fake()->create('aporte.pdf', 10, 'application/pdf')])->assertSessionHasNoErrors();
+test('el aporte configurado se fija al solicitar y exige transacción y verificación antes del registro financiero', function () {
+    Parametro::where('clave', 'certificado_residencia_valor')->update(['valor' => '2500']);
+    $datos = datosCertificadoAporte(['aporte' => 99999]);
+    $this->actingAs($this->vecinoAporte)->post(route('certificados.store'), $datos)->assertSessionHasErrors('numero_transaccion');
+    $this->post(route('certificados.store'), $datos + ['numero_transaccion' => 'TRX-2500'])->assertSessionHasNoErrors();
     $certificado = Certificado::sole();
+    expect((int) $certificado->aporte)->toBe(2500)->and($certificado->comprobante_path)->toBeNull();
     Parametro::where('clave', 'certificado_residencia_valor')->update(['valor' => '7000']);
     $this->actingAs($this->emisorAporte)->post(route('admin.certificados.emitir', $certificado), datosCertificadoAporte(['documentos_verificados' => 1]))->assertSessionHasErrors('pago_verificado');
     $this->post(route('admin.certificados.emitir', $certificado), datosCertificadoAporte(['documentos_verificados' => 1, 'pago_verificado' => 1, 'aporte' => 99999]))->assertSessionHasNoErrors();
+    $this->assertDatabaseCount('ingresos', 0);
+    $this->post(route('ingresos.certificados.registrar', $certificado))->assertSessionHasNoErrors();
     expect(Ingreso::sole()->monto)->toBe(2500)->and((int) $certificado->fresh()->aporte)->toBe(2500);
 });
 
@@ -85,7 +90,7 @@ test('ingreso manual permite archivo en lugar de número y protege el respaldo t
         'concepto' => 'otros', 'fecha_pago' => now()->toDateString(), 'monto' => 5000, 'medio_pago' => 'transferencia',
         'observaciones' => 'Aporte voluntario para la comunidad',
     ];
-    $this->actingAs($usuario)->post(route('ingresos.store'), $datos)->assertSessionHasErrors('numero_transaccion');
+    $this->actingAs($usuario)->post(route('ingresos.store'), $datos)->assertSessionHasErrors(['numero_transaccion', 'comprobante']);
     $this->post(route('ingresos.store'), $datos + ['comprobante' => UploadedFile::fake()->create('aporte.pdf', 10, 'application/pdf')])->assertSessionHasNoErrors();
     $ingreso = Ingreso::sole();
     Storage::disk('local')->assertExists($ingreso->comprobante_path);
@@ -106,3 +111,11 @@ test('comprobante manual rechaza tipo o tamaño inválido sin crear archivos o i
     $this->assertDatabaseCount('ingresos', 0);
     expect(Storage::disk('local')->allFiles())->toBe([]);
 })->with(['tipo', 'tamaño']);
+
+test('el número de transacción o talonario no reemplaza al comprobante manual obligatorio', function (string $medio) {
+    $this->actingAs($this->emisorAporte)->post(route('ingresos.store'), [
+        'concepto' => 'otros', 'observaciones' => 'Aporte de prueba', 'fecha_pago' => today()->toDateString(),
+        'monto' => 1000, 'medio_pago' => $medio, 'talonario' => 'T-123', 'numero_transaccion' => 'TRX-123',
+    ])->assertSessionHasErrors('comprobante');
+    $this->assertDatabaseCount('ingresos', 0);
+})->with(['efectivo', 'transferencia']);

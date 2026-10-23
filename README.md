@@ -29,7 +29,7 @@ Sistema web para la digitalización y centralización de la gestión administrat
 ### Frontend
 
 - **Vite:** compilación y administración de recursos frontend.
-- **Tailwind CSS:** framework de estilos.
+- **TailAdmin con Tailwind CSS 4:** framework de estilos.
 - **Alpine.js:** interactividad en la interfaz.
 
 ### Herramientas adicionales
@@ -55,33 +55,52 @@ La estructura principal del proyecto incluye:
 ```text
 jjvv-digital/
 ├── app/
+│   ├── Exports/
 │   ├── Http/
-│   │   └── Controllers/
-│   └── Models/
+│   │   ├── Controllers/
+│   │   ├── Middleware/
+│   │   └── Requests/
+│   ├── Models/
+│   ├── Providers/
+│   ├── Rules/
+│   └── View/
 ├── bootstrap/
 ├── config/
 ├── database/
-│   ├── migrations/
 │   ├── factories/
+│   ├── migrations/
 │   ├── seeders/
 │   └── database.sqlite
+├── lang/
 ├── public/
 ├── resources/
 │   ├── css/
 │   ├── js/
 │   └── views/
 ├── routes/
-│   ├── web.php
-│   └── auth.php
+│   ├── auth.php
+│   ├── console.php
+│   └── web.php
 ├── storage/
 ├── tests/
+│   ├── Feature/
+│   ├── Unit/
+│   ├── Pest.php
+│   └── TestCase.php
 ├── .env.example
 ├── artisan
 ├── composer.json
 ├── package.json
+├── phpunit.xml
 ├── tailwind.config.js
 ├── vite.config.js
+├── REQUIREMENTS.md
+├── SPRINTS.md
+├── SPRINTS_HISTORIAL.md
 └── README.md
 ```
 
-Esta estructura resume los directorios principales de Laravel; el contenido concreto de cada carpeta puede evolucionar durante el desarrollo.
+## Documentación
+
+- [Requisitos y permisos](REQUIREMENTS.md).
+- [Plan de sprints](SPRINTS.md).

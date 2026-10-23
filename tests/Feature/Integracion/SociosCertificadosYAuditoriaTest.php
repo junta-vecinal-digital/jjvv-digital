@@ -4,6 +4,7 @@ use App\Models\Auditoria;
 use App\Models\Certificado;
 use App\Models\Socio;
 use App\Models\User;
+use Illuminate\Support\Facades\Storage;
 
 function usuarioConRol(string $rol): User
 {
@@ -25,6 +26,11 @@ function certificadoPendiente(array $extra = []): Certificado
 }
 
 // ---------- Certificados ----------
+
+beforeEach(function () {
+    $this->withoutVite();
+    Storage::fake('local');
+});
 
 it('asigna folios correlativos por año al emitir', function () {
     $secretario = usuarioConRol('secretario');
@@ -100,6 +106,7 @@ it('exige verificar carnet y boleta para emitir un certificado de residencia', f
         'dirigido_a' => 'Municipalidad',
         'medio_pago' => 'efectivo',
         'talonario' => 'T-1',
+        'numero_transaccion' => 'TRX-VENTANILLA-1',
         'pago_verificado' => '1',
         'residencia_6_meses' => '1',
     ];
@@ -110,7 +117,7 @@ it('exige verificar carnet y boleta para emitir un certificado de residencia', f
 
     $this->actingAs($secretario)
         ->post(route('admin.certificados.store'), $datos + ['documentos_verificados' => '1'])
-        ->assertRedirect();
+        ->assertSessionHasNoErrors()->assertRedirect();
 
     $this->assertDatabaseHas('certificados', ['rut_solicitante' => '12345678-5', 'estado' => 'emitido']);
 });

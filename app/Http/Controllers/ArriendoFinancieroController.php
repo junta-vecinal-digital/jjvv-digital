@@ -45,12 +45,13 @@ class ArriendoFinancieroController extends Controller
 
             if ($reserva->valor_arriendo > 0 && ! $ingresoVigente) Ingreso::create([
                 'reserva_id' => $reserva->id,
+                'numero_transaccion' => $reserva->numero_transaccion,
                 'concepto' => $reserva->aporte_variable ? 'aporte_reserva' : 'arriendo',
                 'fecha_pago' => $datos['fecha_pago'],
                 'monto' => $reserva->valor_arriendo,
                 'medio_pago' => $datos['medio_pago'],
                 'talonario' => $datos['medio_pago'] === 'efectivo' ? $datos['talonario'] : null,
-                'observaciones' => $reserva->aporte_variable ? 'Aporte voluntario por reserva de sede #'.$reserva->id.'.'
+                'observaciones' => $reserva->aporte_variable ? 'Aporte por reserva de sede #'.$reserva->id.'.'
                     : 'Aporte por uso de sede #'.$reserva->id.'. Comprobante compartido con la garantía.',
                 'registrado_por' => $request->user()->id,
             ]);

@@ -15,12 +15,12 @@ class Ingreso extends Model
     /** Conceptos de ingreso (RFS-58). */
     public const CONCEPTOS = [
         'arriendo' => 'Aporte por uso de sede (histórico)',
-        'aporte_reserva' => 'Aporte voluntario por reserva de sede',
-        'prestamo_insumos' => 'Aporte voluntario por préstamo de insumos',
-        'cuota_socios' => 'Aporte voluntario de socios',
-        'aporte_grupos' => 'Aporte voluntario de agrupaciones',
-        'certificados' => 'Aportes voluntarios por certificados',
-        'otros' => 'Otros aportes voluntarios',
+        'aporte_reserva' => 'Aporte por reserva de sede',
+        'prestamo_insumos' => 'Aporte por préstamo de insumos',
+        'cuota_socios' => 'Aporte de socios',
+        'aporte_grupos' => 'Aporte de agrupaciones',
+        'certificados' => 'Aportes por certificados',
+        'otros' => 'Otros aportes',
     ];
 
     public const TIPOS_CUOTA = [

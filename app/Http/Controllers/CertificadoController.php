@@ -68,9 +68,9 @@ class CertificadoController extends Controller
 
             return redirect()->route('certificados.index')->with('status', 'certificado-socio-emitido');
         } else {
-            // El aporte es voluntario; solo un aporte positivo necesita respaldo.
+            // El aporte se toma del parámetro vigente y se guarda en la solicitud.
             $request->merge(['rut_solicitante' => RutChileno::normalizar($request->rut_solicitante)]);
-            $request->merge(['aporte' => $request->input('aporte', \App\Models\Parametro::entero('certificado_residencia_valor'))]);
+            $request->merge(['aporte' => \App\Models\Parametro::entero('certificado_residencia_valor')]);
             $conAporte = $request->integer('aporte') > 0;
 
             $datos = $request->validate([
@@ -80,10 +80,9 @@ class CertificadoController extends Controller
                 'dirigido_a' => ['required', 'string', 'max:255'],
                 'aporte' => ['required', 'integer', 'min:0', 'max:100000000'],
                 'numero_transaccion' => $conAporte ? ['required', 'string', 'max:50'] : ['exclude'],
-                'comprobante' => $conAporte ? ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'] : ['exclude'],
             ]);
 
-            $datos['comprobante_path'] = $conAporte ? $request->file('comprobante')->store('comprobantes', 'local') : null;
+            $datos['comprobante_path'] = null;
             $datos['medio_pago'] = $conAporte ? 'transferencia' : null;
             unset($datos['comprobante']);
             $datos['socio_id'] = $socio?->id;

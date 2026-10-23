@@ -1,6 +1,6 @@
 <x-app-layout>
 <x-slot name="header">
-<x-page-heading title="Agenda de firmas" description="Gestiona las horas para firmar el libro de socios, separadas de la atención al público.">
+<x-page-heading title="Agenda de firmas" description="Gestiona las horas para firmar el libro de socios.">
 @unless(request('crear'))<a href="{{ route('agenda.index',['crear'=>1]) }}" class="ui-button ui-button-primary">Crear horarios de firma</a>
 @endunless
 </x-page-heading>
@@ -9,7 +9,7 @@
 <x-operation-notice />
 @if(session('mensaje'))<p class="ui-notice" role="status">{{ session('mensaje') }}</p>
 @endif
-<p class="ui-notice">Las horas de firma se habilitan para una fecha concreta y se gestionan por separado de la atención semanal de ventanilla.</p>
+<p class="ui-notice">Las horas de firma se habilitan para una fecha concreta.</p>
 @if(request('crear'))<section class="ui-panel p-6">
 <x-form-wizard :steps="['Horas de firma']" :fields="[['fecha','hora_inicio','hora_fin','duracion']]">
 <form method="POST" action="{{ route('agenda.store') }}" class="space-y-6" novalidate>
@@ -59,20 +59,16 @@
 <th>Gestión</th>
 </tr>
 </thead>
-@foreach($lista as $cita)<x-record-row :id="'cita_'.$cita->id" :columns="3" :label="$cita->socio ? 'Ver cita' : 'Gestionar hora'">
-<x-slot name="summary">
-<td>{{ $cita->inicio->format('H:i') }}</td>
-<td>{{ $cita->socio?->nombre_completo ?? 'Disponible' }}</td>
-</x-slot>
-<h2 class="text-xl font-semibold">{{ $cita->socio ? 'Liberar hora reservada' : 'Eliminar hora disponible' }}</h2>
-<form method="POST" action="{{ route($cita->socio ? 'agenda.liberar' : 'agenda.destroy',$cita) }}">
-@csrf @method($cita->socio ? 'PATCH' : 'DELETE')<input type="hidden" name="operacion" value="cita_{{ $cita->id }}">
-<p>{{ $cita->socio ? 'El socio deberá reservar otra hora.' : 'Esta hora todavía no está reservada.' }}</p>
-<label class="flex gap-2">
-<input type="checkbox" required>Confirmo esta operación.</label>
-<x-primary-button>{{ $cita->socio ? 'Liberar hora' : 'Eliminar hora' }}</x-primary-button>
+@foreach($lista as $cita)
+<tr><td>{{ $cita->inicio->format('H:i') }}</td><td>{{ $cita->socio?->nombre_completo ?? 'Disponible' }}</td><td>
+<div class="flex flex-wrap gap-2">
+<form method="POST" action="{{ route($cita->socio ? 'agenda.liberar' : 'agenda.destroy', $cita) }}">
+@csrf @method($cita->socio ? 'PATCH' : 'DELETE')
+<x-secondary-button type="submit">{{ $cita->socio ? 'Liberar hora' : 'Eliminar hora' }}</x-secondary-button>
 </form>
-</x-record-row>
+@if($cita->socio)<a class="ui-button ui-button-primary" style="color: white" href="{{ route('socios.index', ['estado' => 'pendientes']) }}">Socios pendientes</a>@endif
+</div>
+</td></tr>
 @endforeach
 </table>
 </div>

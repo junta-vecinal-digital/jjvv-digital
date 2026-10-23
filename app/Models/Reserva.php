@@ -18,7 +18,7 @@ class Reserva extends Model
         'grupo_id', 'socio_id', 'horario_fijo_id', 'creado_por',
         'valor_arriendo', 'valor_garantia', 'vence_en', 'validado_en',
         'validado_por', 'cancelada_en', 'cancelada_por',
-        'comprobante_arriendo_path',
+        'comprobante_arriendo_path', 'numero_transaccion',
         'aporte_variable', 'aporte_definido_por', 'aporte_definido_en',
         'tipo_nombre', 'responsable_nombre',
         'responsable_rut', 'responsable_direccion', 'responsable_telefono', 'canal',

@@ -12,7 +12,7 @@
         </form>
         <div class="flex flex-wrap gap-3 items-center justify-between"><p>{{ $grupoNombre }} · {{ \Carbon\Carbon::parse($filtros['desde'])->format('d/m/Y') }} al {{ \Carbon\Carbon::parse($filtros['hasta'])->format('d/m/Y') }}</p><a class="ui-button ui-button-secondary" href="{{ route('reportes.financieros.pdf', $filtros) }}">Descargar PDF</a></div>
         <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            @foreach (['ingresos' => 'Aportes voluntarios recibidos vigentes', 'egresos' => 'Egresos vigentes', 'devoluciones' => 'Cuotas devueltas', 'neto' => 'Resultado neto del período'] as $clave => $etiqueta)<div class="ui-balance block"><span>{{ $etiqueta }}</span><strong class="mt-3 block">${{ number_format($totales[$clave], 0, ',', '.') }}</strong></div>@endforeach
+            @foreach (['ingresos' => 'Aportes recibidos vigentes', 'egresos' => 'Egresos vigentes', 'devoluciones' => 'Cuotas devueltas', 'neto' => 'Resultado neto del período'] as $clave => $etiqueta)<div class="ui-balance block"><span>{{ $etiqueta }}</span><strong class="mt-3 block">${{ number_format($totales[$clave], 0, ',', '.') }}</strong></div>@endforeach
         </section>
         <p class="text-sm">Aportes y egresos por su fecha de pago; cuotas devueltas por su fecha de devolución. Se excluyen los movimientos actualmente anulados. Las garantías recibidas y devueltas no forman parte de estos totales; las retenciones vigentes ya están incluidas como ingresos. El resultado del período no es el saldo histórico de caja.</p>
         <p class="text-sm">Sin agrupación reúne movimientos sin vínculo guardado, incluidos egresos e ingresos manuales. No se asignan grupos por nombres, conceptos o por ser representante.</p>

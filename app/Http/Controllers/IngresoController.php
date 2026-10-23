@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Ingreso;
+use App\Models\Certificado;
 use App\Models\Reserva;
 use App\Models\SolicitudInsumo;
 use Illuminate\Http\Request;
@@ -17,17 +18,35 @@ class IngresoController extends Controller
     {
         return view('finanzas.ingresos.index', [
             'ingresos' => Ingreso::with(['registrador', 'devolucion', 'reserva.ingresos', 'reserva.garantia', 'garantia.ingresos', 'solicitudInsumo.ingresos'])->latest('fecha_pago')->latest('id')->paginate(20)->withQueryString(),
+            'certificados' => Certificado::where('tipo', 'residencia')->where('estado', 'emitido')->where('aporte', '>', 0)->whereDoesntHave('ingresos')->oldest('id')->paginate(15, ['*'], 'certificados')->withQueryString(),
             'saldo' => Ingreso::saldoCaja(),
             'reservas' => Reserva::with(['socio', 'garantia', 'ingresos'])->where('tipo', 'arriendo')->whereNotNull('validado_en')
                 ->where(fn ($q) => $q->where(fn ($q) => $q->where('valor_arriendo', '>', 0)->whereDoesntHave('ingresos', fn ($q) => $q->vigentes()))
                     ->orWhereHas('garantia', fn ($q) => $q->where('monto', '>', 0)->whereNull('registrada_en')))
                 ->oldest('validado_en')->paginate(15, ['*'], 'reservas')->withQueryString(),
-            'prestamos' => SolicitudInsumo::with(['ingresos', 'lineas'])->whereIn('estado', ['aprobado', 'entregado', 'devuelto'])
+            'prestamos' => SolicitudInsumo::with(['ingresos', 'lineas'])->whereNotNull('pago_validado_en')->whereIn('estado', ['aprobado', 'entregado', 'devuelto'])
                 ->where(fn ($q) => $q->where('monto', '>', 0)->orWhere('garantia', '>', 0))
                 ->where(fn ($q) => $q->whereNull('pago_registrado_en')
                     ->orWhere(fn ($q) => $q->where('monto', '>', 0)->whereDoesntHave('ingresos', fn ($q) => $q->vigentes())))
                 ->oldest('aprobado_en')->paginate(15, ['*'], 'prestamos')->withQueryString(),
         ]);
+    }
+
+    public function registrarCertificado(Request $request, Certificado $certificado)
+    {
+        return DB::transaction(function () use ($request, $certificado) {
+            DB::table('certificados')->where('id', $certificado->id)->update(['estado' => DB::raw('estado')]);
+            $certificado->refresh();
+            abort_unless($certificado->estado === 'emitido', 422);
+            $certificado->registrarIngreso($request->user());
+            return back()->with('status', 'Ingreso de certificado registrado.');
+        });
+    }
+
+    public function comprobanteCertificado(Certificado $certificado)
+    {
+        abort_unless($certificado->comprobante_path && Storage::disk('local')->exists($certificado->comprobante_path), 404);
+        return Storage::disk('local')->response($certificado->comprobante_path, null, ['Cache-Control' => 'private, no-store']);
     }
 
     public function create()
@@ -49,7 +68,7 @@ class IngresoController extends Controller
             'medio_pago' => ['required', Rule::in(array_keys(Ingreso::MEDIOS))],
             'talonario' => ['nullable', 'required_if:medio_pago,efectivo', 'string', 'max:30'],
             'numero_transaccion' => ['nullable', Rule::requiredIf($request->medio_pago === 'transferencia' && ! $request->hasFile('comprobante')), 'string', 'max:50'],
-            'comprobante' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'comprobante' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
             'observaciones' => ['nullable', 'required_if:concepto,otros', 'string', 'max:500'],
         ]);
 

@@ -15,14 +15,22 @@
                                 <td>${{ number_format($tipo === 'sede' ? $registro->valor_arriendo : $registro->monto, 0, ',', '.') }}</td>
                                 <td>${{ number_format($tipo === 'sede' ? ($registro->garantia?->monto ?? 0) : $registro->garantia, 0, ',', '.') }}</td>
                             </x-slot>
+                            @if ($tipo === 'sede' && $registro->numero_transaccion)<p>Número de transacción: {{ $registro->numero_transaccion }}</p>@endif
                             @if ($tipo === 'sede' && $registro->comprobante_arriendo_path)<a class="ui-link" href="{{ route('arriendos.comprobante', $registro) }}" target="_blank" rel="noopener">Ver comprobante del total</a>@endif
                             @include('finanzas._aprobar-pendiente', ['operacionFormulario' => $tipo.'_'.$registro->id])
                         </x-record-row>
                     @empty @endforelse
         @endforeach
-        @if($reservas->isEmpty() && $prestamos->isEmpty())<tbody><tr><td colspan="4">No hay operaciones pendientes de registro financiero.</td></tr></tbody>@endif
+        @foreach ($certificados as $certificado)
+            <tbody><tr><td>Certificado {{ $certificado->folio }} · {{ $certificado->nombre_solicitante }}</td><td>${{ number_format($certificado->aporte, 0, ',', '.') }}</td><td>—</td><td>
+                @if($certificado->comprobante_path)<a class="ui-link" target="_blank" rel="noopener" href="{{ route('ingresos.certificados.comprobante', $certificado) }}">Ver comprobante</a>@endif
+                <form method="POST" action="{{ route('ingresos.certificados.registrar', $certificado) }}">@csrf<x-primary-button>Aprobar ingreso</x-primary-button></form>
+            </td></tr></tbody>
+        @endforeach
+        @if($reservas->isEmpty() && $prestamos->isEmpty() && $certificados->isEmpty())<tbody><tr><td colspan="4">No hay operaciones pendientes de registro financiero.</td></tr></tbody>@endif
         </table></div>
         {{ $reservas->links() }}
         {{ $prestamos->links() }}
+        {{ $certificados->links() }}
     </div>
 </details>

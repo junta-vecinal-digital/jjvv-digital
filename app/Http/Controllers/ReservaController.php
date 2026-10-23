@@ -217,7 +217,7 @@ class ReservaController extends Controller
             $tipoActividad = TipoActividad::where('clave', $datos['tipo'])->firstOrFail();
             $request->validate(['garantia_reserva' => ['nullable', 'integer', 'min:0', 'max:4294967295']]);
             $conGarantia = $request->integer('garantia_reserva') > 0;
-            $comprobante = $conGarantia ? $request->validate(['comprobante' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120']]) : [];
+            $comprobante = $conGarantia ? $request->validate(['numero_transaccion' => ['nullable', 'string', 'max:50']]) : [];
             Reserva::create([
                 'tipo' => $conGarantia ? 'arriendo' : $datos['tipo'],
                 'estado' => $conGarantia ? 'pendiente' : 'confirmada',
@@ -236,7 +236,7 @@ class ReservaController extends Controller
                     'aporte_variable' => true, 'valor_arriendo' => 0, 'valor_garantia' => $request->integer('garantia_reserva'),
                     'aporte_definido_por' => $request->user()->id, 'aporte_definido_en' => now(),
                     'canal' => 'ventanilla', 'vence_en' => now()->addHours(\App\Models\Parametro::entero('arriendo_plazo_confirmacion_horas')),
-                    'comprobante_arriendo_path' => isset($comprobante['comprobante']) ? $comprobante['comprobante']->store('comprobantes/arriendos', 'local') : null,
+                    'numero_transaccion' => $comprobante['numero_transaccion'] ?? null,
                 ] : []),
             ]);
 
@@ -252,6 +252,9 @@ class ReservaController extends Controller
             DB::table('parametros')->where('clave', 'sede_hora_inicio')->update(['valor' => DB::raw('valor')]);
             Reserva::liberarVencidos();
             $reserva->refresh();
+            abort_unless($request->user()->hasRole('presidente', 'secretario')
+                || ($request->user()->esSocioActivo() && $reserva->tipo === 'arriendo'
+                    && $reserva->socio_id === $request->user()->socio->id), 403);
 
             if (! in_array($reserva->estado, Reserva::ESTADOS_OCUPAN, true)) {
                 return back()->withInput()->withErrors(['reserva' => 'Esta reserva ya está cancelada o vencida.']);

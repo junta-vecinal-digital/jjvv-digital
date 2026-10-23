@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
-/** Dirigentes: revisan solicitudes, emiten en ventanilla, registran retiros y anulan certificados. */
+/** Dirigentes: revisan solicitudes, emiten en ventanilla, anulan certificados. */
 class CertificadoAdminController extends Controller
 {
     public function index(Request $request)
@@ -41,7 +41,7 @@ class CertificadoAdminController extends Controller
         ]);
     }
 
-    /** Emisión directa en ventanilla: registra el pago y el ingreso (RFS-27). */
+    /** Emisión directa en ventanilla: valida el pago; el ingreso se registra en Finanzas (RFS-27). */
     public function store(Request $request)
     {
         $request->merge(['rut_solicitante' => RutChileno::normalizar($request->rut_solicitante)]);
@@ -74,7 +74,6 @@ class CertificadoAdminController extends Controller
             'documentos_verificados' => $request->boolean('documentos_verificados'),
         ]);
         $certificado->emitir($request->user());
-        $certificado->registrarIngreso($request->user());
 
         return ($request->filled('operacion') ? back()->withInput($request->only('operacion')) : redirect()->route('admin.certificados.index')->withInput(['operacion' => 'certificado_'.$certificado->id]))->with('status', 'certificado-emitido');
     }
@@ -93,6 +92,13 @@ class CertificadoAdminController extends Controller
 
         $request->merge(['rut_solicitante' => RutChileno::normalizar($request->rut_solicitante)]);
 
+        if ($request->boolean('validar_emitir')) {
+            $request->merge([
+                'nombre_solicitante' => $certificado->nombre_solicitante, 'rut_solicitante' => $certificado->rut_solicitante,
+                'direccion' => $certificado->direccion, 'dirigido_a' => $certificado->dirigido_a,
+                'documentos_verificados' => 1, 'pago_verificado' => 1,
+            ]);
+        }
         $datos = $request->validate($this->reglasComunes($certificado->tipo));
 
         if ($certificado->tipo === 'residencia' && ($certificado->aporte ?? \App\Models\Parametro::entero('certificado_residencia_valor')) > 0) {
@@ -109,34 +115,8 @@ class CertificadoAdminController extends Controller
         }
 
         $certificado->emitir($request->user());
-        $certificado->registrarIngreso($request->user());
 
         return ($request->filled('operacion') ? back()->withInput($request->only('operacion')) : redirect()->route('admin.certificados.show', $certificado))->with('status', 'certificado-emitido');
-    }
-
-    /** Registra el retiro presencial de un certificado que no fue descargado (RFS-26, RFS-32). */
-    public function retirar(Request $request, Certificado $certificado)
-    {
-        abort_unless(
-            $certificado->tipo === 'residencia' && $certificado->estado === 'emitido',
-            422,
-            'Solo se pueden registrar retiros de certificados de residencia emitidos.'
-        );
-        abort_if($certificado->fecha_retiro !== null, 422, 'Este certificado ya fue retirado.');
-        abort_if(
-            $certificado->descargas()->exists(),
-            422,
-            'El socio descargó este certificado. Debe iniciar una nueva solicitud; el aporte sigue siendo voluntario.'
-        );
-
-        $datos = $request->validate([
-            'fecha_retiro' => ['required', 'date', 'before_or_equal:today'],
-        ]);
-
-        // El retiro no cambia la vigencia (RFS-31): solo se registra la fecha.
-        $certificado->forceFill(['fecha_retiro' => $datos['fecha_retiro']])->save();
-
-        return ($request->filled('operacion') ? back()->withInput($request->only('operacion')) : redirect()->route('admin.certificados.show', $certificado))->with('status', 'certificado-retirado');
     }
 
     public function rechazar(Request $request, Certificado $certificado)
@@ -204,7 +184,7 @@ class CertificadoAdminController extends Controller
             'pago_verificado' => $conAporte ? ['accepted'] : ['exclude'],
             'medio_pago' => $conAporte ? ['required', Rule::in(array_keys(Ingreso::MEDIOS))] : ['exclude'],
             'talonario' => $conAporte ? ['nullable', 'required_if:medio_pago,efectivo', 'string', 'max:30'] : ['exclude'],
-            'numero_transaccion' => $conAporte ? ['nullable', 'required_if:medio_pago,transferencia', 'string', 'max:50'] : ['exclude'],
+            'numero_transaccion' => $conAporte ? ['required', 'string', 'max:50'] : ['exclude'],
         ];
     }
 }

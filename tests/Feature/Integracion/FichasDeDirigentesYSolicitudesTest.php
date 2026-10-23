@@ -69,7 +69,6 @@ test('dirigentes con ficha activa solicitan certificado de residencia con el flu
     $this->actingAs($usuario)->post(route('certificados.store'), [
         'tipo' => 'residencia', 'nombre_solicitante' => $ficha->nombre_completo, 'rut_solicitante' => $ficha->rut,
         'direccion' => $ficha->direccion, 'dirigido_a' => 'Municipalidad', 'numero_transaccion' => 'TRX-RESIDENCIA',
-        'comprobante' => UploadedFile::fake()->create('aporte.pdf', 10, 'application/pdf'),
     ])->assertSessionHasNoErrors();
     expect(Certificado::sole()->estado)->toBe('solicitado')->and(Certificado::sole()->user_id)->toBe($usuario->id);
 })->with(['presidente', 'secretario', 'tesorero']);
@@ -88,13 +87,13 @@ test('tesorero solicita sede para sí sin gestionar importe ni reservas ajenas',
     $this->post(route('arriendos.confirmar', $reserva))->assertForbidden();
     $presidente = User::factory()->create(['role' => 'presidente']);
     $this->actingAs($presidente)->post(route('arriendos.aporte', $reserva), ['valor_arriendo' => 5000])->assertSessionHasNoErrors();
-    $this->get(route('arriendos.show', $reserva))->assertOk()->assertDontSee('Adjuntar comprobante del aporte');
+    $this->get(route('arriendos.show', $reserva))->assertOk()->assertDontSee('action="'.route('arriendos.comprobante.store', $reserva).'"', false);
     $this->post(route('arriendos.comprobante.store', $reserva), [
-        'comprobante' => UploadedFile::fake()->create('ajeno.pdf', 10, 'application/pdf'),
+        'numero_transaccion' => 'TRX-AJENA',
     ])->assertForbidden();
-    $this->actingAs($tesorero)->get(route('arriendos.show', $reserva))->assertOk()->assertSee('Adjuntar comprobante del aporte');
+    $this->actingAs($tesorero)->get(route('arriendos.show', $reserva))->assertOk()->assertSee('action="'.route('arriendos.comprobante.store', $reserva).'"', false);
     $this->post(route('arriendos.comprobante.store', $reserva), [
-        'comprobante' => UploadedFile::fake()->create('propio.pdf', 10, 'application/pdf'),
+        'numero_transaccion' => 'TRX-PROPIA',
     ])->assertSessionHasNoErrors();
 });
 
@@ -111,10 +110,9 @@ test('la bandeja y formulario comunes conservan actividades gratuitas y reservas
     ]))->assertSessionHasNoErrors();
     $reserva = Reserva::latest('id')->first();
     $this->get(route('reservas.index'))->assertOk()->assertViewHas('arriendos', fn ($lista) => $lista->contains('id', $actividad->id) && $lista->contains('id', $reserva->id));
-    $this->get(route('arriendos.show', $reserva))->assertOk()->assertSee('Registrar comprobante recibido en ventanilla')
-        ->assertDontSee('Adjuntar comprobante del aporte');
+    $this->get(route('arriendos.show', $reserva))->assertOk()->assertSee('action="'.route('arriendos.comprobante.store', $reserva).'"', false);
     $this->post(route('arriendos.comprobante.store', $reserva), [
-        'comprobante' => UploadedFile::fake()->create('ventanilla.pdf', 10, 'application/pdf'),
+        'numero_transaccion' => 'TRX-VENTANILLA',
     ])->assertSessionHasNoErrors();
     $this->post(route('arriendos.store'), horarioCierre(['tipo_actividad' => 'actividad', 'valor_arriendo' => 1]))->assertSessionHasErrors('valor_arriendo');
     $this->assertDatabaseCount('reservas', 2);
@@ -131,7 +129,7 @@ test('representantes externos requieren RUT válido y el préstamo conserva su i
     $grupo = Grupo::sole();
     $item = ItemInventario::create(['nombre' => 'Sillas', 'cantidad' => 5, 'tipo_insumo_id' => TipoInsumo::where('nombre', 'Sillas')->value('id')]);
     $solicitud = [
-        'solicitante' => 'grupo:'.$grupo->id, 'telefono_contacto' => '912345678',
+        'solicitante' => 'grupo:'.$grupo->id, 'grupo_id' => $grupo->id, 'monto' => 0, 'garantia' => 0, 'telefono_contacto' => '912345678',
         'fecha_comprometida' => now()->addWeek()->toDateString(), 'lineas' => [['item_inventario_id' => $item->id, 'cantidad' => 1]],
     ];
     $this->post(route('insumos.store'), $solicitud)->assertSessionHasNoErrors();

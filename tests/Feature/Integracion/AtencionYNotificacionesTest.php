@@ -82,7 +82,7 @@ test('las citas de firma se crean fuera del horario público y aprobar documento
     $this->assertDatabaseCount('horarios_atencion', 1);
 });
 
-test('los puntos rojos indican pendientes para la directiva y desaparecen al resolverlos', function (string $rol) {
+test('los puntos verdes indican pendientes para la directiva y desaparecen al resolverlos', function (string $rol) {
     $socio = Socio::create([
         'nombre_completo' => 'Solicitud pendiente', 'rut' => '12345678-5', 'direccion' => 'Pasaje 100',
         'telefono' => '912345678', 'residente_desde' => '2020-01-01', 'estado' => 'pendiente',
@@ -97,13 +97,13 @@ test('los puntos rojos indican pendientes para la directiva y desaparecen al res
     ]);
     $this->actingAs(User::factory()->create(['role' => $rol]));
     $respuesta = $this->get(route('dashboard'))->assertOk();
-    expect(substr_count($respuesta->getContent(), 'Hay solicitudes pendientes de revisión'))->toBe(3);
+    expect(substr_count($respuesta->getContent(), 'Hay operaciones pendientes de revisión'))->toBe(3);
 
     $socio->update(['estado' => 'por_firmar']);
     $certificado->forceFill(['estado' => 'rechazado'])->save();
     // Aun sin scheduler: una solicitud vencida ya no debe encender el aviso.
     $reserva->update(['vence_en' => now()->subMinute()]);
-    $this->get(route('dashboard'))->assertOk()->assertDontSee('Hay solicitudes pendientes de revisión');
+    $this->get(route('dashboard'))->assertOk()->assertDontSee('Hay operaciones pendientes de revisión');
 })->with(['presidente', 'secretario']);
 
 test('el panel del presidente muestra solicitudes por revisar sin exponerlas a otros roles', function () {
@@ -120,7 +120,7 @@ test('el panel del presidente muestra solicitudes por revisar sin exponerlas a o
         ->assertSee(route('admin.certificados.index', ['estado' => 'solicitado']));
     foreach (['admin', 'tesorero', 'vecino'] as $rol) {
         $this->actingAs(User::factory()->create(['role' => $rol]))->get(route('dashboard'))->assertOk()
-            ->assertDontSee('Pendiente del panel')->assertDontSee('Certificado del panel')->assertDontSee('Hay solicitudes pendientes de revisión')
+            ->assertDontSee('Pendiente del panel')->assertDontSee('Certificado del panel')->assertDontSee('Hay operaciones pendientes de revisión')
             ->assertViewHas('sociosPendientes', fn ($lista) => $lista->isEmpty())
             ->assertViewHas('certificadosPendientes', fn ($lista) => $lista->isEmpty());
     }

@@ -15,13 +15,13 @@
 @csrf @method('PUT')<input type="hidden" name="tab" value="general">
 <div class="ui-form-grid">
 @foreach($parametros as $parametro)<div>
-<x-input-label :for="'valores_'.$parametro->clave" :value="$parametro->clave === 'certificado_residencia_valor' ? 'Aporte sugerido para residencia (CLP)' : $parametro->etiqueta" />
+<x-input-label :for="'valores_'.$parametro->clave" :value="$parametro->clave === 'certificado_residencia_valor' ? 'Aporte para residencia (CLP)' : $parametro->etiqueta" />
 @if($parametro->clave === 'sede_duracion_bloque_min')<select id="valores_{{ $parametro->clave }}" name="valores[{{ $parametro->clave }}]" class="ui-input w-full" required>
 @foreach([30,60] as $minutos)<option value="{{ $minutos }}" @selected((int)old('valores.'.$parametro->clave,$parametro->valor) === $minutos)>{{ $minutos }} minutos</option>
 @endforeach
 </select>
 @else
-<x-text-input :id="'valores_'.$parametro->clave" name="valores[{{ $parametro->clave }}]" :type="in_array($parametro->clave,['sede_hora_inicio','sede_hora_fin']) ? 'time' : 'number'" :min="$parametro->clave === 'certificado_residencia_valor' ? 0 : (in_array($parametro->clave,['sede_hora_inicio','sede_hora_fin']) ? null : 1)" :value="old('valores.'.$parametro->clave,$parametro->valor)" required class="w-full" />
+<x-text-input :id="'valores_'.$parametro->clave" name="valores[{{ $parametro->clave }}]" :type="str_starts_with($parametro->clave, 'transferencia_') ? 'text' : (in_array($parametro->clave,['sede_hora_inicio','sede_hora_fin']) ? 'time' : 'number')" :min="$parametro->clave === 'certificado_residencia_valor' ? 0 : ((str_starts_with($parametro->clave, 'transferencia_') || in_array($parametro->clave,['sede_hora_inicio','sede_hora_fin'])) ? null : 1)" :value="old('valores.'.$parametro->clave,$parametro->valor)" required class="w-full" />
 @endif
 <x-input-error :messages="$errors->get('valores.'.$parametro->clave)" />
 </div>

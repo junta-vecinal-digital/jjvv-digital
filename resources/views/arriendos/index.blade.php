@@ -12,11 +12,11 @@
     ];
 @endphp
 <x-app-layout>
-    <x-slot name="header"><x-page-heading :title="$esDirigente ? 'Reservas de sede' : 'Mis reservas de sede'" description="Registra el uso de la sede y revisa las solicitudes recibidas."><a href="{{ route('calendario.index') }}" class="ui-button ui-button-secondary">Consultar calendario</a>@unless(request('crear'))<a class="ui-button ui-button-primary" href="{{ route($esDirigente ? 'reservas.index' : 'arriendos.index', ['crear'=>1]) }}">{{ $esDirigente ? 'Reservar en ventanilla' : 'Solicitar reserva' }}</a>@endunless</x-page-heading></x-slot>
+    <x-slot name="header"><x-page-heading :title="$esDirigente ? 'Reservas de sede' : 'Mis reservas de sede'" :description="$esDirigente ? 'Registra el uso de la sede y revisa las solicitudes recibidas.' : 'Ingresa y gestiona tus solicitudes de reserva de sede'"><a href="{{ route('calendario.index') }}" class="ui-button ui-button-secondary">Consultar calendario</a>@unless(request('crear'))<a class="ui-button ui-button-primary" href="{{ route($esDirigente ? 'reservas.index' : 'arriendos.index', ['crear'=>1]) }}">{{ $esDirigente ? 'Reservar en ventanilla' : 'Solicitar reserva' }}</a>@endunless</x-page-heading></x-slot>
     <div class="max-w-7xl mx-auto px-4 py-6 space-y-6">
 
         <x-reservas-tabs active="sede" />
-        @if (session('status'))<p class="ui-notice" role="status">{{ match(session('status')) { 'reserva-creada' => 'Reserva guardada.', 'reserva-cancelada' => 'Reserva cancelada y horario liberado.', 'aporte-definido' => 'Aporte y garantía definidos.', 'comprobante-adjuntado' => 'Comprobante adjuntado para revisión.', 'arriendo-confirmado' => 'Reserva confirmada.', default => session('status') } }}</p>@endif
+        @if (session('status'))<p class="ui-notice" role="status">{{ match(session('status')) { 'reserva-creada' => 'Reserva guardada.', 'reserva-cancelada' => 'Reserva cancelada y horario liberado.', 'aporte-definido' => 'Aporte y garantía definidos.', 'comprobante-adjuntado' => 'Número de transacción registrado para revisión.', 'arriendo-confirmado' => 'Reserva confirmada.', default => session('status') } }}</p>@endif
         @if ($errors->any())<div role="alert" class="ui-notice text-red-700">@foreach ($errors->all() as $error)<p>{{ $error }}</p>@endforeach</div>@endif
 
         @php($erroresListado = $errors)
@@ -27,14 +27,14 @@
 
             <x-input-error :messages="$errors->get('arriendo')" />
             <x-input-error :messages="$errors->get('reserva')" />
-            <x-form-wizard :steps="['Solicitante', 'Horario', 'Aporte']" :fields="[['solicitante', 'tipo', 'actividad_reserva', 'socio_id', 'grupo_id', 'modalidad_solicitante', 'responsable_nombre', 'responsable_rut', 'responsable_direccion', 'responsable_telefono'], ['fecha', 'hora_inicio', 'hora_fin', 'arriendo', 'reserva'], ['comprobante', 'valor_arriendo', 'garantia_reserva']]">
-                <form method="POST" action="{{ route('arriendos.store') }}" enctype="multipart/form-data" novalidate class="space-y-5"
+            <x-form-wizard :steps="['Solicitante', 'Horario', 'Aporte']" :fields="[['solicitante', 'tipo', 'actividad_reserva', 'socio_id', 'grupo_id', 'modalidad_solicitante', 'responsable_nombre', 'responsable_rut', 'responsable_direccion', 'responsable_telefono'], ['fecha', 'hora_inicio', 'hora_fin', 'arriendo', 'reserva'], ['numero_transaccion', 'valor_arriendo', 'garantia_reserva']]">
+                <form method="POST" action="{{ route('arriendos.store') }}" novalidate class="space-y-5"
                     x-data="arriendoFormulario(@js($estadoArriendo))">
                     @csrf
                     <input type="hidden" name="operacion" value="crear-reserva">
                     <x-form-step number="0" class="ui-form-grid">
                         <div><x-input-label for="actividad_reserva" value="Actividad" /><select id="actividad_reserva" name="actividad_reserva" x-model="tipoActividad" @change="cambiarActividad()" class="ui-input w-full" required>
-                            @foreach($tiposActividad as $tipo) @if($esDirigente || in_array($tipo->clave, ['particular','grupo']))<option value="{{ $tipo->clave }}">{{ $tipo->nombre }}</option>@endif @endforeach
+                            @foreach($tiposActividad as $tipo) @if($esDirigente || $tipo->clave === 'particular' || ($tipo->clave === 'grupo' && $grupos->isNotEmpty()))<option value="{{ $tipo->clave }}">{{ $tipo->nombre }}</option>@endif @endforeach
                         </select></div>
                         @if($esDirigente)
                             <div><x-input-label for="solicitante" value="Solicitante" /><select id="solicitante" name="solicitante" x-model="seleccion" @change="elegirSolicitante()" class="ui-input w-full" required><option value="">Seleccionar solicitante</option><template x-for="opcion in opciones()" :key="opcion.clave"><option :value="opcion.clave" x-text="opcion.etiqueta"></option></template><option x-show="!['actividad','grupo'].includes(tipoActividad)" :disabled="['actividad','grupo'].includes(tipoActividad)" value="manual">Registrar solicitante</option></select></div>
@@ -73,7 +73,7 @@
                         @if ($esDirigente)
                             <div class="space-y-4" x-data="{ aporte: @js($valorCreacion('valor_arriendo', '0')) }">
                                 <div>
-                                    <x-input-label for="valor_arriendo" value="Aporte voluntario acordado (CLP)" />
+                                    <x-input-label for="valor_arriendo" value="Aporte acordado (CLP)" />
                                     <x-text-input id="valor_arriendo" name="valor_arriendo" type="number" x-model="aporte" x-effect="if (tipoActividad !== 'particular') aporte = '0'" x-bind:readonly="tipoActividad !== 'particular'" min="0" max="4294967295" step="1" required />
                                     <x-input-error :messages="$errors->get('valor_arriendo')" />
                                 </div>
@@ -84,14 +84,14 @@
                                     <x-input-error :messages="$errors->get('garantia_reserva')" />
                                 </div>
                                 <div x-show="Number(aporte) + Number(garantia) > 0" x-cloak>
-                                    <x-input-label for="comprobante" value="Comprobante del aporte y garantía" />
-                                    <x-file-input id="comprobante" name="comprobante" accept="application/pdf,image/jpeg,image/png" x-bind:disabled="Number(aporte) + Number(garantia) <= 0" />
-                                    <p class="text-sm text-gray-500">PDF, JPG o PNG, máximo 5 MB. Puedes adjuntarlo después desde el detalle; será necesario si el total recibido es mayor que $0.</p>
-                                    <x-input-error :messages="$errors->get('comprobante')" />
+                                    <x-input-label for="comprobante" value="Número de transacción del aporte y garantía" />
+                                    <x-text-input id="comprobante" name="numero_transaccion" maxlength="50" x-bind:disabled="Number(aporte) + Number(garantia) <= 0" />
+                                    <p class="text-sm text-gray-500">Puedes registrar el número de transacción después desde el detalle; será necesario si el total es mayor que $0.</p>
+                                    <x-input-error :messages="$errors->get('numero_transaccion')" />
                                 </div>
                             </div>
                         @else
-                            <p>Presidente o secretario registrará el aporte y la garantía acordados. El comprobante del total se adjunta desde el detalle de la solicitud.</p>
+                            <p>La directiva establecerá un valor para la reserva</p>
                         @endif
                     </x-form-step>
                     <x-wizard-actions :cancel="route($esDirigente ? 'reservas.index' : 'arriendos.index')" />
@@ -110,7 +110,7 @@
                                 <x-slot name="summary">
                                 <td>{{ $arriendo->inicio->format('d/m/Y H:i') }} a {{ $arriendo->fin->format('H:i') }}</td>
                                 <td><strong>{{ $arriendo->responsable_nombre ?? $arriendo->socio?->nombre_completo }}</strong><span class="block text-xs text-gray-500">{{ $arriendo->motivo }}@if ($arriendo->grupo) · {{ $arriendo->grupo->nombre }}@endif</span></td>
-                                <td>{{ $arriendo->tipo !== 'arriendo' || ($arriendo->aporte_variable && $arriendo->valor_arriendo !== null && $arriendo->valor_arriendo == 0) ? 'Sin aporte' : ($arriendo->aporte_variable && $arriendo->valor_arriendo === null ? 'Aporte por definir' : 'Con aporte voluntario') }}<br>{{ $arriendo->etiquetaTipo() }}</td>
+                                <td>{{ $arriendo->tipo !== 'arriendo' || ($arriendo->aporte_variable && $arriendo->valor_arriendo !== null && $arriendo->valor_arriendo == 0) ? 'Sin aporte' : ($arriendo->aporte_variable && $arriendo->valor_arriendo === null ? 'Aporte por definir' : 'Con aporte') }}<br>{{ $arriendo->etiquetaTipo() }}</td>
                                 <td><x-status-badge :state="$arriendo->estado" :label="\App\Models\Reserva::ESTADOS[$arriendo->estado] ?? $arriendo->estado" /></td>
                                 </x-slot>
                                 @include('arriendos._detalle', ['reserva' => $arriendo, 'esFinanciero' => false, 'volverFinanzas' => false])

@@ -9,9 +9,12 @@ use App\Models\SolicitudInsumo;
 use App\Models\TipoInsumo;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
     $this->withoutVite();
+    Storage::fake('local');
     $this->travelTo(Carbon::parse('2026-10-17 10:00:00'));
 });
 
@@ -45,19 +48,25 @@ test('ciclo completo de préstamo mantiene consistentes existencias garantía in
     expect($item->fresh()->disponibles())->toBe(2);
     $this->get(route('finanzas.insumos.show', $solicitud))->assertForbidden();
 
-    $this->actingAs($tesorero)->post(route('finanzas.insumos.registrar', $solicitud), [
+    $this->actingAs($vecino)->post(route('insumos.pago', $solicitud), [
         'fecha_pago' => '2026-10-17', 'medio_pago' => 'transferencia', 'numero_transaccion' => 'TRX-CIERRE-INTEGRACION',
+        'comprobante' => UploadedFile::fake()->create('pago.pdf', 10, 'application/pdf'),
     ])->assertSessionHasNoErrors();
-    $garantia = Garantia::sole();
-    expect(Ingreso::saldoCaja())->toBe(6000)->and($garantia->monto)->toBe(10000);
-    $this->get(route('insumos.show', $solicitud))->assertForbidden();
+    $this->actingAs($secretario)->post(route('insumos.validar-pago', $solicitud), ['pago_verificado' => 1])->assertSessionHasNoErrors();
+    $this->assertDatabaseCount('ingresos', 0);
+    $this->post(route('finanzas.insumos.registrar', $solicitud))->assertForbidden();
 
     $linea = $solicitud->lineas()->sole();
     $this->actingAs($secretario)->post(route('insumos.entregar', $solicitud), [
         'fecha_entrega' => '2026-10-17', 'condiciones' => [$linea->id => 'bueno'],
     ])->assertSessionHasNoErrors();
-    expect($item->fresh()->disponibles())->toBe(2);
-    $this->post(route('insumos.devolver', $solicitud), [
+    expect($item->fresh()->disponibles())->toBe(2)->and(Ingreso::saldoCaja())->toBe(0);
+    // La entrega no espera el paso contable; el tesorero registra después el ingreso.
+    $this->actingAs($tesorero)->post(route('finanzas.insumos.registrar', $solicitud))->assertSessionHasNoErrors();
+    $garantia = Garantia::sole();
+    expect(Ingreso::saldoCaja())->toBe(6000)->and($garantia->monto)->toBe(10000);
+    $this->get(route('insumos.show', $solicitud))->assertForbidden();
+    $this->actingAs($secretario)->post(route('insumos.devolver', $solicitud), [
         'fecha_devolucion' => '2026-10-17',
         'devoluciones' => [$linea->id => ['estado_regreso' => 'danado', 'cantidad_danada' => 1]],
     ])->assertSessionHasNoErrors();

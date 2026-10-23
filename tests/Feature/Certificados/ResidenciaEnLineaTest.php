@@ -6,7 +6,6 @@ use App\Models\Ingreso;
 use App\Models\Parametro;
 use App\Models\Socio;
 use App\Models\User;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(fn () => Storage::fake('local'));
@@ -39,17 +38,22 @@ function solicitudResidencia(User $usuario): array
         'direccion' => 'Calle 1',
         'dirigido_a' => 'Banco',
         'numero_transaccion' => 'TRX-001',
-        'comprobante' => UploadedFile::fake()->create('pago.pdf', 100, 'application/pdf'),
     ];
 }
 
-test('la solicitud de residencia exige comprobante', function () {
+test('la solicitud de residencia con aporte exige transacción y acepta el número sin archivo', function () {
     $usuario = socioActivo();
+    Parametro::where('clave', 'certificado_residencia_valor')->update(['valor' => '1000']);
 
     $datos = solicitudResidencia($usuario);
-    unset($datos['comprobante']);
+    unset($datos['numero_transaccion']);
 
-    $this->actingAs($usuario)->post('/certificados', $datos)->assertSessionHasErrors('comprobante');
+    $this->actingAs($usuario)->post('/certificados', $datos)->assertSessionHasErrors('numero_transaccion');
+    $this->assertDatabaseCount('certificados', 0);
+    $this->post('/certificados', $datos + ['numero_transaccion' => 'TRX-001'])->assertSessionHasNoErrors();
+    expect(Certificado::sole()->numero_transaccion)->toBe('TRX-001')
+        ->and(Certificado::sole()->comprobante_path)->toBeNull();
+    expect(Storage::disk('local')->allFiles())->toBe([]);
 });
 
 test('emitir sin confirmar el pago no es posible', function () {
@@ -69,14 +73,14 @@ test('emitir sin confirmar el pago no es posible', function () {
         ])->assertSessionHasErrors('pago_verificado');
 });
 
-test('emitir registra el ingreso automático de $1.000', function () {
+test('emitir valida el pago y tesorero aprueba el ingreso por separado', function () {
     $usuario = socioActivo();
     $this->actingAs($usuario)->post('/certificados', solicitudResidencia($usuario));
 
-    $presidente = User::factory()->create(['role' => 'presidente']);
+    $secretario = User::factory()->create(['role' => 'secretario']);
     $certificado = Certificado::latest('id')->first();
 
-    $this->actingAs($presidente)->post("/admin/certificados/{$certificado->id}/emitir", [
+    $this->actingAs($secretario)->post("/admin/certificados/{$certificado->id}/emitir", [
         'nombre_solicitante' => 'Socio de prueba',
         'rut_solicitante' => '12345678-5',
         'direccion' => 'Calle 1',
@@ -85,6 +89,13 @@ test('emitir registra el ingreso automático de $1.000', function () {
         'pago_verificado' => '1',
     ]);
 
+    $this->assertDatabaseCount('ingresos', 0);
+    $this->post(route('ingresos.certificados.registrar', $certificado))->assertForbidden();
+    expect($certificado->fresh()->estado)->toBe('emitido');
+    $tesorero = User::factory()->create(['role' => 'tesorero']);
+    $this->actingAs($tesorero)->post(route('ingresos.certificados.registrar', $certificado))->assertSessionHasNoErrors();
+    $this->post(route('ingresos.certificados.registrar', $certificado))->assertSessionHasNoErrors();
+    $this->assertDatabaseCount('ingresos', 1);
     $ingreso = Ingreso::where('certificado_id', $certificado->id)->first();
     expect($ingreso)->not->toBeNull()
         ->and($ingreso->monto)->toBe(Parametro::entero('certificado_residencia_valor'))

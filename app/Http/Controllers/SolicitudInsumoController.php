@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Rules\RutChileno;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -66,8 +67,8 @@ class SolicitudInsumoController extends Controller
                 throw ValidationException::withMessages(['solicitante_rut' => 'Completa un RUT válido para el solicitante antes de solicitar insumos.']);
             }
             $grupos = collect($persona['grupos']);
-            $grupoId = $datos['grupo_id'] ?? ($grupos->count() === 1 ? $grupos->first()['id'] : null);
-            if (($grupos->isNotEmpty() && ! $grupos->contains('id', $grupoId)) || ($grupos->isEmpty() && $grupoId)) {
+            $grupoId = $datos['grupo_id'] ?? null;
+            if (($grupoId && ! $grupos->contains('id', $grupoId)) || (str_starts_with($persona['clave'] ?? '', 'grupo:') && ! $grupoId)) {
                 throw ValidationException::withMessages(['grupo_id' => 'Selecciona la agrupación que representa el solicitante.']);
             }
             $solicitud = SolicitudInsumo::create([
@@ -88,7 +89,22 @@ class SolicitudInsumoController extends Controller
                     'item_inventario_id' => $item->id, 'nombre_insumo' => $item->nombre, 'cantidad' => $linea['cantidad'],
                 ]);
             }
-            return redirect()->route('insumos.index')->withInput(['operacion' => 'insumo_'.$solicitud->id])->with('status', 'Solicitud de insumos registrada. Aún no reserva existencias.');
+            if ($solicitud->canal === 'ventanilla') {
+                $request->validate([
+                    'monto' => ['required', 'integer', 'min:0', 'max:4294967295'],
+                    'garantia' => ['required', 'integer', 'min:0', 'max:4294967295'],
+                ]);
+                $this->aprobar($request, $solicitud);
+                if ($request->boolean('entregar_ahora') && ! $solicitud->requierePago()) {
+                    $request->merge([
+                        'fecha_entrega' => today()->toDateString(),
+                        'condiciones' => $solicitud->lineas->mapWithKeys(fn ($linea) => [$linea->id => $request->input('estados_salida.'.$linea->item_inventario_id, 'bueno')])->all(),
+                    ]);
+                    $this->entregar($request, $solicitud);
+                }
+                return redirect()->route('insumos.index')->withInput(['operacion' => 'insumo_'.$solicitud->id])->with('status', $solicitud->estado === 'entregado' ? 'Préstamo registrado y entregado.' : 'Préstamo registrado y aprobado. Las unidades quedaron reservadas.');
+            }
+            return redirect()->route('insumos.index')->withInput(['operacion' => 'insumo_'.$solicitud->id])->with('status', 'Solicitud de insumos registrada.');
         });
     }
 
@@ -107,10 +123,12 @@ class SolicitudInsumoController extends Controller
         $datos = $request->validate([
             'monto' => ['required', 'integer', 'min:0', 'max:4294967295'],
             'garantia' => ['required', 'integer', 'min:0', 'max:4294967295'],
-            'fecha_comprometida' => ['required', 'date_format:Y-m-d', 'after_or_equal:today'],
         ]);
         return DB::transaction(function () use ($request, $solicitud, $datos) {
             $this->bloquear($solicitud, 'pendiente');
+            if ($solicitud->fecha_comprometida->lt(today())) {
+                throw ValidationException::withMessages(['operacion' => 'La fecha comprometida ya pasó. Registra una nueva solicitud con una fecha vigente.']);
+            }
             $usuario = User::find($solicitud->solicitante_id);
             $socio = Socio::find($solicitud->socio_id);
             $grupo = Grupo::find($solicitud->grupo_id);
@@ -149,6 +167,9 @@ class SolicitudInsumoController extends Controller
     {
         return DB::transaction(function () use ($request, $solicitud) {
             $this->bloquear($solicitud, 'aprobado');
+            if (! $solicitud->puedeEntregarse()) {
+                throw ValidationException::withMessages(['operacion' => 'Primero debes validar el pago del aporte y la garantía.']);
+            }
             $datos = $request->validate([
                 'fecha_entrega' => ['required', 'date_format:Y-m-d', 'after_or_equal:'.$solicitud->created_at->toDateString(), 'before_or_equal:today', 'before_or_equal:'.$solicitud->fecha_comprometida->toDateString()],
                 'condiciones' => ['required', 'array', 'size:'.$solicitud->lineas->count()],
@@ -203,6 +224,54 @@ class SolicitudInsumoController extends Controller
             if ($garantia?->estado === 'recibida') $garantia->update(['estado' => 'por_devolver']);
             return back()->withInput($request->only('operacion'))->with('status', 'Devolución completa registrada. Las unidades dañadas quedan fuera de servicio.');
         });
+    }
+
+    public function adjuntarPago(Request $request, SolicitudInsumo $solicitud)
+    {
+        $this->autorizarConsulta($request, $solicitud);
+        $datos = $request->validate([
+            'fecha_pago' => ['required', 'date_format:Y-m-d', 'after_or_equal:'.$solicitud->created_at->toDateString(), 'before_or_equal:today'],
+            'medio_pago' => ['required', Rule::in(array_keys(\App\Models\Ingreso::MEDIOS))],
+            'talonario' => ['nullable', 'required_if:medio_pago,efectivo', 'string', 'max:30'],
+            'numero_transaccion' => ['nullable', 'string', 'max:50'],
+            'comprobante' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+        ]);
+        return DB::transaction(function () use ($request, $solicitud, $datos) {
+            $this->bloquear($solicitud, 'aprobado');
+            if (! $solicitud->requierePago() || $solicitud->pago_validado_en) {
+                throw ValidationException::withMessages(['pago' => 'Esta operación no admite un nuevo comprobante.']);
+            }
+            $datos['comprobante_path'] = $request->file('comprobante')->store('comprobantes/insumos', 'local');
+            unset($datos['comprobante']);
+            $datos['talonario'] = $datos['medio_pago'] === 'efectivo' ? $datos['talonario'] : null;
+            $datos['numero_transaccion'] = $datos['medio_pago'] === 'transferencia' ? ($datos['numero_transaccion'] ?? null) : null;
+            $solicitud->update($datos);
+            return back()->withInput($request->only('operacion'))->with('status', 'Comprobante guardado. Pendiente de validación por presidente o secretario.');
+        });
+    }
+
+    public function validarPago(Request $request, SolicitudInsumo $solicitud)
+    {
+        $request->validate(['pago_verificado' => ['accepted']]);
+        return DB::transaction(function () use ($request, $solicitud) {
+            $this->bloquear($solicitud, 'aprobado');
+            if (! $solicitud->requierePago() || $solicitud->pago_validado_en || ! $solicitud->comprobante_path || ! $solicitud->fecha_pago) {
+                throw ValidationException::withMessages(['pago' => 'Debe existir un comprobante pendiente de validar.']);
+            }
+            $solicitud->update(['pago_validado_en' => now(), 'pago_validado_por' => $request->user()->id]);
+            if ($solicitud->canal === 'ventanilla' && $request->boolean('entregar_ahora')) {
+                $this->entregar($request, $solicitud);
+                return back()->withInput($request->only('operacion'))->with('status', 'Pago validado y entrega registrada. El ingreso queda pendiente en Finanzas.');
+            }
+            return back()->withInput($request->only('operacion'))->with('status', 'Pago validado. Puedes registrar la entrega; el ingreso se aprobará por separado en Finanzas.');
+        });
+    }
+
+    public function comprobante(Request $request, SolicitudInsumo $solicitud)
+    {
+        if (! $request->user()->hasRole('presidente', 'tesorero')) $this->autorizarConsulta($request, $solicitud);
+        abort_unless($solicitud->comprobante_path && Storage::disk('local')->exists($solicitud->comprobante_path), 404);
+        return Storage::disk('local')->response($solicitud->comprobante_path, null, ['Cache-Control' => 'private, no-store']);
     }
 
     private function bloquear(SolicitudInsumo $solicitud, string $estado): void

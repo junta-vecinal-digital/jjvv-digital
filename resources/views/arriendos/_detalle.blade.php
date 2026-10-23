@@ -7,7 +7,7 @@
 @if ($esDirigente && $reserva->aporte_variable && $reserva->estado === 'pendiente')
     <aside class="ui-notice" aria-label="Siguiente paso">
         <h2 class="font-semibold">Siguiente paso</h2>
-        <p class="mt-1">{{ $reserva->valor_arriendo === null ? 'Define el aporte y la garantía acordados en el formulario de abajo.' : (($reserva->valor_arriendo > 0 || $reserva->valor_garantia > 0) && ! $reserva->comprobante_arriendo_path ? 'Falta el comprobante del aporte. Revisa el canal de la solicitud para saber quién debe adjuntarlo.' : 'Revisa los antecedentes y utiliza el formulario de confirmación de más abajo.') }}</p>
+        <p class="mt-1">{{ $reserva->valor_arriendo === null ? 'Define el aporte y la garantía acordados en el formulario de abajo.' : (($reserva->valor_arriendo > 0 || $reserva->valor_garantia > 0) && ! $reserva->comprobante_arriendo_path && ! $reserva->numero_transaccion ? 'Falta registrar el número de transacción del aporte.' : 'Revisa los antecedentes y utiliza el formulario de confirmación de más abajo.') }}</p>
     </aside>
 @endif
 <section class="ui-panel p-6 space-y-4">
@@ -25,7 +25,7 @@
     @if ($reserva->tipo !== 'arriendo')
         <p>Actividad: {{ $reserva->motivo }} · Sin aporte</p>
     @elseif ($reserva->aporte_variable)
-        <p class="font-semibold">Aporte voluntario: {{ $reserva->valor_arriendo === null ? 'Pendiente de definir por presidente o secretario' : ($reserva->valor_arriendo == 0 ? '$0 · Reserva sin aporte' : '$'.number_format($reserva->valor_arriendo, 0, ',', '.')) }}</p>
+        <p class="font-semibold">Aporte: {{ $reserva->valor_arriendo === null ? 'Pendiente de definir por presidente o secretario' : ($reserva->valor_arriendo == 0 ? '$0 · Reserva sin aporte' : '$'.number_format($reserva->valor_arriendo, 0, ',', '.')) }}</p>
     @else
         <p>Arriendo histórico: ${{ number_format($reserva->valor_arriendo, 0, ',', '.') }} · Garantía: ${{ number_format($reserva->valor_garantia, 0, ',', '.') }}</p>
         <p class="font-semibold">Total: ${{ number_format($reserva->valor_arriendo + $reserva->valor_garantia, 0, ',', '.') }}</p>
@@ -39,6 +39,7 @@
     @if ($reserva->garantia)
         <p>Garantía: {{ \App\Models\Garantia::ESTADOS[$reserva->garantia->estado] }}</p>
     @endif
+    <p>Número de transacción: {{ $reserva->numero_transaccion ?? 'Sin registrar' }}</p>
     @if ($reserva->comprobante_arriendo_path)
         <a class="underline" href="{{ route('arriendos.comprobante', $reserva) }}" target="_blank" rel="noopener">Ver comprobante del total</a>
     @endif
@@ -49,7 +50,7 @@
         <input type="hidden" name="operacion" value="{{ $operacion }}">
         <h3 class="text-lg font-semibold">Definir aporte y garantía</h3>
         <p>Ingresa el monto acordado con el solicitante. $0 corresponde a una reserva sin aporte. El monto se fija una sola vez.</p>
-        <x-input-label for="valor_arriendo_{{ $reserva->id }}" value="Aporte voluntario acordado (CLP)" />
+        <x-input-label for="valor_arriendo_{{ $reserva->id }}" value="Aporte acordado (CLP)" />
         <x-text-input id="valor_arriendo_{{ $reserva->id }}" name="valor_arriendo" type="number" :value="$valor('valor_arriendo', 0)" min="0" max="4294967295" step="1" required />
         <x-input-error :messages="$errors->get('valor_arriendo')" />
         <x-input-label for="garantia_reserva_{{ $reserva->id }}" value="Garantía acordada (CLP)" />
@@ -58,26 +59,25 @@
         <x-primary-button>Definir aporte y garantía</x-primary-button>
     </form>
 @endif
-@if ($reserva->aporte_variable && $reserva->estado === 'pendiente' && ($reserva->valor_arriendo > 0 || $reserva->valor_garantia > 0) && ! $reserva->comprobante_arriendo_path && ($reserva->canal === 'ventanilla' ? $esDirigente : (auth()->user()->esSocioActivo() && $reserva->socio_id === auth()->user()->socio->id)))
-    <form class="ui-panel p-6 space-y-4" method="POST" enctype="multipart/form-data" action="{{ route('arriendos.comprobante.store', $reserva) }}">
+@if ($reserva->aporte_variable && $reserva->estado === 'pendiente' && ($reserva->valor_arriendo > 0 || $reserva->valor_garantia > 0) && ! $reserva->comprobante_arriendo_path && ! $reserva->numero_transaccion && ($reserva->canal === 'ventanilla' ? $esDirigente : (auth()->user()->esSocioActivo() && $reserva->socio_id === auth()->user()->socio->id)))
+    <form class="ui-panel p-6 space-y-4" method="POST" action="{{ route('arriendos.comprobante.store', $reserva) }}">
         @csrf
         <input type="hidden" name="operacion" value="{{ $operacion }}">
-        <h3 class="text-lg font-semibold">{{ $reserva->canal === 'ventanilla' ? 'Registrar comprobante recibido en ventanilla' : 'Adjuntar comprobante del aporte' }}</h3>
-        <x-input-label for="comprobante_{{ $reserva->id }}" value="Comprobante del total recibido" />
-        <x-file-input id="comprobante_{{ $reserva->id }}" name="comprobante" accept="application/pdf,image/jpeg,image/png" required />
-        <p>PDF, JPG o PNG, máximo 5 MB. El plazo de confirmación se mantiene.</p>
-        <x-input-error :messages="$errors->get('comprobante')" />
-        <x-primary-button>Adjuntar comprobante</x-primary-button>
+        <x-datos-transferencia :monto="$reserva->valor_arriendo + $reserva->valor_garantia" />
+        <x-input-label :for="'transaccion_'.$reserva->id" value="Número de transacción" />
+        <x-text-input :id="'transaccion_'.$reserva->id" name="numero_transaccion" maxlength="50" :value="$valor('numero_transaccion')" required />
+        <x-input-error :messages="$errors->get('numero_transaccion')" />
+        <x-primary-button>Guardar número de transacción</x-primary-button>
     </form>
 @endif
 @if ($volverFinanzas) @include('finanzas._garantia', ['garantia' => $reserva->garantia, 'esFinanciero' => $esFinanciero]) @endif
-@if ($esDirigente && $reserva->tipo === 'arriendo' && $reserva->estado === 'pendiente' && (! $reserva->aporte_variable || ($reserva->valor_arriendo !== null && (($reserva->valor_arriendo == 0 && $reserva->valor_garantia <= 0) || $reserva->comprobante_arriendo_path))))
+@if ($esDirigente && $reserva->tipo === 'arriendo' && $reserva->estado === 'pendiente' && (! $reserva->aporte_variable || ($reserva->valor_arriendo !== null && (($reserva->valor_arriendo == 0 && $reserva->valor_garantia <= 0) || $reserva->comprobante_arriendo_path || $reserva->numero_transaccion))))
     <form class="ui-panel p-6 space-y-4" method="POST" action="{{ route('arriendos.confirmar', $reserva) }}">
         @csrf
         <input type="hidden" name="operacion" value="{{ $operacion }}">
         <h3 class="text-lg font-semibold">Confirmar reserva</h3>
         @if (! $reserva->aporte_variable || $reserva->valor_arriendo > 0)
-            <p>Revisa el comprobante y verifica el aporte recibido antes de confirmar.</p>
+            <p>Revisa la transacción y verifica el aporte recibido antes de confirmar.</p>
             <label class="flex gap-2"><input type="checkbox" name="pago_verificado" value="1" required @checked($valor('pago_verificado'))> Aporte verificado</label>
             <x-input-error :messages="$errors->get('pago_verificado')" />
         @else
@@ -90,7 +90,7 @@
         <x-primary-button>Confirmar reserva</x-primary-button>
     </form>
 @endif
-@if ($esDirigente && in_array($reserva->estado, \App\Models\Reserva::ESTADOS_OCUPAN, true))
+@if (($esDirigente || (auth()->user()->esSocioActivo() && $reserva->socio_id === auth()->user()->socio->id)) && in_array($reserva->estado, \App\Models\Reserva::ESTADOS_OCUPAN, true))
     <form method="POST" action="{{ route('reservas.cancelar', $reserva) }}" onsubmit="return confirm('¿Cancelar la reserva y liberar el horario? Si hay garantía recibida, quedará por devolver.')">
         @csrf
         <input type="hidden" name="operacion" value="{{ $operacion }}">

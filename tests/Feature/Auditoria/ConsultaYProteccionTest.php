@@ -8,9 +8,12 @@ use App\Models\Garantia;
 use App\Models\Ingreso;
 use App\Models\Socio;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 
 beforeEach(function () {
+    Storage::fake('local');
     $this->withoutVite();
     $this->travelTo(Carbon::parse('2026-10-17 10:00:00'));
     $this->presidenteAuditoria = User::factory()->create(['role' => 'presidente']);
@@ -106,6 +109,7 @@ test('un ingreso y su anulación guardan fecha IP autor real y cambios antes y d
         ->post(route('ingresos.store'), [
             'concepto' => 'cuota_socios', 'tipo_cuota' => 'ordinaria', 'monto' => 5000,
             'fecha_pago' => '2026-10-17', 'medio_pago' => 'efectivo', 'talonario' => 'T-AUDITORIA',
+            'comprobante' => UploadedFile::fake()->create('pago.pdf', 10, 'application/pdf'),
             'registrado_por' => $this->presidenteAuditoria->id,
         ])->assertSessionHasNoErrors();
     $ingreso = Ingreso::sole();

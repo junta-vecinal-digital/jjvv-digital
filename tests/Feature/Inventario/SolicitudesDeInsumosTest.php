@@ -10,9 +10,12 @@ use App\Models\SolicitudInsumo;
 use App\Models\TipoInsumo;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
     $this->withoutVite();
+    Storage::fake('local');
     $this->travelTo(Carbon::parse('2026-10-17 10:00:00'));
     $this->directivaInsumos = User::factory()->create(['role' => 'presidente']);
     $this->vecinoInsumos = User::factory()->create(['role' => 'vecino']);
@@ -35,15 +38,22 @@ function datosSolicitudInsumos(ItemInventario $sillas, ItemInventario $mesas, ar
     ], $cambios);
 }
 
-function aprobarSolicitudInsumos($caso, SolicitudInsumo $solicitud, User $dirigente): void
+function aprobarSolicitudInsumos($caso, SolicitudInsumo $solicitud, User $dirigente, int $monto = 7000, int $garantia = 12000): void
 {
     $caso->actingAs($dirigente)->post(route('insumos.aprobar', $solicitud), [
-        'responsable_id' => $dirigente->id, 'monto' => 7000, 'garantia' => 12000, 'fecha_comprometida' => '2026-10-20',
+        'responsable_id' => $dirigente->id, 'monto' => $monto, 'garantia' => $garantia,
     ])->assertSessionHasNoErrors();
 }
 
 function entregarSolicitudInsumos($caso, SolicitudInsumo $solicitud): void
 {
+    if ($solicitud->fresh()->requierePago()) {
+        $caso->post(route('insumos.pago', $solicitud), [
+            'fecha_pago' => today()->toDateString(), 'medio_pago' => 'transferencia',
+            'comprobante' => UploadedFile::fake()->create('pago.pdf', 10, 'application/pdf'),
+        ])->assertSessionHasNoErrors();
+        $caso->post(route('insumos.validar-pago', $solicitud), ['pago_verificado' => 1])->assertSessionHasNoErrors();
+    }
     $caso->post(route('insumos.entregar', $solicitud), [
         'fecha_entrega' => now()->toDateString(), 'condiciones' => $solicitud->lineas->mapWithKeys(fn ($l) => [$l->id => 'bueno'])->all(),
     ])->assertSessionHasNoErrors();
@@ -84,29 +94,32 @@ test('vecino sin ficha activa no solicita y no obtiene acceso por representar un
     $this->post(route('insumos.store'), datosSolicitudInsumos($this->sillasInsumos, $this->mesasInsumos))->assertForbidden();
 })->with(['inactivo', 'pendiente', 'por_firmar']);
 
-test('ventanilla exige representante vigente y conserva sus datos sin crear ficha ni cuenta', function () {
+test('ventanilla aprueba al representante externo con agrupación explícita sin crear ficha ni cuenta', function () {
     $grupo = Grupo::create(['nombre' => 'Grupo externo', 'representante_nombre' => 'Representante externo', 'representante_rut' => '11111111-1']);
     $usuarios = User::count();
-    $this->actingAs($this->directivaInsumos)->post(route('insumos.store'), datosSolicitudInsumos($this->sillasInsumos, $this->mesasInsumos, [
-        'solicitante' => 'grupo:'.$grupo->id,
-    ]))->assertSessionHasNoErrors();
+    $datos = datosSolicitudInsumos($this->sillasInsumos, $this->mesasInsumos, [
+        'solicitante' => 'grupo:'.$grupo->id, 'grupo_id' => $grupo->id, 'monto' => 0, 'garantia' => 0,
+    ]);
+    $this->actingAs($this->directivaInsumos)->post(route('insumos.store'), $datos)->assertSessionHasNoErrors();
     $solicitud = SolicitudInsumo::sole();
     expect($solicitud->solicitante_nombre)->toBe('Representante externo')->and($solicitud->grupo_id)->toBe($grupo->id)
-        ->and($solicitud->solicitante_id)->toBeNull()->and($solicitud->socio_id)->toBeNull()->and(User::count())->toBe($usuarios);
+        ->and($solicitud->estado)->toBe('aprobado')->and($solicitud->solicitante_id)->toBeNull()
+        ->and($solicitud->socio_id)->toBeNull()->and(User::count())->toBe($usuarios);
     $grupo->update(['representante_nombre' => null]);
-    $this->post(route('insumos.aprobar', $solicitud), [
-        'responsable_id' => $this->directivaInsumos->id, 'monto' => 0, 'garantia' => 0, 'fecha_comprometida' => '2026-10-20',
-    ])->assertSessionHasErrors('operacion');
-    expect($solicitud->fresh()->estado)->toBe('pendiente');
+    $this->post(route('insumos.store'), $datos)->assertSessionHasErrors('solicitante');
+    $this->assertDatabaseCount('solicitudes_insumos', 1);
 });
 
-test('representante con varias agrupaciones debe elegir una propia y no puede ocultarla', function () {
+test('representante puede solicitar para sí o elegir una agrupación propia pero nunca una ajena', function () {
     $grupos = collect(['Grupo uno', 'Grupo dos'])->map(fn ($nombre) => Grupo::create(['nombre' => $nombre, 'representante_id' => $this->fichaInsumos->id]));
+    $ajeno = Grupo::create(['nombre' => 'Grupo ajeno', 'representante_nombre' => 'Otra persona', 'representante_rut' => '11111111-1']);
     $datos = datosSolicitudInsumos($this->sillasInsumos, $this->mesasInsumos);
-    $this->post(route('insumos.store'), $datos)->assertSessionHasErrors('grupo_id');
-    $this->post(route('insumos.store'), $datos + ['grupo_id' => 999999])->assertSessionHasErrors('grupo_id');
+    $this->post(route('insumos.store'), $datos)->assertSessionHasNoErrors();
+    expect(SolicitudInsumo::sole()->grupo_id)->toBeNull();
+    $this->post(route('insumos.store'), $datos + ['grupo_id' => $ajeno->id])->assertSessionHasErrors('grupo_id');
     $this->post(route('insumos.store'), $datos + ['grupo_id' => $grupos->first()->id])->assertSessionHasNoErrors();
-    expect(SolicitudInsumo::sole()->grupo_nombre)->toBe('Grupo uno');
+    expect(SolicitudInsumo::latest('id')->first()->grupo_nombre)->toBe('Grupo uno');
+    $this->assertDatabaseCount('solicitudes_insumos', 2);
 });
 
 test('validación impide cantidades inválidas ítems repetidos y existencias fuera del catálogo', function (string $caso) {
@@ -142,7 +155,7 @@ test('aprobar reserva todos los insumos y rechaza una segunda solicitud sin rese
 test('solo directiva gestiona y solo el titular consulta sus solicitudes', function () {
     $this->post(route('insumos.store'), datosSolicitudInsumos($this->sillasInsumos, $this->mesasInsumos))->assertSessionHasNoErrors();
     $solicitud = SolicitudInsumo::sole();
-    foreach (['aprobar', 'entregar', 'devolver'] as $accion) $this->post(route('insumos.'.$accion, $solicitud))->assertForbidden();
+    foreach (['aprobar', 'entregar', 'devolver', 'validar-pago'] as $accion) $this->post(route('insumos.'.$accion, $solicitud))->assertForbidden();
     $tesorero = User::factory()->create(['role' => 'tesorero']);
     $this->actingAs($tesorero)->get(route('insumos.show', $solicitud))->assertForbidden();
     $this->get(route('inventario.index'))->assertForbidden();
@@ -173,20 +186,20 @@ test('entrega no descuenta dos veces y devolución completa libera solo unidades
     $this->get(route('insumos.show', $solicitud))->assertOk();
 });
 
-test('horarios y puntos rojos muestran pendientes y atrasos solo a la directiva', function () {
+test('horarios y puntos verdes muestran pendientes y atrasos solo a la directiva', function () {
     HorarioAtencion::create(['dia_semana' => 1, 'hora_inicio' => '10:00', 'hora_fin' => '12:00']);
     $this->get(route('insumos.index'))->assertOk()->assertSee('Lunes: 10:00 a 12:00');
     $this->post(route('insumos.store'), datosSolicitudInsumos($this->sillasInsumos, $this->mesasInsumos))->assertSessionHasNoErrors();
     $solicitud = SolicitudInsumo::sole();
-    $this->actingAs($this->directivaInsumos)->get(route('dashboard'))->assertSee('Hay solicitudes pendientes de revisión');
-    aprobarSolicitudInsumos($this, $solicitud, $this->directivaInsumos);
+    $this->actingAs($this->directivaInsumos)->get(route('dashboard'))->assertSee('Hay operaciones pendientes de revisión');
+    aprobarSolicitudInsumos($this, $solicitud, $this->directivaInsumos, 0, 0);
     entregarSolicitudInsumos($this, $solicitud);
-    $this->get(route('dashboard'))->assertDontSee('Hay solicitudes pendientes de revisión');
+    $this->get(route('dashboard'))->assertDontSee('Hay operaciones pendientes de revisión');
     $this->travelTo(Carbon::parse('2026-10-21 10:00:00'));
     expect($solicitud->fresh()->atrasado())->toBeTrue();
-    $this->get(route('dashboard'))->assertSee('Hay solicitudes pendientes de revisión');
+    $this->get(route('dashboard'))->assertSee('Hay operaciones pendientes de revisión');
     $this->actingAs($this->vecinoInsumos)->get(route('insumos.show', $solicitud))->assertOk()->assertSee('Atrasado')
-        ->assertDontSee('Hay solicitudes pendientes de revisión');
+        ->assertDontSee('Hay operaciones pendientes de revisión');
 });
 
 test('la aprobación no acepta montos negativos', function (array $cambios, string $campo) {
@@ -217,3 +230,59 @@ test('entregas duplicadas y devoluciones inválidas no modifican unidades ni cie
     expect($solicitud->fresh()->estado)->toBe('entregado')->and(Prestamo::whereNotNull('fecha_devolucion')->count())->toBe(0)
         ->and(Prestamo::count())->toBe(2)->and($this->sillasInsumos->fresh()->disponibles())->toBe(2);
 })->with(['daños excesivos', 'daños sin estado', 'futura', 'anterior']);
+
+test('secretario valida el pago y entrega sin esperar el registro contable', function (bool $ventanilla, int $aporte, int $garantia) {
+    $secretario = User::factory()->create(['role' => 'secretario']);
+    $datos = datosSolicitudInsumos($this->sillasInsumos, $this->mesasInsumos);
+    if ($ventanilla) $datos += [
+        'solicitante' => 'manual', 'solicitante_nombre' => 'Vecino sin cuenta', 'solicitante_rut' => '11111111-1',
+        'direccion_contacto' => 'Calle 456', 'monto' => $aporte, 'garantia' => $garantia,
+    ];
+    $this->actingAs($ventanilla ? $secretario : $this->vecinoInsumos)->post(route('insumos.store'), $datos)->assertSessionHasNoErrors();
+    $solicitud = SolicitudInsumo::sole();
+    if (! $ventanilla) aprobarSolicitudInsumos($this, $solicitud, $secretario, $aporte, $garantia);
+    $entrega = ['fecha_entrega' => '2026-10-17', 'condiciones' => $solicitud->lineas->mapWithKeys(fn ($l) => [$l->id => 'bueno'])->all()];
+    $this->actingAs($secretario)->post(route('insumos.entregar', $solicitud), $entrega)->assertSessionHasErrors('operacion');
+    $this->actingAs($this->directivaInsumos)->post(route('finanzas.insumos.registrar', $solicitud))->assertSessionHasErrors('finanzas');
+    $this->actingAs($ventanilla ? $secretario : $this->vecinoInsumos)->post(route('insumos.pago', $solicitud), [
+        'fecha_pago' => '2026-10-17', 'medio_pago' => 'transferencia',
+        'comprobante' => UploadedFile::fake()->create('total.pdf', 10, 'application/pdf'),
+    ])->assertSessionHasNoErrors();
+    $this->actingAs($secretario)->post(route('insumos.entregar', $solicitud), $entrega)->assertSessionHasErrors('operacion');
+    $this->post(route('insumos.validar-pago', $solicitud), [])->assertSessionHasErrors('pago_verificado');
+    $validacion = ['pago_verificado' => 1];
+    if ($ventanilla) $validacion += $entrega + ['entregar_ahora' => 1];
+    $this->post(route('insumos.validar-pago', $solicitud), $validacion)->assertSessionHasNoErrors();
+    expect($solicitud->fresh()->pago_validado_por)->toBe($secretario->id)->and($solicitud->pago_registrado_en)->toBeNull();
+    if (! $ventanilla) $this->post(route('insumos.entregar', $solicitud), $entrega)->assertSessionHasNoErrors();
+    expect($solicitud->fresh()->estado)->toBe('entregado')->and($this->sillasInsumos->fresh()->disponibles())->toBe(2);
+    $this->assertDatabaseCount('ingresos', 0);
+    $this->post(route('finanzas.insumos.registrar', $solicitud))->assertForbidden();
+    $this->get(route('ingresos.index'))->assertForbidden();
+    $this->actingAs($this->directivaInsumos)->get(route('dashboard'))->assertOk()->assertSee('Hay operaciones pendientes de revisión')->assertSee('bg-brand-600', false);
+    $this->post(route('finanzas.insumos.registrar', $solicitud))->assertSessionHasNoErrors();
+    expect(Ingreso::saldoCaja())->toBe($aporte);
+    $this->assertDatabaseCount('ingresos', $aporte > 0 ? 1 : 0);
+    $this->assertDatabaseCount('garantias', $garantia > 0 ? 1 : 0);
+    $this->get(route('dashboard'))->assertOk()->assertDontSee('Hay operaciones pendientes de revisión');
+})->with([false, true])->with([[7000, 0], [0, 12000]]);
+
+test('ventanilla gratuita permite registrar entrega y devolución sin pago ni ingreso', function (string $rol) {
+    $dirigente = User::factory()->create(['role' => $rol]);
+    $this->actingAs($dirigente)->post(route('insumos.store'), datosSolicitudInsumos($this->sillasInsumos, $this->mesasInsumos, [
+        'solicitante' => 'manual', 'solicitante_nombre' => 'Vecino sin cuenta', 'solicitante_rut' => '11111111-1',
+        'direccion_contacto' => 'Calle 456', 'monto' => 0, 'garantia' => 0, 'entregar_ahora' => 1,
+        'estados_salida' => [$this->sillasInsumos->id => 'desgaste', $this->mesasInsumos->id => 'bueno'],
+    ]))->assertSessionHasNoErrors();
+    $solicitud = SolicitudInsumo::sole();
+    expect($solicitud->estado)->toBe('entregado')->and($solicitud->pago_validado_en)->toBeNull()
+        ->and($solicitud->lineas->firstWhere('item_inventario_id', $this->sillasInsumos->id)->prestamo->estado_salida)->toBe('desgaste');
+    $this->post(route('insumos.devolver', $solicitud), [
+        'fecha_devolucion' => '2026-10-17',
+        'devoluciones' => $solicitud->lineas->mapWithKeys(fn ($l) => [$l->id => ['estado_regreso' => 'bueno', 'cantidad_danada' => 0]])->all(),
+    ])->assertSessionHasNoErrors();
+    expect($solicitud->fresh()->estado)->toBe('devuelto')->and($this->sillasInsumos->fresh()->disponibles())->toBe(5);
+    $this->assertDatabaseCount('ingresos', 0);
+    $this->assertDatabaseCount('garantias', 0);
+    expect(Storage::disk('local')->allFiles())->toBe([]);
+})->with(['presidente', 'secretario']);

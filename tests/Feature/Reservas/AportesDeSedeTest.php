@@ -10,6 +10,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
+    $this->withoutVite();
     Storage::fake('local');
     $this->travelTo(now()->startOfDay()->addHours(8));
     $this->directivaAporte = User::factory()->create(['role' => 'presidente']);
@@ -109,16 +110,16 @@ test('reserva gratuita de ventanilla confirma sin pago ni garantía y nunca gene
     $this->assertDatabaseCount('ingresos', 0);
 })->with(['presidente', 'secretario']);
 
-test('aporte positivo requiere comprobante y verificación y finanzas usa el monto guardado', function (string $rol) {
+test('aporte positivo requiere transacción y verificación y finanzas usa el monto guardado', function (string $rol) {
     $reserva = pendienteSedeAporte($this->socioAporte);
     $this->post(route('arriendos.confirmar', $reserva))->assertSessionHasErrors('arriendo');
     $this->post(route('arriendos.aporte', $reserva), ['valor_arriendo' => 17500])->assertSessionHasNoErrors();
     $this->post(route('arriendos.confirmar', $reserva), ['pago_verificado' => 1])->assertSessionHasErrors('arriendo');
     $this->actingAs($this->socioAporte->user)->post(route('arriendos.comprobante.store', $reserva), [
-        'comprobante' => UploadedFile::fake()->create('aporte.pdf', 10, 'application/pdf'), 'valor_arriendo' => 1,
+        'numero_transaccion' => 'TRX-APORTE-17500', 'valor_arriendo' => 1,
     ])->assertSessionHasNoErrors();
-    Storage::disk('local')->assertExists($reserva->fresh()->comprobante_arriendo_path);
-    $this->get(route('arriendos.comprobante', $reserva))->assertOk();
+    expect($reserva->fresh()->numero_transaccion)->toBe('TRX-APORTE-17500')->and($reserva->comprobante_arriendo_path)->toBeNull();
+    $this->get(route('arriendos.comprobante', $reserva))->assertNotFound();
     $this->actingAs($this->directivaAporte)->post(route('arriendos.confirmar', $reserva))->assertSessionHasErrors('pago_verificado');
     $this->post(route('arriendos.confirmar', $reserva), ['pago_verificado' => 1])->assertSessionHasNoErrors();
     $this->assertDatabaseCount('garantias', 0);
@@ -130,7 +131,7 @@ test('aporte positivo requiere comprobante y verificación y finanzas usa el mon
     expect($ingreso->concepto)->toBe('aporte_reserva')->and($ingreso->monto)->toBe(17500)
         ->and($ingreso->tipo_cuota)->toBeNull()->and(Ingreso::saldoCaja())->toBe(17500);
     $this->get(route('arriendos.show', ['reserva' => $reserva, 'desde' => 'finanzas']))->assertOk()->assertViewHas('volverFinanzas', true);
-    $this->get(route('ingresos.index'))->assertOk()->assertSee('Aporte voluntario por reserva de sede');
+    $this->get(route('ingresos.index'))->assertOk()->assertSee(Ingreso::CONCEPTOS['aporte_reserva']);
     $this->post(route('finanzas.arriendos.registrar', $reserva), $pago)->assertSessionHasErrors('finanzas');
     $this->post(route('ingresos.anular', $ingreso), ['motivo_anulacion' => 'Error de registro'])->assertSessionHasNoErrors();
     $this->post(route('finanzas.arriendos.registrar', $reserva), $pago)->assertSessionHasNoErrors();
@@ -143,7 +144,7 @@ test('otro vecino no consulta ni adjunta comprobante a una reserva ajena', funct
     $this->actingAs($usuario)->get(route('arriendos.show', $reserva))->assertForbidden();
     $this->get(route('arriendos.comprobante', $reserva))->assertForbidden();
     $this->post(route('arriendos.comprobante.store', $reserva), [
-        'comprobante' => UploadedFile::fake()->create('ajeno.pdf', 10, 'application/pdf'),
+        'numero_transaccion' => 'TRX-AJENA',
     ])->assertForbidden();
     expect(Storage::disk('local')->allFiles())->toBe([]);
 });
@@ -159,12 +160,14 @@ test('no admite comprobantes sin importe gratuitos vencidos cancelados confirmad
         Storage::disk('local')->put('comprobantes/arriendos/original.pdf', 'original');
         $reserva->update(['comprobante_arriendo_path' => 'comprobantes/arriendos/original.pdf']);
     }
+    if ($caso === 'transacción duplicada') $reserva->update(['numero_transaccion' => 'TRX-ORIGINAL']);
     $archivos = Storage::disk('local')->allFiles();
     $this->post(route('arriendos.comprobante.store', $reserva), [
-        'comprobante' => UploadedFile::fake()->create('nuevo.pdf', 10, 'application/pdf'),
+        'numero_transaccion' => 'TRX-NUEVA',
     ])->assertSessionHasErrors('arriendo');
     expect(Storage::disk('local')->allFiles())->toBe($archivos);
-})->with(['sin definir', 'gratuita', 'vencida', 'cancelada', 'confirmada', 'duplicado']);
+    if ($caso === 'transacción duplicada') expect($reserva->fresh()->numero_transaccion)->toBe('TRX-ORIGINAL');
+})->with(['sin definir', 'gratuita', 'vencida', 'cancelada', 'confirmada', 'duplicado', 'transacción duplicada']);
 
 test('pendiente sin aporte bloquea horario y al vencer no acepta importe ni confirmación', function () {
     $reserva = pendienteSedeAporte($this->socioAporte);
@@ -206,7 +209,7 @@ test('no permite redefinir importes ni reemplazar comprobantes históricos', fun
     $this->post(route('arriendos.aporte', $reserva), ['valor_arriendo' => 0])->assertSessionHasErrors('arriendo');
     $this->actingAs($this->socioAporte->user);
     $this->post(route('arriendos.comprobante.store', $reserva), [
-        'comprobante' => UploadedFile::fake()->create('nuevo.pdf', 10, 'application/pdf'),
+        'numero_transaccion' => 'TRX-NUEVA',
     ])->assertSessionHasErrors('arriendo');
     expect($reserva->fresh()->valor_arriendo)->toBe(40000)->and($reserva->valor_garantia)->toBe(40000);
     expect(Storage::disk('local')->allFiles())->toBe([]);

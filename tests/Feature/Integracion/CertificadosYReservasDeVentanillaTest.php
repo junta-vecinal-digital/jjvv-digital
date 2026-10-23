@@ -6,10 +6,10 @@ use App\Models\Ingreso;
 use App\Models\Reserva;
 use App\Models\Socio;
 use App\Models\User;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
+    $this->withoutVite();
     Storage::fake('local');
     $this->presidente4 = User::factory()->create(['role' => 'presidente']);
     $usuario = User::factory()->create(['role' => 'vecino']);
@@ -28,7 +28,7 @@ function arriendoManualBloque4(array $cambios = []): array
         'responsable_rut' => '11.111.111-1', 'responsable_direccion' => 'Pasaje Vecinal 456',
         'responsable_telefono' => '987654321', 'fecha' => now()->addDay()->toDateString(),
         'hora_inicio' => '10:00', 'hora_fin' => '11:00', 'valor_arriendo' => 40000, 'valor_garantia' => 40000,
-        'comprobante' => UploadedFile::fake()->create('total.pdf', 100, 'application/pdf'),
+        'numero_transaccion' => 'TRX-SEDE-VENTANILLA',
     ], $cambios);
 }
 
@@ -87,7 +87,6 @@ test('residencia conserva la revisión de pago y su disponibilidad para el titul
     $this->actingAs($this->socio4->user)->post(route('certificados.store'), [
         'tipo' => 'residencia', 'nombre_solicitante' => 'Socio Activo', 'rut_solicitante' => $this->socio4->rut,
         'direccion' => $this->socio4->direccion, 'dirigido_a' => 'Banco', 'numero_transaccion' => 'TRX-4',
-        'comprobante' => UploadedFile::fake()->create('pago.pdf', 100, 'application/pdf'),
     ])->assertSessionHasNoErrors();
     $certificado = Certificado::sole();
     expect($certificado->estado)->toBe('solicitado');
@@ -95,7 +94,10 @@ test('residencia conserva la revisión de pago y su disponibilidad para el titul
         'nombre_solicitante' => 'Socio Activo', 'rut_solicitante' => $this->socio4->rut, 'direccion' => $this->socio4->direccion,
         'dirigido_a' => 'Banco', 'documentos_verificados' => 1, 'pago_verificado' => 1,
     ])->assertSessionHasNoErrors();
-    expect($certificado->fresh()->solo_impresion)->toBeFalse()->and(Ingreso::sole()->concepto)->toBe('certificados');
+    expect($certificado->fresh()->solo_impresion)->toBeFalse();
+    $this->assertDatabaseCount('ingresos', 0);
+    $this->post(route('ingresos.certificados.registrar', $certificado))->assertSessionHasNoErrors();
+    expect(Ingreso::sole()->concepto)->toBe('certificados');
     $this->actingAs($this->socio4->user)->get(route('certificados.descargar', $certificado))->assertOk();
 });
 
@@ -108,7 +110,7 @@ test('reserva de no socio en ventanilla registra el aporte sin garantía ni crea
         ->and($reserva->responsable_rut)->toBe('11111111-1')->and($reserva->canal)->toBe('ventanilla')
         ->and($reserva->estado)->toBe('pendiente')->and(User::count())->toBe($usuariosAntes);
     $this->assertDatabaseCount('socios', 1);
-    Storage::disk('local')->assertExists($reserva->comprobante_arriendo_path);
+    expect($reserva->numero_transaccion)->toBe('TRX-SEDE-VENTANILLA')->and($reserva->comprobante_arriendo_path)->toBeNull();
     $this->get(route('arriendos.show', $reserva))->assertOk()->assertViewHas('volverFinanzas', false);
     $this->post(route('arriendos.confirmar', $reserva), ['pago_verificado' => 1, 'garantia_verificada' => 1])->assertSessionHasNoErrors();
     $this->actingAs(User::factory()->create(['role' => 'tesorero']))->post(route('finanzas.arriendos.registrar', $reserva), [
